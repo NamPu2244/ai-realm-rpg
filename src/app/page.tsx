@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useGameStore } from "@/store/useGameStore";
+import { useGameStore, WorldConfig, ChatLog } from "@/store/useGameStore";
+import WorldCreationMenu from "@/components/WorldCreationMenu";
 
 // 1. ฟังก์ชันสกัด JSON
 function extractAndParseJSON(rawAiResponse: string) {
@@ -24,9 +25,12 @@ export default function GamePage() {
     player_status,
     is_dead,
     game_phase,
-    current_language,
     history,
-    story_summary, // <--- ดึงค่านี้เพิ่ม
+    story_summary,
+    current_image_prompt,
+    suggested_actions,
+    current_objective,
+    world_config,
     setGameState,
     resetGame,
   } = useGameStore();
@@ -34,6 +38,12 @@ export default function GamePage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamingNarrative, setStreamingNarrative] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [retryAction, setRetryAction] = useState<{
+    newHistory: ChatLog[];
+    message: string;
+    worldConfig: WorldConfig | null;
+  } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // คำนวณเปอร์เซ็นต์ HP (ถ้าต่ำกว่า 30% จะถือว่าปางตาย)
@@ -45,19 +55,16 @@ export default function GamePage() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history, streamingNarrative]);
+  }, [history, streamingNarrative, current_image_prompt]);
 
-  const handleSend = async (message: string, isSystemInit = false) => {
-    if (!message.trim() && !isSystemInit) return;
-
+  const runTurn = async (
+    newHistory: ChatLog[],
+    message: string,
+    worldConfig: WorldConfig | null,
+  ) => {
     setIsLoading(true);
-    setInput("");
     setStreamingNarrative("");
-
-    const newHistory = isSystemInit
-      ? history
-      : [...history, { role: "player" as const, content: message }];
-    if (!isSystemInit) setGameState({ history: newHistory });
+    setError(null);
 
     try {
       const res = await fetch("/api/chat", {
@@ -65,11 +72,10 @@ export default function GamePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: message,
-          history: newHistory.slice(-10), // ยังคงส่งแค่ 10 เทิร์นล่าสุดเพื่อประหยัด Token
+          history: newHistory.slice(-10),
           currentState: player_status,
-          currentSummary: story_summary, // <--- ส่งความจำที่บีบอัดแล้วไปให้ AI
-          gamePhase: game_phase, // <--- บอก AI ว่าตอนนี้อยู่เฟสไหน กันลูป
-          currentLanguage: current_language, // <--- บอก AI ว่าตอนนี้ใช้ภาษาอะไร
+          currentSummary: story_summary,
+          worldConfig,
         }),
       });
 
@@ -108,44 +114,79 @@ export default function GamePage() {
       if (result.success) {
         const data = result.data;
 
-        // โมเดลขนาดเล็กมักลืมอัปเดต game_phase/current_language ตอนเปลี่ยนภาษา
-        // เราจึงบังคับ override ตรงนี้ เพราะฝั่ง client รู้ภาษาที่เลือกอยู่แล้ว
-        if (game_phase === "Language_Selection" && current_language === "Pending" && !isSystemInit) {
-          data.current_language = message;
-          data.game_phase = "Setup";
-        }
-
         setGameState({
-          ...data,
+          player_status: data.player_status,
+          story_summary: data.story_summary,
+          current_objective: data.current_objective || "",
+          is_dead: !!data.is_dead,
+          current_image_prompt: data.scene_image_prompt || "",
+          suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
           history: [
             ...newHistory,
             { role: "gm", content: data.narrative },
           ],
         });
+        setStreamingNarrative("");
+        setRetryAction(null);
       } else {
-        alert("AI ตอบกลับมาผิดพลาด");
+        setError("AI ตอบกลับมาผิดพลาด ไม่สามารถอ่านข้อมูลได้ ลองอีกครั้ง");
+        setRetryAction({ newHistory, message, worldConfig });
+        setStreamingNarrative("");
       }
-
+    } catch (err) {
+      console.error("Network Error:", err);
+      setError("เชื่อมต่อกับ AI ไม่สำเร็จ ตรวจสอบว่า Ollama กำลังทำงานอยู่ แล้วลองอีกครั้ง");
+      setRetryAction({ newHistory, message, worldConfig });
       setStreamingNarrative("");
-    } catch (error) {
-      console.error("Network Error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (history.length === 0 && current_language === "Pending") {
-      handleSend("Start Phase 0", true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const handleSend = async (
+    message: string,
+    isSystemInit = false,
+    worldConfigOverride?: WorldConfig,
+  ) => {
+    if (!message.trim() && !isSystemInit) return;
+
+    const worldConfig = worldConfigOverride || world_config;
+
+    setInput("");
+
+    const newHistory = isSystemInit
+      ? history
+      : [...history, { role: "player" as const, content: message }];
+    if (!isSystemInit) setGameState({ history: newHistory });
+
+    await runTurn(newHistory, message, worldConfig);
+  };
+
+  const handleRetry = () => {
+    if (!retryAction) return;
+    runTurn(retryAction.newHistory, retryAction.message, retryAction.worldConfig);
+  };
+
+  const handleStartGame = (config: WorldConfig) => {
+    setGameState({ world_config: config, game_phase: "Playing", history: [] });
+    handleSend("Begin the adventure.", true, config);
+  };
 
   const handleRestart = () => {
     resetGame();
     useGameStore.persist.clearStorage();
     window.location.reload();
   };
+
+  const handleNewGame = () => {
+    if (globalThis.confirm("ต้องการเริ่มเกมใหม่และกลับไปหน้าสร้างโลกหรือไม่? ความคืบหน้าปัจจุบันจะหายไป")) {
+      handleRestart();
+    }
+  };
+
+  if (game_phase === "Menu") {
+    return <WorldCreationMenu onStart={handleStartGame} />;
+  }
 
   return (
     <div
@@ -155,20 +196,52 @@ export default function GamePage() {
         <header
           className={`p-4 border-b border-neutral-800 backdrop-blur transition-colors duration-500 ${isLowHp ? "bg-red-950/40" : "bg-neutral-950/80"}`}
         >
-          <h1 className="text-xl font-bold text-white tracking-widest">
-            AI REALM
-          </h1>
-          <p className="text-xs text-neutral-500 uppercase tracking-wider mt-1">
-            Status: {game_phase} | Language: {current_language}{" "}
-            {isLowHp && (
-              <span className="text-red-500 ml-2 font-bold animate-pulse">
-                ⚠️ LOW HP WARNING
-              </span>
-            )}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-widest">
+                AI REALM
+              </h1>
+              <p className="text-xs text-neutral-500 uppercase tracking-wider mt-1">
+                Language: {world_config?.language} | Tone: {world_config?.tone}{" "}
+                {isLowHp && (
+                  <span className="text-red-500 ml-2 font-bold animate-pulse">
+                    ⚠️ LOW HP WARNING
+                  </span>
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleNewGame}
+              className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+            >
+              เมนูหลัก
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8">
+
+          {/* --- ระบบภาพประกอบฉาก แทรกไว้บนสุดของช่องแชท --- */}
+          {current_image_prompt && (
+            <div className="w-full h-64 md:h-80 rounded-xl overflow-hidden border border-neutral-700 relative shadow-2xl mb-8 group shrink-0">
+              <div className="absolute inset-0 bg-neutral-900 animate-pulse flex items-center justify-center">
+                <span className="text-neutral-600 text-sm">กำลังวาดภาพนิมิต...</span>
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://image.pollinations.ai/prompt/${encodeURIComponent(current_image_prompt + ', dark fantasy RPG style, masterpiece, highly detailed, cinematic lighting')}?width=1024&height=512&nologo=true`}
+                alt="Scene"
+                className="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-1000"
+                onError={(e) => e.currentTarget.style.display = 'none'}
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 z-20">
+                <p className="text-xs text-neutral-400 font-mono truncate opacity-0 group-hover:opacity-100 transition-opacity">VISION: {current_image_prompt}</p>
+              </div>
+            </div>
+          )}
+          {/* ------------------------------------------- */}
+
           {history.length > 0 ? (
             history.map((chat, index) => (
               <div
@@ -197,7 +270,6 @@ export default function GamePage() {
             </div>
           )}
 
-          {/* ข้อความแสดงตอน GM กำลังสตรีมเนื้อเรื่อง */}
           {streamingNarrative && (
             <div className="flex justify-start">
               <div className="max-w-[85%] rounded-lg px-5 py-4 prose prose-invert prose-p:leading-relaxed text-neutral-200 border border-neutral-800 bg-neutral-950/50 shadow-lg">
@@ -209,7 +281,6 @@ export default function GamePage() {
             </div>
           )}
 
-          {/* ข้อความแสดงตอนที่ GM กำลังคำนวณและทอยเต๋า (ก่อนสตรีมจะเริ่ม) */}
           {isLoading && !streamingNarrative && (
             <div className="flex justify-start">
               <div className="max-w-[85%] rounded-lg px-5 py-4 text-neutral-500 italic animate-pulse border border-transparent">
@@ -222,6 +293,18 @@ export default function GamePage() {
         </div>
 
         <div className="p-4 md:p-6 border-t border-neutral-800 bg-neutral-950 flex flex-col gap-3">
+          {error && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-950/40 border border-red-800/50 rounded text-sm text-red-300">
+              <span>⚠️ {error}</span>
+              <button
+                onClick={handleRetry}
+                disabled={isLoading}
+                className="px-3 py-1.5 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50"
+              >
+                {isLoading ? "..." : "ลองอีกครั้ง"}
+              </button>
+            </div>
+          )}
           {is_dead ? (
             <button
               onClick={handleRestart}
@@ -231,80 +314,18 @@ export default function GamePage() {
             </button>
           ) : (
             <>
-              {game_phase === "Language_Selection" && (
+              {suggested_actions.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleSend("ภาษาไทย")}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded border border-neutral-700 text-sm transition-colors"
-                  >
-                    🇹🇭 ภาษาไทย
-                  </button>
-                  <button
-                    onClick={() => handleSend("English")}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded border border-neutral-700 text-sm transition-colors"
-                  >
-                    🇬🇧 English
-                  </button>
-                  <button
-                    onClick={() => handleSend("日本語")}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded border border-neutral-700 text-sm transition-colors"
-                  >
-                    🇯🇵 日本語
-                  </button>
-                </div>
-              )}
-
-              {game_phase === "Setup" && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => handleSend("เลือก Preset A: มนุษย์อ่อนแอ")}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 rounded border border-blue-800/50 text-sm transition-colors"
-                  >
-                    🧍‍♂️ Preset A (มนุษย์อ่อนแอ)
-                  </button>
-                  <button
-                    onClick={() => handleSend("เลือก Preset B: ราชาปีศาจ")}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-purple-900/40 hover:bg-purple-800/60 text-purple-300 rounded border border-purple-800/50 text-sm transition-colors"
-                  >
-                    👑 Preset B (ราชาปีศาจ)
-                  </button>
-                </div>
-              )}
-
-              {game_phase === "Playing" && (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() =>
-                      handleSend("สำรวจพื้นที่รอบๆ อย่างระมัดระวัง")
-                    }
-                    disabled={isLoading}
-                    className="px-3 py-1.5 bg-neutral-800/80 hover:bg-neutral-700 text-neutral-400 hover:text-neutral-200 rounded border border-neutral-700/50 text-xs transition-colors"
-                  >
-                    🔍 สำรวจพื้นที่
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleSend("ตรวจสอบสภาพร่างกายและสิ่งของที่มีทั้งหมด")
-                    }
-                    disabled={isLoading}
-                    className="px-3 py-1.5 bg-neutral-800/80 hover:bg-neutral-700 text-neutral-400 hover:text-neutral-200 rounded border border-neutral-700/50 text-xs transition-colors"
-                  >
-                    🎒 เช็กกระเป๋า
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleSend("หาที่ปลอดภัยเพื่อพักผ่อนและฟื้นฟูพลัง")
-                    }
-                    disabled={isLoading}
-                    className="px-3 py-1.5 bg-neutral-800/80 hover:bg-neutral-700 text-neutral-400 hover:text-neutral-200 rounded border border-neutral-700/50 text-xs transition-colors"
-                  >
-                    ⛺ พักผ่อน
-                  </button>
+                  {suggested_actions.map((action, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSend(action)}
+                      disabled={isLoading}
+                      className="px-3 py-1.5 bg-neutral-800/80 hover:bg-neutral-700 text-neutral-400 hover:text-neutral-200 rounded border border-neutral-700/50 text-xs transition-colors disabled:opacity-50"
+                    >
+                      {action}
+                    </button>
+                  ))}
                 </div>
               )}
 
@@ -323,9 +344,7 @@ export default function GamePage() {
                   placeholder={
                     isLoading
                       ? "GM กำลังประมวลผล..."
-                      : game_phase === "Setup"
-                        ? "หรือพิมพ์อธิบายตัวละคร Custom ของคุณเอง..."
-                        : "พิมพ์สิ่งที่คุณต้องการทำ..."
+                      : "พิมพ์สิ่งที่คุณต้องการทำ..."
                   }
                   className={`flex-1 bg-neutral-900 border ${isLowHp ? "border-red-900/50 focus:border-red-500" : "border-neutral-700 focus:border-neutral-400"} rounded px-4 py-3 focus:outline-none disabled:opacity-50 transition-colors`}
                 />
@@ -342,91 +361,112 @@ export default function GamePage() {
         </div>
       </div>
 
-      {game_phase !== "Language_Selection" && (
-        <div
-          className={`w-80 bg-neutral-950 p-6 overflow-y-auto flex flex-col gap-8 border-l transition-colors duration-500 ${isLowHp ? "border-red-900/30" : "border-neutral-800"}`}
-        >
-          <div className="space-y-5">
+      <div
+        className={`w-80 bg-neutral-950 p-6 overflow-y-auto flex flex-col gap-8 border-l transition-colors duration-500 ${isLowHp ? "border-red-900/30" : "border-neutral-800"}`}
+      >
+        <div className="space-y-3">
+          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+            Character
+          </h2>
+          <p className="text-xs text-neutral-400 leading-relaxed">
+            {world_config?.character || "ไม่มีข้อมูลตัวละคร"}
+          </p>
+          <p className="text-xs text-neutral-600 leading-relaxed">
+            {world_config?.genre}
+          </p>
+        </div>
+
+        {current_objective && (
+          <div className="space-y-3">
             <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
-              Vitals
+              Objective
             </h2>
-            <div>
-              <div className="flex justify-between text-sm mb-1 font-medium">
-                <span className="text-red-400">HP</span>
-                <span>
-                  {player_status.hp} / {player_status.max_hp}
-                </span>
-              </div>
-              <div
-                className={`w-full bg-neutral-900 rounded-full h-2.5 border ${isLowHp ? "border-red-800/50" : "border-neutral-800"}`}
-              >
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${isLowHp ? "bg-red-600 animate-pulse" : "bg-red-500"}`}
-                  style={{ width: `${hpPercent}%` }}
-                ></div>
-              </div>
+            <p className="text-sm text-amber-300/90 leading-relaxed">
+              🎯 {current_objective}
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-5">
+          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+            Vitals
+          </h2>
+          <div>
+            <div className="flex justify-between text-sm mb-1 font-medium">
+              <span className="text-red-400">HP</span>
+              <span>
+                {player_status.hp} / {player_status.max_hp}
+              </span>
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1 font-medium">
-                <span className="text-blue-400">Mana</span>
-                <span>
-                  {player_status.mana} / {player_status.max_mana}
-                </span>
-              </div>
-              <div className="w-full bg-neutral-900 rounded-full h-2.5 border border-neutral-800">
-                <div
-                  className="bg-blue-500 h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${player_status.max_mana > 0 ? (player_status.mana / player_status.max_mana) * 100 : 0}%`,
-                  }}
-                ></div>
-              </div>
+            <div
+              className={`w-full bg-neutral-900 rounded-full h-2.5 border ${isLowHp ? "border-red-800/50" : "border-neutral-800"}`}
+            >
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${isLowHp ? "bg-red-600 animate-pulse" : "bg-red-500"}`}
+                style={{ width: `${hpPercent}%` }}
+              ></div>
             </div>
           </div>
           <div>
-            <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3">
-              Conditions
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {player_status.status_effects.length > 0 ? (
-                player_status.status_effects.map((effect, i) => (
-                  <span
-                    key={i}
-                    className={`px-2 py-1 text-xs bg-yellow-900/30 border rounded ${effect.includes("บาดแผล") || effect.includes("เลือด") || effect.includes("ไหม้") ? "text-red-400 border-red-700/50" : "text-yellow-500 border-yellow-700/50"}`}
-                  >
-                    {effect}
-                  </span>
-                ))
-              ) : (
-                <span className="text-sm text-neutral-600 italic">
-                  ร่างกายปกติ
-                </span>
-              )}
+            <div className="flex justify-between text-sm mb-1 font-medium">
+              <span className="text-blue-400">Mana</span>
+              <span>
+                {player_status.mana} / {player_status.max_mana}
+              </span>
+            </div>
+            <div className="w-full bg-neutral-900 rounded-full h-2.5 border border-neutral-800">
+              <div
+                className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${player_status.max_mana > 0 ? (player_status.mana / player_status.max_mana) * 100 : 0}%`,
+                }}
+              ></div>
             </div>
           </div>
-          <div className="flex-1">
-            <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3">
-              Inventory
-            </h2>
-            <ul className="space-y-2">
-              {player_status.inventory.length > 0 ? (
-                player_status.inventory.map((item, i) => (
-                  <li
-                    key={i}
-                    className="text-sm bg-neutral-900/50 px-3 py-2 border border-neutral-800 rounded text-neutral-300"
-                  >
-                    {item}
-                  </li>
-                ))
-              ) : (
-                <li className="text-sm text-neutral-600 italic">
-                  กระเป๋าว่างเปล่า
-                </li>
-              )}
-            </ul>
+        </div>
+        <div>
+          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3">
+            Conditions
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {player_status.status_effects.length > 0 ? (
+              player_status.status_effects.map((effect, i) => (
+                <span
+                  key={i}
+                  className={`px-2 py-1 text-xs bg-yellow-900/30 border rounded ${effect.includes("บาดแผล") || effect.includes("เลือด") || effect.includes("ไหม้") ? "text-red-400 border-red-700/50" : "text-yellow-500 border-yellow-700/50"}`}
+                >
+                  {effect}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm text-neutral-600 italic">
+                ร่างกายปกติ
+              </span>
+            )}
           </div>
         </div>
-      )}
+        <div className="flex-1">
+          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3">
+            Inventory
+          </h2>
+          <ul className="space-y-2">
+            {player_status.inventory.length > 0 ? (
+              player_status.inventory.map((item, i) => (
+                <li
+                  key={i}
+                  className="text-sm bg-neutral-900/50 px-3 py-2 border border-neutral-800 rounded text-neutral-300"
+                >
+                  {item}
+                </li>
+              ))
+            ) : (
+              <li className="text-sm text-neutral-600 italic">
+                กระเป๋าว่างเปล่า
+              </li>
+            )}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }

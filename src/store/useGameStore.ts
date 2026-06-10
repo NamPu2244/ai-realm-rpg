@@ -16,15 +16,30 @@ export interface ChatLog {
   content: string;
 }
 
+export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
+
+export interface WorldConfig {
+  language: string;
+  genre: string;
+  tone: WorldTone;
+  character: string;
+  customWorld: string;
+  openingSeed: string;
+}
+
 interface GameState {
   narrative: string;
   story_summary: string;
   player_status: PlayerStatus;
   is_dead: boolean;
-  game_phase: 'Language_Selection' | 'Setup' | 'Playing';
+  game_phase: 'Menu' | 'Playing';
   current_language: string;
   history: ChatLog[];
-  
+  current_image_prompt: string;
+  suggested_actions: string[];
+  current_objective: string;
+  world_config: WorldConfig | null;
+
   // Actions
   setGameState: (newState: Partial<GameState>) => void;
   resetGame: () => void;
@@ -37,9 +52,13 @@ const initialState = {
     hp: 0, max_hp: 0, mana: 0, max_mana: 0, inventory: [], status_effects: []
   },
   is_dead: false,
-  game_phase: 'Language_Selection' as const,
+  game_phase: 'Menu' as const,
   current_language: 'Pending',
-  history: []
+  history: [],
+  current_image_prompt: '',
+  suggested_actions: [],
+  current_objective: '',
+  world_config: null,
 };
 
 // 2. สร้าง Store พร้อมระบบเซฟลง LocalStorage
