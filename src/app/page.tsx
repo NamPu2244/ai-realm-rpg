@@ -46,6 +46,11 @@ export default function GamePage() {
   } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const prevHpRef = useRef(player_status.hp);
+
+  const [isShaking, setIsShaking] = useState(false);
+  const [showJournal, setShowJournal] = useState(false);
+  const [showTransition, setShowTransition] = useState(false);
 
   // คำนวณเปอร์เซ็นต์ HP (ถ้าต่ำกว่า 30% จะถือว่าปางตาย)
   const hpPercent =
@@ -57,6 +62,25 @@ export default function GamePage() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history, streamingNarrative, current_image_prompt]);
+
+  // สั่นหน้าจอเมื่อ HP ลดลง
+  useEffect(() => {
+    if (player_status.hp < prevHpRef.current) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 400);
+      prevHpRef.current = player_status.hp;
+      return () => clearTimeout(timer);
+    }
+    prevHpRef.current = player_status.hp;
+  }, [player_status.hp]);
+
+  // ปิดฉาก Cinematic Transition หลังจากเข้าสู่เกม
+  useEffect(() => {
+    if (showTransition) {
+      const timer = setTimeout(() => setShowTransition(false), 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [showTransition]);
 
   const runTurn = async (
     newHistory: ChatLog[],
@@ -170,6 +194,7 @@ export default function GamePage() {
 
   const handleStartGame = (config: WorldConfig) => {
     setGameState({ world_config: config, game_phase: "Playing", history: [] });
+    setShowTransition(true);
     handleSend("Begin the adventure.", true, config);
   };
 
@@ -268,8 +293,105 @@ export default function GamePage() {
 
   return (
     <div
-      className={`relative flex h-screen bg-neutral-950 text-neutral-200 font-sans selection:bg-neutral-700 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""}`}
+      className={`relative flex h-screen bg-neutral-950 text-neutral-200 font-sans selection:bg-neutral-700 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
     >
+      {showTransition && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black animate-fade-out-cinematic pointer-events-none">
+          <p className="text-neutral-400 text-sm tracking-[0.3em] uppercase animate-pulse">
+            การเดินทางเริ่มต้นขึ้น...
+          </p>
+        </div>
+      )}
+
+      {showJournal && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-default"
+            aria-label="ปิดสมุดบันทึก"
+            onClick={() => setShowJournal(false)}
+          />
+          <div className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto bg-neutral-950 border border-neutral-700 rounded-xl shadow-2xl p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+              <h2 className="text-lg font-bold text-white tracking-widest">
+                สมุดบันทึกนักเดินทาง
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowJournal(false)}
+                className="text-neutral-500 hover:text-neutral-200 text-sm px-2 py-1 transition-colors"
+              >
+                ✕ ปิด
+              </button>
+            </div>
+
+            {current_objective && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+                  เป้าหมายปัจจุบัน
+                </h3>
+                <p className="text-sm text-amber-300/90 leading-relaxed">
+                  🎯 {current_objective}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+                สรุปเรื่องราวที่ผ่านมา
+              </h3>
+              <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
+                {story_summary || "ยังไม่มีบันทึกเรื่องราว..."}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+                ข้อมูลโลกและตัวละคร
+              </h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-neutral-500">ภาษา: </span>
+                  <span className="text-neutral-300">{world_config?.language}</span>
+                </div>
+                <div>
+                  <span className="text-neutral-500">โทนเรื่อง: </span>
+                  <span className="text-neutral-300">{world_config?.tone}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-neutral-500">แนวเรื่อง: </span>
+                  <span className="text-neutral-300">{world_config?.genre}</span>
+                </div>
+              </div>
+              {world_config?.character && (
+                <div className="pt-2">
+                  <span className="text-neutral-500 text-sm">ตัวละคร: </span>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1 whitespace-pre-wrap">
+                    {world_config.character}
+                  </p>
+                </div>
+              )}
+              {world_config?.customWorld && (
+                <div className="pt-2">
+                  <span className="text-neutral-500 text-sm">ฉากหลังโลก: </span>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1 whitespace-pre-wrap">
+                    {world_config.customWorld}
+                  </p>
+                </div>
+              )}
+              {world_config?.openingSeed && (
+                <div className="pt-2">
+                  <span className="text-neutral-500 text-sm">จุดเริ่มต้น: </span>
+                  <p className="text-sm text-neutral-300 leading-relaxed mt-1 whitespace-pre-wrap">
+                    {world_config.openingSeed}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col justify-between max-w-5xl mx-auto border-x border-neutral-800 bg-neutral-900/30">
         <header
           className={`p-4 border-b border-neutral-800 backdrop-blur transition-colors duration-500 ${isLowHp ? "bg-red-950/40" : "bg-neutral-950/80"}`}
@@ -289,6 +411,14 @@ export default function GamePage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowJournal(true)}
+                title="เปิดสมุดบันทึกนักเดินทาง"
+                className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+              >
+                📖 สมุดบันทึก
+              </button>
               <button
                 type="button"
                 onClick={handleExportSave}
