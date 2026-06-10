@@ -45,6 +45,7 @@ export default function GamePage() {
     worldConfig: WorldConfig | null;
   } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   // คำนวณเปอร์เซ็นต์ HP (ถ้าต่ำกว่า 30% จะถือว่าปางตาย)
   const hpPercent =
@@ -184,8 +185,85 @@ export default function GamePage() {
     }
   };
 
+  const handleExportSave = () => {
+    const state = useGameStore.getState();
+    const saveData = {
+      player_status: state.player_status,
+      is_dead: state.is_dead,
+      game_phase: state.game_phase,
+      history: state.history,
+      story_summary: state.story_summary,
+      current_image_prompt: state.current_image_prompt,
+      suggested_actions: state.suggested_actions,
+      current_objective: state.current_objective,
+      world_config: state.world_config,
+    };
+
+    const blob = new Blob([JSON.stringify(saveData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    a.href = url;
+    a.download = `ai-realm-save-${timestamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportSave = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result as string);
+        if (!data.player_status || !data.world_config) {
+          throw new Error("Invalid save file");
+        }
+        setGameState({
+          player_status: data.player_status,
+          is_dead: !!data.is_dead,
+          game_phase: "Playing",
+          history: Array.isArray(data.history) ? data.history : [],
+          story_summary: data.story_summary || "",
+          current_image_prompt: data.current_image_prompt || "",
+          suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
+          current_objective: data.current_objective || "",
+          world_config: data.world_config,
+        });
+        setError(null);
+      } catch (err) {
+        console.error("Import Error:", err);
+        globalThis.alert("ไฟล์เซฟไม่ถูกต้อง ไม่สามารถโหลดได้");
+      }
+    };
+    reader.readAsText(file);
+  };
+
   if (game_phase === "Menu") {
-    return <WorldCreationMenu onStart={handleStartGame} />;
+    return (
+      <>
+        <WorldCreationMenu onStart={handleStartGame} />
+        <input
+          ref={importInputRef}
+          type="file"
+          accept="application/json"
+          onChange={handleImportSave}
+          className="hidden"
+        />
+        <button
+          type="button"
+          onClick={() => importInputRef.current?.click()}
+          title="โหลดเกมจากไฟล์"
+          className="fixed bottom-6 right-6 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors shadow-lg"
+        >
+          โหลดเกมจากไฟล์
+        </button>
+      </>
+    );
   }
 
   return (
@@ -210,13 +288,38 @@ export default function GamePage() {
                 )}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleNewGame}
-              className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
-            >
-              เมนูหลัก
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportSave}
+                title="บันทึกเกมเป็นไฟล์"
+                className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+              >
+                บันทึกเกม
+              </button>
+              <button
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                title="โหลดเกมจากไฟล์"
+                className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+              >
+                โหลดเกม
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json"
+                onChange={handleImportSave}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={handleNewGame}
+                className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+              >
+                เมนูหลัก
+              </button>
+            </div>
           </div>
         </header>
 
