@@ -113,6 +113,21 @@ const TONES: { id: WorldTone; label: string; desc: string }[] = [
   { id: "sandbox", label: "🎨 Sandbox", desc: "อิสระสุดๆ AI ตามใจผู้เล่น แทบไม่มีข้อจำกัด" },
 ];
 
+const GENDERS = [
+  { id: "unspecified", label: "ไม่ระบุ / ให้ AI กำหนด" },
+  { id: "male", label: "ชาย" },
+  { id: "female", label: "หญิง" },
+  { id: "nonbinary", label: "นอกบรรทัดฐานทางเพศ" },
+];
+
+const ORIENTATIONS = [
+  { id: "unspecified", label: "ไม่ระบุ" },
+  { id: "heterosexual", label: "รักต่างเพศ" },
+  { id: "homosexual", label: "รักเพศเดียวกัน" },
+  { id: "bisexual", label: "รักสองเพศ" },
+  { id: "asexual", label: "ไม่ฝักใฝ่ทางเพศ" },
+];
+
 const PERSONALITY_TRAITS = [
   "กล้าหาญ", "ขี้ขลาด", "ใจดี", "เห็นแก่ตัว", "ฉลาดเป็นกรด", "หุนหันพลันแล่น",
   "เจ้าเล่ห์", "ซื่อสัตย์", "เย็นชา", "อบอุ่น", "ทะเยอทะยาน", "สันโดษ",
@@ -129,6 +144,10 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
   const [genreId, setGenreId] = useState(GENRES[0].id);
   const [customGenre, setCustomGenre] = useState("");
   const [tone, setTone] = useState<WorldTone>("balanced");
+  const [genderId, setGenderId] = useState("unspecified");
+  const [customGender, setCustomGender] = useState("");
+  const [orientationId, setOrientationId] = useState("unspecified");
+  const [customOrientation, setCustomOrientation] = useState("");
   const [traits, setTraits] = useState<string[]>([]);
   const [characterConcept, setCharacterConcept] = useState("");
   const [customWorld, setCustomWorld] = useState("");
@@ -148,11 +167,16 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
     const resolvedGenre =
       customGenre.trim() || GENRES.find((g) => g.id === genreId)?.value || GENRES[0].value;
 
+    const resolvedGender = customGender.trim() || (genderId === "unspecified" ? "" : GENDERS.find((g) => g.id === genderId)?.label);
+    const resolvedOrientation = customOrientation.trim() || (orientationId === "unspecified" ? "" : ORIENTATIONS.find((o) => o.id === orientationId)?.label);
+    const genderText = resolvedGender ? `Gender: ${resolvedGender}.` : "";
+    const orientationText = resolvedOrientation ? `Sexual orientation: ${resolvedOrientation}.` : "";
+
     const traitText = traits.length > 0 ? `Personality traits: ${traits.join(", ")}.` : "";
     const conceptText = characterConcept.trim()
       ? `Concept/background: ${characterConcept.trim()}`
       : "Let the GM invent a fitting concept and background for this character based on the personality traits and the chosen genre.";
-    const resolvedCharacter = `${traitText} ${conceptText}`.trim();
+    const resolvedCharacter = `${genderText} ${orientationText} ${traitText} ${conceptText}`.trim();
 
     const seedPool = customGenre.trim() ? OPENING_SEEDS.generic : (OPENING_SEEDS[genreId] || OPENING_SEEDS.generic);
     const openingSeed = seedPool[Math.floor(Math.random() * seedPool.length)];
@@ -279,7 +303,70 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
           <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
             4. สร้างตัวละคร: จิตใจและลักษณะนิสัย
           </h2>
-          <p className="text-xs text-neutral-500">เลือกได้สูงสุด 5 อย่าง (เลือกแล้ว {traits.length}/5)</p>
+
+          {/* Gender */}
+          <div className="space-y-2">
+            <p className="text-xs text-neutral-500">เพศของตัวละคร</p>
+            <div className="flex flex-wrap gap-2">
+              {GENDERS.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => {
+                    setGenderId(g.id);
+                    setCustomGender("");
+                  }}
+                  className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                    genderId === g.id && !customGender
+                      ? "bg-white text-black border-white font-bold"
+                      : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={customGender}
+              onChange={(e) => setCustomGender(e.target.value)}
+              placeholder="หรือระบุเพศแบบอื่นเอง..."
+              className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors"
+            />
+          </div>
+
+          {/* Sexual orientation */}
+          <div className="space-y-2">
+            <p className="text-xs text-neutral-500">รสนิยมทางเพศ</p>
+            <div className="flex flex-wrap gap-2">
+              {ORIENTATIONS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => {
+                    setOrientationId(o.id);
+                    setCustomOrientation("");
+                  }}
+                  className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                    orientationId === o.id && !customOrientation
+                      ? "bg-white text-black border-white font-bold"
+                      : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={customOrientation}
+              onChange={(e) => setCustomOrientation(e.target.value)}
+              placeholder="หรือระบุรสนิยมทางเพศแบบอื่นเอง..."
+              className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors"
+            />
+          </div>
+
+          <p className="text-xs text-neutral-500">เลือกบุคลิกได้สูงสุด 5 อย่าง (เลือกแล้ว {traits.length}/5)</p>
           <div className="flex flex-wrap gap-2">
             {PERSONALITY_TRAITS.map((trait) => (
               <button

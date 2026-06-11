@@ -54,6 +54,21 @@ function extractAndParseJSON(rawAiResponse: string) {
   }
 }
 
+// สัญญาณที่ส่งให้ AI เมื่อ QTE หมดเวลา (ห้ามแก้ข้อความนี้ เพราะ system prompt ฝั่ง
+// API จับคู่ข้อความนี้แบบ exact เพื่อ narrate ผลของการยืนนิ่งเฉย)
+const QTE_TIMEOUT_SIGNAL = "[TIME OUT: Player failed to react in time and stood completely still]";
+
+// ข้อความที่แสดงในแชทแทนสัญญาณข้างบน ให้ตรงกับภาษาที่ผู้เล่นเลือก
+const QTE_TIMEOUT_DISPLAY: Record<string, string> = {
+  "ไทย": "⏱️ คุณยืนนิ่งเฉย ไม่ทันตอบสนอง...",
+  "English": "⏱️ You freeze up, failing to react in time...",
+  "日本語": "⏱️ あなたは反応できず、その場に立ち尽くした...",
+};
+
+function getQteTimeoutDisplay(language?: string): string {
+  return QTE_TIMEOUT_DISPLAY[language || ""] || QTE_TIMEOUT_DISPLAY.English;
+}
+
 // 2. ฟังก์ชันแยกผลทอยเต๋า D20 ออกจากข้อความบรรยาย
 const DICE_ROLL_REGEX = /\[\s*(?:ทอยเต๋า\s*)?D20\s*[:：]\s*(\d+)\s*\]\s*-?\s*/i;
 
@@ -309,9 +324,12 @@ export default function GamePage() {
 
     setInput("");
 
+    const displayContent =
+      message === QTE_TIMEOUT_SIGNAL ? getQteTimeoutDisplay(worldConfig?.language) : message;
+
     const newHistory = isSystemInit
       ? history
-      : [...history, { role: "player" as const, content: message }];
+      : [...history, { role: "player" as const, content: displayContent }];
     if (!isSystemInit) setGameState({ history: newHistory });
 
     await runTurn(newHistory, message, worldConfig);
@@ -332,7 +350,7 @@ export default function GamePage() {
   useEffect(() => {
     if (is_qte_active && qteTimeLeft <= 0 && qte_time_limit > 0 && !isLoading && !qteTriggeredRef.current) {
       qteTriggeredRef.current = true;
-      handleSendRef.current("[TIME OUT: Player failed to react in time and stood completely still]");
+      handleSendRef.current(QTE_TIMEOUT_SIGNAL);
     }
   }, [qteTimeLeft, is_qte_active, qte_time_limit, isLoading]);
 

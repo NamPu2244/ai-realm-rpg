@@ -39,6 +39,7 @@ ${toneRules}
 
 LANGUAGE:
 - ALL "narrative" and "story_summary" text MUST be written in: ${language}.
+- DIALOGUE GENDER AGREEMENT: When writing dialogue spoken by an NPC (especially in Thai), sentence-ending particles and pronouns MUST match that NPC's established gender and personality — e.g. a female NPC speaking Thai should use "ค่ะ"/"คะ"/"หนู"/"ดิฉัน" (or other feminine-coded forms as fitting), not "ครับ"/"ผม". Re-check this every time a new NPC speaks, and stay consistent for that NPC across turns.
 
 D20 SYSTEM:
 - Whenever the player attempts a risky or uncertain action, state "[ทอยเต๋า D20: X] - " (X is 1-20) at the relevant point in the narrative, where 1 is a catastrophic failure and 20 is an incredible success. Scale the severity of outcomes according to the TONE above.
