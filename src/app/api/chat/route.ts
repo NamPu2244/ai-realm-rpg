@@ -42,6 +42,10 @@ LANGUAGE:
 D20 SYSTEM:
 - Whenever the player attempts a risky or uncertain action, state "[ทอยเต๋า D20: X] - " (X is 1-20) at the relevant point in the narrative, where 1 is a catastrophic failure and 20 is an incredible success. Scale the severity of outcomes according to the TONE above.
 
+CONTINUITY RULE:
+- [STORY SO FAR] and [RECENT EVENTS] describe things that ALREADY HAPPENED and that the player has ALREADY READ. NEVER repeat, restate, re-describe, or paraphrase any scene, sentence, or description that already appears there.
+- Each new "narrative" must contain ONLY what happens NEXT, as a direct, forward-moving continuation following immediately from the end of the last GM message and resulting from the player's new action. Do NOT re-introduce the character waking up, re-describe the current location from scratch, or restart the scene unless the player's action or the story logically causes a real scene change.
+
 PLAYER INPUT HANDLING:
 - RULE OF ATTEMPT: The player can ONLY declare their intended actions, NOT the outcomes. If the player writes something like "I kill the monster and take its gold" or "I instantly kill the boss", treat it merely as an attempt. You and the D20 dice dictate whether they actually succeed. If the player's input assumes success or skips straight to an outcome without your ruling, the D20 roll automatically gets a heavy disadvantage (bias the roll toward low results).
 - ABSOLUTE TRUTH OF JSON: The "player_status" JSON is the ONLY source of truth about the character's state. If the player attempts to use an item, weapon, or skill not explicitly listed in "inventory" or "skills" or otherwise established as part of their current state, they MUST fail comically. Narrate them grasping at thin air, fumbling, or making a fool of themselves, leaving them open to a setback or enemy attack.
@@ -95,6 +99,50 @@ EXPECTED JSON SCHEMA (respond with ONLY this JSON object, no extra text):
 }`;
 }
 
+// Converts Groq's OpenAI-compatible SSE stream into the same NDJSON shape
+// the client already expects from Ollama: one `{"response": "..."}` object per line.
+function groqStreamToOllamaFormat(groqBody: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const reader = groqBody.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  return new ReadableStream({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+
+        const data = trimmed.slice("data:".length).trim();
+        if (data === "[DONE]") {
+          controller.enqueue(encoder.encode(JSON.stringify({ response: "", done: true }) + "\n"));
+          continue;
+        }
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta: string = parsed.choices?.[0]?.delta?.content || "";
+          if (delta) {
+            controller.enqueue(encoder.encode(JSON.stringify({ response: delta, done: false }) + "\n"));
+          }
+        } catch {
+          // ignore malformed/partial SSE chunks
+        }
+      }
+    },
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -109,18 +157,72 @@ export async function POST(req: Request) {
 
     const systemPrompt = buildSystemPrompt(worldConfig);
 
-    const finalPrompt = `${systemPrompt}
-\n[STORY SO FAR (Memory)]\n${currentSummary || "The story just began."}
+    const userPrompt = `[STORY SO FAR (Memory)]\n${currentSummary || "The story just began."}
 ${historyContext}
 \n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}
 \n[LIVES LEFT]\n${typeof livesLeft === 'number' ? livesLeft : 3}
 \n[NEW PLAYER ACTION]\nPlayer: ${prompt || 'Begin the adventure.'}`;
+
+    if (worldConfig?.aiProvider === 'groq') {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        return NextResponse.json(
+          { error: "GROQ_API_KEY is not configured on the server." },
+          { status: 500 }
+        );
+      }
+
+      const groqModel = worldConfig?.aiModel || "qwen/qwen3-32b";
+      // Reasoning models (e.g. qwen3, deepseek-r1) stream <think>...</think>
+      // tokens inline in `content` by default, which corrupts the JSON
+      // output. Hide reasoning so `content` is pure JSON.
+      const isReasoningModel = /qwen3|deepseek-r1/i.test(groqModel);
+
+      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: groqModel,
+          stream: true,
+          response_format: { type: "json_object" },
+          ...(isReasoningModel ? { reasoning_format: "hidden" } : {}),
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
+
+      if (!groqResponse.ok || !groqResponse.body) {
+        const errText = await groqResponse.text().catch(() => "");
+        return NextResponse.json(
+          { error: `Groq API error: ${groqResponse.status} ${errText}` },
+          { status: 502 }
+        );
+      }
+
+      return new Response(groqStreamToOllamaFormat(groqResponse.body), {
+        headers: { 'Content-Type': 'text/event-stream' }
+      });
+    }
+
+    const finalPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
     const ollamaPayload = {
       model: worldConfig?.aiModel || "qwen2.5:14b",
       prompt: finalPrompt,
       format: "json",
       stream: true,
+      options: {
+        // The system prompt + history + status JSON can easily exceed Ollama's
+        // default 2048-token context window, especially with custom world
+        // details. A truncated context cuts off the JSON output mid-response
+        // and breaks parsing on the client, so request a larger window.
+        num_ctx: 8192,
+      },
     };
 
     const response = await fetch('http://127.0.0.1:11434/api/generate', {

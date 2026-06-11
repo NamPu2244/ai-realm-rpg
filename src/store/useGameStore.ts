@@ -21,6 +21,8 @@ export interface ChatLog {
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
 
+export type AiProvider = 'ollama' | 'groq';
+
 export interface WorldConfig {
   language: string;
   genre: string;
@@ -29,6 +31,7 @@ export interface WorldConfig {
   customWorld: string;
   openingSeed: string;
   aiModel: string;
+  aiProvider: AiProvider;
 }
 
 interface GameState {

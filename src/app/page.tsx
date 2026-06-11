@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useGameStore, WorldConfig, ChatLog } from "@/store/useGameStore";
-import WorldCreationMenu, { AI_MODELS } from "@/components/WorldCreationMenu";
+import WorldCreationMenu, { AI_MODELS, CLOUD_AI_MODELS } from "@/components/WorldCreationMenu";
+
+const ALL_AI_MODELS = [...AI_MODELS, ...CLOUD_AI_MODELS];
 
 // 1. ฟังก์ชันสกัด JSON
 function extractAndParseJSON(rawAiResponse: string) {
@@ -15,7 +17,7 @@ function extractAndParseJSON(rawAiResponse: string) {
     const jsonString = rawAiResponse.substring(startIndex, endIndex + 1);
     return { success: true, data: JSON.parse(jsonString) };
   } catch (error) {
-    console.error("Parse Error:", error);
+    console.error("Parse Error:", error, "Raw AI response:", rawAiResponse);
     return { success: false, rawData: rawAiResponse };
   }
 }
@@ -513,17 +515,22 @@ export default function GamePage() {
 
             <div className="space-y-2">
               <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
-                โมเดล AI (Ollama)
+                โมเดล AI (Ollama / Cloud)
               </h3>
               <select
-                value={world_config?.aiModel || AI_MODELS[0].id}
-                onChange={(e) =>
+                value={world_config?.aiModel || ALL_AI_MODELS[0].id}
+                onChange={(e) => {
+                  const selected = ALL_AI_MODELS.find((m) => m.id === e.target.value);
                   setGameState({
                     world_config: world_config
-                      ? { ...world_config, aiModel: e.target.value }
+                      ? {
+                          ...world_config,
+                          aiModel: e.target.value,
+                          aiProvider: selected?.provider || "ollama",
+                        }
                       : world_config,
-                  })
-                }
+                  });
+                }}
                 className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-3 py-2 text-sm focus:outline-none transition-colors"
               >
                 {AI_MODELS.map((m) => (
@@ -531,8 +538,13 @@ export default function GamePage() {
                     {m.label}
                   </option>
                 ))}
+                {CLOUD_AI_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
                 {world_config?.aiModel &&
-                  !AI_MODELS.some((m) => m.id === world_config.aiModel) && (
+                  !ALL_AI_MODELS.some((m) => m.id === world_config.aiModel) && (
                     <option value={world_config.aiModel}>
                       {world_config.aiModel}
                     </option>
@@ -540,7 +552,7 @@ export default function GamePage() {
               </select>
               <p className="text-xs text-neutral-500 leading-relaxed">
                 {
-                  AI_MODELS.find((m) => m.id === (world_config?.aiModel || AI_MODELS[0].id))
+                  ALL_AI_MODELS.find((m) => m.id === (world_config?.aiModel || ALL_AI_MODELS[0].id))
                     ?.desc
                 }
               </p>

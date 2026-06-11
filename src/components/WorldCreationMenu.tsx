@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { WorldConfig, WorldTone } from "@/store/useGameStore";
+import { AiProvider, WorldConfig, WorldTone } from "@/store/useGameStore";
 
 const LANGUAGES = ["ไทย", "English", "日本語"];
 
@@ -74,16 +74,33 @@ const OPENING_SEEDS: Record<string, string[]> = {
   ],
 };
 
-export const AI_MODELS = [
+export const AI_MODELS: { id: string; label: string; desc: string; provider: AiProvider }[] = [
   {
     id: "qwen2.5:14b",
-    label: "Qwen2.5 14B",
+    label: "Qwen2.5 14B (Local)",
     desc: "แนะนำ — ทำตามกฎหลายชั้นได้ดีกว่า (D20, ป้องกันการโกง) ภาษาไทยลื่นไหลกว่า แต่ใช้ทรัพยากรเครื่องมากขึ้นและตอบช้าลง",
+    provider: "ollama",
   },
   {
     id: "gemma4:e2b",
-    label: "Gemma 4 e2b",
+    label: "Gemma 4 e2b (Local)",
     desc: "โมเดลขนาดเล็ก ตอบเร็วและเบาเครื่อง เหมาะกับเครื่องสเปกไม่สูง แต่บางครั้งอาจทำตามกฎที่ซับซ้อน (เช่น การป้องกันการโกง) ได้ไม่แม่นยำนัก",
+    provider: "ollama",
+  },
+];
+
+export const CLOUD_AI_MODELS: { id: string; label: string; desc: string; provider: AiProvider }[] = [
+  {
+    id: "qwen/qwen3-32b",
+    label: "☁️ Qwen3 32B (Groq Cloud)",
+    desc: "รันบนคลาวด์ผ่าน Groq — ไม่กินทรัพยากรเครื่อง ตอบเร็วมาก เหมาะให้คนอื่นทดสอบพร้อมกันหลายคน ต้องตั้งค่า GROQ_API_KEY บนเซิร์ฟเวอร์",
+    provider: "groq",
+  },
+  {
+    id: "llama-3.3-70b-versatile",
+    label: "☁️ Llama 3.3 70B (Groq Cloud)",
+    desc: "โมเดลขนาดใหญ่บนคลาวด์ผ่าน Groq — ตามกฎซับซ้อนได้ดีและตอบเร็ว ไม่กินทรัพยากรเครื่อง ต้องตั้งค่า GROQ_API_KEY บนเซิร์ฟเวอร์",
+    provider: "groq",
   },
 ];
 
@@ -139,6 +156,9 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
     const openingSeed = seedPool[Math.floor(Math.random() * seedPool.length)];
 
     const resolvedModel = customModel.trim() || aiModel;
+    const resolvedProvider: AiProvider = customModel.trim()
+      ? "ollama"
+      : [...AI_MODELS, ...CLOUD_AI_MODELS].find((m) => m.id === aiModel)?.provider || "ollama";
 
     onStart({
       language: resolvedLanguage,
@@ -148,6 +168,7 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
       customWorld: customWorld.trim(),
       openingSeed,
       aiModel: resolvedModel,
+      aiProvider: resolvedProvider,
     });
   };
 
@@ -299,8 +320,10 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
         {/* AI Model */}
         <section className="space-y-3">
           <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
-            6. โมเดล AI (Ollama)
+            6. โมเดล AI
           </h2>
+
+          <p className="text-xs text-neutral-500 uppercase tracking-widest">รันในเครื่อง (Ollama)</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {AI_MODELS.map((m) => (
               <button
@@ -330,6 +353,30 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
             placeholder="หรือพิมพ์ชื่อโมเดล Ollama อื่นที่ติดตั้งไว้ (เช่น llama3.1:8b)..."
             className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors"
           />
+
+          <p className="text-xs text-neutral-500 uppercase tracking-widest pt-2">รันบนคลาวด์ (Groq)</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {CLOUD_AI_MODELS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setAiModel(m.id);
+                  setCustomModel("");
+                }}
+                className={`px-4 py-3 rounded border text-left transition-colors ${
+                  aiModel === m.id && !customModel
+                    ? "bg-white text-black border-white"
+                    : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
+                }`}
+              >
+                <div className="font-bold text-sm">{m.label}</div>
+                <div className={`text-xs mt-1 ${aiModel === m.id && !customModel ? "text-neutral-700" : "text-neutral-500"}`}>
+                  {m.desc}
+                </div>
+              </button>
+            ))}
+          </div>
         </section>
 
         <button
