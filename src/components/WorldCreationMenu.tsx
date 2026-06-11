@@ -74,6 +74,19 @@ const OPENING_SEEDS: Record<string, string[]> = {
   ],
 };
 
+export const AI_MODELS = [
+  {
+    id: "qwen2.5:14b",
+    label: "Qwen2.5 14B",
+    desc: "แนะนำ — ทำตามกฎหลายชั้นได้ดีกว่า (D20, ป้องกันการโกง) ภาษาไทยลื่นไหลกว่า แต่ใช้ทรัพยากรเครื่องมากขึ้นและตอบช้าลง",
+  },
+  {
+    id: "gemma4:e2b",
+    label: "Gemma 4 e2b",
+    desc: "โมเดลขนาดเล็ก ตอบเร็วและเบาเครื่อง เหมาะกับเครื่องสเปกไม่สูง แต่บางครั้งอาจทำตามกฎที่ซับซ้อน (เช่น การป้องกันการโกง) ได้ไม่แม่นยำนัก",
+  },
+];
+
 const TONES: { id: WorldTone; label: string; desc: string }[] = [
   { id: "hardcore", label: "💀 Hardcore", desc: "โลกสมจริงเข้มข้น การกระทำโง่ๆ อาจถึงตาย ผลลัพธ์รุนแรงและจริงจัง" },
   { id: "balanced", label: "⚖️ Balanced", desc: "ท้าทายแต่ยุติธรรม มีโอกาสแก้ตัวก่อนถึงทางตัน" },
@@ -100,6 +113,8 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
   const [traits, setTraits] = useState<string[]>([]);
   const [characterConcept, setCharacterConcept] = useState("");
   const [customWorld, setCustomWorld] = useState("");
+  const [aiModel, setAiModel] = useState(AI_MODELS[0].id);
+  const [customModel, setCustomModel] = useState("");
 
   const toggleTrait = (trait: string) => {
     setTraits((prev) => {
@@ -123,6 +138,8 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
     const seedPool = customGenre.trim() ? OPENING_SEEDS.generic : (OPENING_SEEDS[genreId] || OPENING_SEEDS.generic);
     const openingSeed = seedPool[Math.floor(Math.random() * seedPool.length)];
 
+    const resolvedModel = customModel.trim() || aiModel;
+
     onStart({
       language: resolvedLanguage,
       genre: resolvedGenre,
@@ -130,6 +147,7 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
       character: resolvedCharacter,
       customWorld: customWorld.trim(),
       openingSeed,
+      aiModel: resolvedModel,
     });
   };
 
@@ -275,6 +293,42 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
             placeholder="เช่น กฎพิเศษของโลก, ระบบเวทมนตร์, แฟกชัน/อาณาจักรที่อยากให้มี, สิ่งที่ไม่อยากให้เกิดขึ้น..."
             rows={3}
             className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors resize-none"
+          />
+        </section>
+
+        {/* AI Model */}
+        <section className="space-y-3">
+          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+            6. โมเดล AI (Ollama)
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {AI_MODELS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setAiModel(m.id);
+                  setCustomModel("");
+                }}
+                className={`px-4 py-3 rounded border text-left transition-colors ${
+                  aiModel === m.id && !customModel
+                    ? "bg-white text-black border-white"
+                    : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
+                }`}
+              >
+                <div className="font-bold text-sm">{m.label}</div>
+                <div className={`text-xs mt-1 ${aiModel === m.id && !customModel ? "text-neutral-700" : "text-neutral-500"}`}>
+                  {m.desc}
+                </div>
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={customModel}
+            onChange={(e) => setCustomModel(e.target.value)}
+            placeholder="หรือพิมพ์ชื่อโมเดล Ollama อื่นที่ติดตั้งไว้ (เช่น llama3.1:8b)..."
+            className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors"
           />
         </section>
 

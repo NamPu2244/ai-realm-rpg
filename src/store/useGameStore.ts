@@ -9,6 +9,9 @@ export interface PlayerStatus {
   max_mana: number;
   inventory: string[];
   status_effects: string[];
+  level: number;
+  exp: number;
+  skills: string[];
 }
 
 export interface ChatLog {
@@ -25,6 +28,7 @@ export interface WorldConfig {
   character: string;
   customWorld: string;
   openingSeed: string;
+  aiModel: string;
 }
 
 interface GameState {
@@ -39,6 +43,10 @@ interface GameState {
   suggested_actions: string[];
   current_objective: string;
   world_config: WorldConfig | null;
+  is_qte_active: boolean;
+  qte_time_limit: number;
+  qte_options: string[];
+  lives_left: number;
 
   // Actions
   setGameState: (newState: Partial<GameState>) => void;
@@ -49,7 +57,8 @@ const initialState = {
   narrative: '',
   story_summary: '',
   player_status: {
-    hp: 0, max_hp: 0, mana: 0, max_mana: 0, inventory: [], status_effects: []
+    hp: 0, max_hp: 0, mana: 0, max_mana: 0, inventory: [], status_effects: [],
+    level: 1, exp: 0, skills: []
   },
   is_dead: false,
   game_phase: 'Menu' as const,
@@ -59,6 +68,10 @@ const initialState = {
   suggested_actions: [],
   current_objective: '',
   world_config: null,
+  is_qte_active: false,
+  qte_time_limit: 0,
+  qte_options: [],
+  lives_left: 3,
 };
 
 // 2. สร้าง Store พร้อมระบบเซฟลง LocalStorage

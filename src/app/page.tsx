@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useGameStore, WorldConfig, ChatLog } from "@/store/useGameStore";
-import WorldCreationMenu from "@/components/WorldCreationMenu";
+import WorldCreationMenu, { AI_MODELS } from "@/components/WorldCreationMenu";
 
 // 1. ฟังก์ชันสกัด JSON
 function extractAndParseJSON(rawAiResponse: string) {
@@ -20,6 +20,40 @@ function extractAndParseJSON(rawAiResponse: string) {
   }
 }
 
+// 2. ฟังก์ชันแยกผลทอยเต๋า D20 ออกจากข้อความบรรยาย
+const DICE_ROLL_REGEX = /\[\s*(?:ทอยเต๋า\s*)?D20\s*[:：]\s*(\d+)\s*\]\s*-?\s*/i;
+
+function parseDiceRoll(text: string): { roll: number | null; text: string } {
+  const match = DICE_ROLL_REGEX.exec(text);
+  if (!match || match.index === undefined) return { roll: null, text };
+
+  const cleaned = (
+    text.slice(0, match.index) + text.slice(match.index + match[0].length)
+  ).replace(/^\s+/, "");
+
+  return { roll: Number.parseInt(match[1], 10), text: cleaned };
+}
+
+function diceRollStyle(roll: number): string {
+  if (roll === 20) return "bg-amber-500/20 border-amber-400 text-amber-300";
+  if (roll === 1) return "bg-red-950/50 border-red-600 text-red-400";
+  if (roll <= 5) return "bg-red-950/30 border-red-800 text-red-400";
+  if (roll >= 15) return "bg-green-950/30 border-green-700 text-green-400";
+  return "bg-neutral-800/80 border-neutral-600 text-neutral-300";
+}
+
+function DiceRollBadge({ roll }: Readonly<{ roll: number }>) {
+  const style = diceRollStyle(roll);
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded border text-xs font-bold tracking-widest ${style}`}
+    >
+      🎲 D20: {roll}
+    </span>
+  );
+}
+
 export default function GamePage() {
   const {
     player_status,
@@ -31,6 +65,10 @@ export default function GamePage() {
     suggested_actions,
     current_objective,
     world_config,
+    is_qte_active,
+    qte_time_limit,
+    qte_options,
+    lives_left,
     setGameState,
     resetGame,
   } = useGameStore();
@@ -51,6 +89,8 @@ export default function GamePage() {
   const [isShaking, setIsShaking] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showTransition, setShowTransition] = useState(false);
+  const [qteTimeLeft, setQteTimeLeft] = useState(0);
+  const qteTriggeredRef = useRef(false);
 
   // คำนวณเปอร์เซ็นต์ HP (ถ้าต่ำกว่า 30% จะถือว่าปางตาย)
   const hpPercent =
@@ -82,6 +122,26 @@ export default function GamePage() {
     }
   }, [showTransition]);
 
+  // เริ่มจับเวลา QTE เมื่อ AI สั่งให้ active
+  useEffect(() => {
+    if (!is_qte_active) {
+      const t = setTimeout(() => setQteTimeLeft(0), 0);
+      return () => clearTimeout(t);
+    }
+    qteTriggeredRef.current = false;
+    const startTime = Date.now();
+    const tick = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      setQteTimeLeft(Math.max(0, qte_time_limit - elapsed));
+    };
+    const interval = setInterval(tick, 100);
+    const initial = setTimeout(tick, 0);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(initial);
+    };
+  }, [is_qte_active, qte_time_limit]);
+
   const runTurn = async (
     newHistory: ChatLog[],
     message: string,
@@ -101,6 +161,7 @@ export default function GamePage() {
           currentState: player_status,
           currentSummary: story_summary,
           worldConfig,
+          livesLeft: lives_left,
         }),
       });
 
@@ -140,12 +201,21 @@ export default function GamePage() {
         const data = result.data;
 
         setGameState({
-          player_status: data.player_status,
+          player_status: {
+            level: 1,
+            exp: 0,
+            skills: [],
+            ...data.player_status,
+          },
           story_summary: data.story_summary,
           current_objective: data.current_objective || "",
           is_dead: !!data.is_dead,
           current_image_prompt: data.scene_image_prompt || "",
           suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
+          is_qte_active: !!data.is_qte_active,
+          qte_time_limit: typeof data.qte_time_limit === "number" ? data.qte_time_limit : 0,
+          qte_options: Array.isArray(data.qte_options) ? data.qte_options : [],
+          lives_left: typeof data.lives_left === "number" ? data.lives_left : lives_left,
           history: [
             ...newHistory,
             { role: "gm", content: data.narrative },
@@ -192,6 +262,15 @@ export default function GamePage() {
     runTurn(retryAction.newHistory, retryAction.message, retryAction.worldConfig);
   };
 
+  // หมดเวลา QTE -> ส่ง action "ยืนนิ่งไม่ทำอะไร" อัตโนมัติ
+  useEffect(() => {
+    if (is_qte_active && qteTimeLeft <= 0 && qte_time_limit > 0 && !isLoading && !qteTriggeredRef.current) {
+      qteTriggeredRef.current = true;
+      handleSend("[TIME OUT: Player failed to react in time and stood completely still]");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qteTimeLeft, is_qte_active, qte_time_limit, isLoading]);
+
   const handleStartGame = (config: WorldConfig) => {
     setGameState({ world_config: config, game_phase: "Playing", history: [] });
     setShowTransition(true);
@@ -222,6 +301,7 @@ export default function GamePage() {
       suggested_actions: state.suggested_actions,
       current_objective: state.current_objective,
       world_config: state.world_config,
+      lives_left: state.lives_left,
     };
 
     const blob = new Blob([JSON.stringify(saveData, null, 2)], {
@@ -249,7 +329,12 @@ export default function GamePage() {
           throw new Error("Invalid save file");
         }
         setGameState({
-          player_status: data.player_status,
+          player_status: {
+            level: 1,
+            exp: 0,
+            skills: [],
+            ...data.player_status,
+          },
           is_dead: !!data.is_dead,
           game_phase: "Playing",
           history: Array.isArray(data.history) ? data.history : [],
@@ -258,6 +343,10 @@ export default function GamePage() {
           suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
           current_objective: data.current_objective || "",
           world_config: data.world_config,
+          lives_left: typeof data.lives_left === "number" ? data.lives_left : 3,
+          is_qte_active: false,
+          qte_time_limit: 0,
+          qte_options: [],
         });
         setError(null);
       } catch (err) {
@@ -300,6 +389,39 @@ export default function GamePage() {
           <p className="text-neutral-400 text-sm tracking-[0.3em] uppercase animate-pulse">
             การเดินทางเริ่มต้นขึ้น...
           </p>
+        </div>
+      )}
+
+      {is_qte_active && !isLoading && (
+        <div className="fixed inset-0 z-30 pointer-events-none border-[6px] border-red-600 animate-pulse shadow-[inset_0_0_80px_rgba(220,38,38,0.6)]">
+          <div className="absolute top-0 left-0 right-0 flex flex-col items-center pt-4 px-6 pointer-events-auto">
+            <p className="text-red-400 font-bold tracking-[0.3em] uppercase text-sm mb-2 animate-pulse">
+              ⚠️ ปฏิกิริยาด่วน! ⚠️
+            </p>
+            <div className="w-full max-w-md bg-neutral-900/80 border border-red-700 rounded-full h-3 overflow-hidden mb-3">
+              <div
+                className="h-full bg-red-600 transition-all duration-100 linear"
+                style={{
+                  width: `${qte_time_limit > 0 ? (qteTimeLeft / qte_time_limit) * 100 : 0}%`,
+                }}
+              ></div>
+            </div>
+            {qte_options.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mb-2">
+                {qte_options.map((option, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSend(option)}
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-red-900/80 hover:bg-red-700 text-red-100 border border-red-600 rounded font-bold text-sm whitespace-nowrap transition-colors disabled:opacity-50 shadow-lg animate-pulse"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -387,6 +509,41 @@ export default function GamePage() {
                   </p>
                 </div>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+                โมเดล AI (Ollama)
+              </h3>
+              <select
+                value={world_config?.aiModel || AI_MODELS[0].id}
+                onChange={(e) =>
+                  setGameState({
+                    world_config: world_config
+                      ? { ...world_config, aiModel: e.target.value }
+                      : world_config,
+                  })
+                }
+                className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-3 py-2 text-sm focus:outline-none transition-colors"
+              >
+                {AI_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+                {world_config?.aiModel &&
+                  !AI_MODELS.some((m) => m.id === world_config.aiModel) && (
+                    <option value={world_config.aiModel}>
+                      {world_config.aiModel}
+                    </option>
+                  )}
+              </select>
+              <p className="text-xs text-neutral-500 leading-relaxed">
+                {
+                  AI_MODELS.find((m) => m.id === (world_config?.aiModel || AI_MODELS[0].id))
+                    ?.desc
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -476,43 +633,59 @@ export default function GamePage() {
           {/* ------------------------------------------- */}
 
           {history.length > 0 ? (
-            history.map((chat, index) => (
-              <div
-                key={index}
-                className={`flex ${chat.role === "player" ? "justify-end" : "justify-start"}`}
-              >
+            history.map((chat, index) => {
+              const { roll, text } =
+                chat.role === "gm"
+                  ? parseDiceRoll(chat.content)
+                  : { roll: null, text: chat.content };
+
+              return (
                 <div
-                  className={`max-w-[85%] rounded-lg px-5 py-4 ${
-                    chat.role === "player"
-                      ? "bg-neutral-800 border border-neutral-700 text-neutral-300"
-                      : "prose prose-invert prose-p:leading-relaxed text-neutral-200"
-                  }`}
+                  key={index}
+                  className={`flex ${chat.role === "player" ? "justify-end" : "justify-start"}`}
                 >
-                  {chat.role === "player" && (
-                    <div className="text-xs text-neutral-500 mb-2 uppercase tracking-wider font-bold">
-                      You
-                    </div>
-                  )}
-                  <div className="whitespace-pre-wrap">{chat.content}</div>
+                  <div
+                    className={`max-w-[85%] rounded-lg px-5 py-4 ${
+                      chat.role === "player"
+                        ? "bg-neutral-800 border border-neutral-700 text-neutral-300"
+                        : "prose prose-invert prose-p:leading-relaxed text-neutral-200"
+                    }`}
+                  >
+                    {chat.role === "player" && (
+                      <div className="text-xs text-neutral-500 mb-2 uppercase tracking-wider font-bold">
+                        You
+                      </div>
+                    )}
+                    {roll !== null && (
+                      <div>
+                        <DiceRollBadge roll={roll} />
+                      </div>
+                    )}
+                    <div className="whitespace-pre-wrap">{text}</div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="flex items-center justify-center h-full text-neutral-600 animate-pulse">
               กำลังเชื่อมต่อจิตวิญญาณ...
             </div>
           )}
 
-          {streamingNarrative && (
-            <div className="flex justify-start">
-              <div className="max-w-[85%] rounded-lg px-5 py-4 prose prose-invert prose-p:leading-relaxed text-neutral-200 border border-neutral-800 bg-neutral-950/50 shadow-lg">
-                <div className="text-xs text-blue-400 mb-2 uppercase tracking-wider font-bold animate-pulse">
-                  GM Is Typing...
+          {streamingNarrative && (() => {
+            const { roll, text } = parseDiceRoll(streamingNarrative);
+            return (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-lg px-5 py-4 prose prose-invert prose-p:leading-relaxed text-neutral-200 border border-neutral-800 bg-neutral-950/50 shadow-lg">
+                  <div className="text-xs text-blue-400 mb-2 uppercase tracking-wider font-bold animate-pulse">
+                    GM Is Typing...
+                  </div>
+                  {roll !== null && <DiceRollBadge roll={roll} />}
+                  <div className="whitespace-pre-wrap">{text}</div>
                 </div>
-                <div className="whitespace-pre-wrap">{streamingNarrative}</div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {isLoading && !streamingNarrative && (
             <div className="flex justify-start">
@@ -622,6 +795,30 @@ export default function GamePage() {
 
         <div className="space-y-5">
           <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+            Progression
+          </h2>
+          <div>
+            <div className="flex justify-between text-sm mb-1 font-medium">
+              <span className="text-amber-400">Level {player_status.level}</span>
+              <span>EXP: {player_status.exp}/100</span>
+            </div>
+            <div className="w-full bg-neutral-900 rounded-full h-2.5 border border-neutral-800">
+              <div
+                className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, (player_status.exp / 100) * 100)}%`,
+                }}
+              ></div>
+            </div>
+          </div>
+          <div className="flex justify-between text-sm font-medium">
+            <span className="text-pink-400">Lives</span>
+            <span>{"❤️".repeat(Math.max(0, lives_left))}</span>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
             Vitals
           </h2>
           <div>
@@ -674,6 +871,27 @@ export default function GamePage() {
             ) : (
               <span className="text-sm text-neutral-600 italic">
                 ร่างกายปกติ
+              </span>
+            )}
+          </div>
+        </div>
+        <div>
+          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3">
+            Skills
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {player_status.skills.length > 0 ? (
+              player_status.skills.map((skill, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-1 text-xs bg-purple-900/30 border border-purple-700/50 text-purple-300 rounded"
+                >
+                  {skill}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm text-neutral-600 italic">
+                ยังไม่มีทักษะพิเศษ
               </span>
             )}
           </div>
