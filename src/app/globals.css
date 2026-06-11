@@ -8,8 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), var(--font-noto-sans-thai);
+  --font-mono: var(--font-geist-mono), var(--font-noto-sans-thai);
   --animate-shake: shake 0.4s ease-in-out;
   --animate-fade-out-cinematic: fadeOutCinematic 1.8s ease-out forwards;
 }
@@ -37,4 +37,15 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ผู้ใช้ที่เปิด "ลดการเคลื่อนไหว" ในระบบ: ปิด animate-pulse/animate-shake/cinematic
+   transition และ animation อื่นๆ ทั่วเกม (รวมถึงกรอบ QTE ที่กระพริบถี่) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

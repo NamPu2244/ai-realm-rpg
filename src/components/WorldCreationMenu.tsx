@@ -104,6 +104,8 @@ export const CLOUD_AI_MODELS: { id: string; label: string; desc: string; provide
   },
 ];
 
+export const ALL_AI_MODELS = [...AI_MODELS, ...CLOUD_AI_MODELS];
+
 const TONES: { id: WorldTone; label: string; desc: string }[] = [
   { id: "hardcore", label: "💀 Hardcore", desc: "โลกสมจริงเข้มข้น การกระทำโง่ๆ อาจถึงตาย ผลลัพธ์รุนแรงและจริงจัง" },
   { id: "balanced", label: "⚖️ Balanced", desc: "ท้าทายแต่ยุติธรรม มีโอกาสแก้ตัวก่อนถึงทางตัน" },
@@ -158,7 +160,7 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
     const resolvedModel = customModel.trim() || aiModel;
     const resolvedProvider: AiProvider = customModel.trim()
       ? "ollama"
-      : [...AI_MODELS, ...CLOUD_AI_MODELS].find((m) => m.id === aiModel)?.provider || "ollama";
+      : ALL_AI_MODELS.find((m) => m.id === aiModel)?.provider || "ollama";
 
     onStart({
       language: resolvedLanguage,

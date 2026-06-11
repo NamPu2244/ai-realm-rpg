@@ -85,6 +85,24 @@ export const useGameStore = create<GameState>()(
       setGameState: (newState) => set((state) => ({ ...state, ...newState })),
       resetGame: () => set(initialState),
     }),
-    { name: 'ai-realm-save' }
+    {
+      name: 'ai-realm-save',
+      // version ของ schema สำหรับ localStorage เพิ่มเลขนี้เมื่อมีการเปลี่ยนโครงสร้าง
+      // GameState/PlayerStatus แบบ breaking change แล้วเขียน migration ใน `migrate` ด้านล่าง
+      version: 1,
+      // กัน save เก่าที่ field ใน player_status (หรือ field บนสุด) ขาดหายไปหลังแก้ schema
+      // โดย merge กับ initialState ก่อนเสมอ
+      migrate: (persistedState) => {
+        const state = (persistedState ?? initialState) as Partial<GameState>;
+        return {
+          ...initialState,
+          ...state,
+          player_status: {
+            ...initialState.player_status,
+            ...(state.player_status ?? {}),
+          },
+        };
+      },
+    }
   )
 );

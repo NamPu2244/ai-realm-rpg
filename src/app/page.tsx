@@ -2,17 +2,49 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useGameStore, WorldConfig, ChatLog } from "@/store/useGameStore";
-import WorldCreationMenu, { AI_MODELS, CLOUD_AI_MODELS } from "@/components/WorldCreationMenu";
+import WorldCreationMenu, { AI_MODELS, ALL_AI_MODELS, CLOUD_AI_MODELS } from "@/components/WorldCreationMenu";
 
-const ALL_AI_MODELS = [...AI_MODELS, ...CLOUD_AI_MODELS];
-
-// 1. ฟังก์ชันสกัด JSON
+// 1. ฟังก์ชันสกัด JSON object ตัวแรกที่สมบูรณ์ออกจากข้อความ โดยนับวงเล็บปีกกา
+// แบบเคารพ string literal และ escape character เพื่อไม่ให้ "{"/"}"
+// ที่อยู่ในข้อความ narrative ทำให้ตัดขอบเขตผิด
 function extractAndParseJSON(rawAiResponse: string) {
   try {
     const startIndex = rawAiResponse.indexOf("{");
-    const endIndex = rawAiResponse.lastIndexOf("}");
-    if (startIndex === -1 || endIndex === -1)
-      throw new Error("No JSON object found.");
+    if (startIndex === -1) throw new Error("No JSON object found.");
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let endIndex = -1;
+
+    for (let i = startIndex; i < rawAiResponse.length; i++) {
+      const char = rawAiResponse[i];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+      } else if (char === "{") {
+        depth++;
+      } else if (char === "}") {
+        depth--;
+        if (depth === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (endIndex === -1) throw new Error("No complete JSON object found.");
 
     const jsonString = rawAiResponse.substring(startIndex, endIndex + 1);
     return { success: true, data: JSON.parse(jsonString) };
@@ -169,33 +201,54 @@ export default function GamePage() {
 
       if (!res.body) throw new Error("No response body");
 
+      // เมื่อ API คืนค่า error (เช่น Ollama/Groq ตอบผิดพลาด หรือ request ไม่ผ่าน validation)
+      // จะได้ JSON { error: "..." } กลับมาแทน NDJSON stream ปกติ ให้แสดงข้อความนั้นตรงๆ
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error(errBody?.error || `Request failed with status ${res.status}`);
+      }
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let rawAiResponse = "";
+      // เก็บส่วนท้ายของ chunk ที่ยังไม่ครบหนึ่งบรรทัด NDJSON ไว้ต่อกับ chunk ถัดไป
+      // ป้องกันไม่ให้ JSON.parse ล้มเหลวและบรรทัดนั้นหายไปเงียบๆ
+      let lineBuffer = "";
+
+      const processLine = (line: string) => {
+        if (line.trim() === "") return;
+        try {
+          const parsed = JSON.parse(line);
+          rawAiResponse += parsed.response;
+
+          const narrativeMatch = /"narrative":\s*"([^"\\]*(?:\\.[^"\\]*)*)/.exec(
+            rawAiResponse,
+          );
+          if (narrativeMatch) {
+            setStreamingNarrative(
+              narrativeMatch[1].replaceAll("\\n", "\n").replaceAll('\\"', '"'),
+            );
+          }
+        } catch (e) {
+          console.error("Stream line parse error:", e, "Line:", line);
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n").filter((line) => line.trim() !== "");
+        lineBuffer += chunk;
+        const lines = lineBuffer.split("\n");
+        lineBuffer = lines.pop() || "";
 
         for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
-            rawAiResponse += parsed.response;
-
-            const narrativeMatch = rawAiResponse.match(
-              /"narrative":\s*"([^"\\]*(?:\\.[^"\\]*)*)/,
-            );
-            if (narrativeMatch) {
-              setStreamingNarrative(
-                narrativeMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"'),
-              );
-            }
-          } catch (e) {}
+          processLine(line);
         }
       }
+
+      processLine(lineBuffer);
 
       const result = extractAndParseJSON(rawAiResponse);
 
@@ -232,7 +285,12 @@ export default function GamePage() {
       }
     } catch (err) {
       console.error("Network Error:", err);
-      setError("เชื่อมต่อกับ AI ไม่สำเร็จ ตรวจสอบว่า Ollama กำลังทำงานอยู่ แล้วลองอีกครั้ง");
+      const detail = err instanceof Error ? err.message : "";
+      setError(
+        detail
+          ? `เชื่อมต่อกับ AI ไม่สำเร็จ: ${detail}`
+          : "เชื่อมต่อกับ AI ไม่สำเร็จ ตรวจสอบว่า Ollama กำลังทำงานอยู่ แล้วลองอีกครั้ง",
+      );
       setRetryAction({ newHistory, message, worldConfig });
       setStreamingNarrative("");
     } finally {
@@ -264,13 +322,18 @@ export default function GamePage() {
     runTurn(retryAction.newHistory, retryAction.message, retryAction.worldConfig);
   };
 
+  // เก็บ reference ล่าสุดของ handleSend ไว้ใช้ใน effect เพื่อไม่ให้ closure ค้างค่าเก่า
+  const handleSendRef = useRef(handleSend);
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  });
+
   // หมดเวลา QTE -> ส่ง action "ยืนนิ่งไม่ทำอะไร" อัตโนมัติ
   useEffect(() => {
     if (is_qte_active && qteTimeLeft <= 0 && qte_time_limit > 0 && !isLoading && !qteTriggeredRef.current) {
       qteTriggeredRef.current = true;
-      handleSend("[TIME OUT: Player failed to react in time and stood completely still]");
+      handleSendRef.current("[TIME OUT: Player failed to react in time and stood completely still]");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qteTimeLeft, is_qte_active, qte_time_limit, isLoading]);
 
   const handleStartGame = (config: WorldConfig) => {
@@ -326,7 +389,10 @@ export default function GamePage() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(reader.result as string);
+        if (typeof reader.result !== "string") {
+          throw new TypeError("Invalid save file");
+        }
+        const data = JSON.parse(reader.result);
         if (!data.player_status || !data.world_config) {
           throw new Error("Invalid save file");
         }
