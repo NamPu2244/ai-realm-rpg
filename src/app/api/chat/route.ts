@@ -73,6 +73,11 @@ GAMEPLAY RULES:
 - If the player's HP reaches 0 or they otherwise perish with no lives left, set "is_dead" to true. Otherwise keep it false.
 - If there are no [RECENT EVENTS] yet, this is the very first turn: open the adventure with an introduction that establishes the setting and the character's starting situation, and ends with a hook or choice for the player. Also set initial player_status values appropriate for the character and genre.${openingSeed ? ` Build this opening scene around the following starting situation, adapting names, places, and details to fit the genre and any custom world details above (do not deviate from this premise): "<<<PLAYER_SUPPLIED_TEXT>>>${openingSeed}<<<END_PLAYER_SUPPLIED_TEXT>>>"` : ''}
 
+OPENING SCENE RULES (first turn only):
+- FORBIDDEN TROPES: Do NOT start the character waking up in a tavern, cave, prison cell, or bed. Do NOT use "amnesia" or memory loss as the hook. Do NOT open with the character investigating a strange sound, shadow, smell, or voice. Do NOT have an NPC immediately walk up and explain the plot/exposition-dump.
+- CINEMATIC REQUIREMENT: Open "in media res" — either a wide establishing shot of the environment with vivid atmosphere/tension, or the character already in the middle of an unfolding crisis/action. Make the reader feel like the opening shot of a movie, not a checklist of stats.
+- OBJECTIVE GENERATION: The first "current_objective" MUST be immediate and specific to the situation unfolding right now (e.g. "เอาชีวิตรอดจากการตก", "หาทางหลบหนีจากห้องโถง", "หาคำตอบว่าทำไมทุกคนถึงจ้องมอง"). NEVER use a generic objective like "สำรวจพื้นที่" (explore the area).
+
 EXAMPLE OF A CORRECT RESPONSE (the player cuts their own arm with a knife, starting from hp 10/10, no status effects):
 {
   "narrative": "...the blade bites into your skin and blood wells up along the cut on your forearm...",

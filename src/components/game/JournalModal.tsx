@@ -24,15 +24,15 @@ export default function JournalModal({
         aria-label="ปิดสมุดบันทึก"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto bg-neutral-950 border border-neutral-700 rounded-xl shadow-2xl p-6 space-y-6 animate-modal-pop">
-        <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-          <h2 className="text-lg font-bold text-white tracking-widest">
-            สมุดบันทึกนักเดินทาง
+      <div className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto bg-stone-950/95 border border-amber-900/30 rounded-2xl shadow-2xl p-6 space-y-6 animate-modal-pop">
+        <div className="flex items-center justify-between border-b border-amber-900/20 pb-3">
+          <h2 className="text-lg font-bold bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent tracking-widest">
+            📜 สมุดบันทึกนักเดินทาง
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-200 text-sm px-2 py-1 transition-colors"
+            className="text-amber-100/40 hover:text-amber-200 text-sm px-2 py-1 transition-colors"
           >
             ✕ ปิด
           </button>
@@ -40,7 +40,7 @@ export default function JournalModal({
 
         {currentObjective && (
           <div className="space-y-2">
-            <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+            <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
               เป้าหมายปัจจุบัน
             </h3>
             <p className="text-sm text-amber-300/90 leading-relaxed">
@@ -50,52 +50,52 @@ export default function JournalModal({
         )}
 
         <div className="space-y-2">
-          <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+          <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
             สรุปเรื่องราวที่ผ่านมา
           </h3>
-          <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm text-amber-50/80 leading-relaxed whitespace-pre-wrap">
             {storySummary || "ยังไม่มีบันทึกเรื่องราว..."}
           </p>
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+          <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
             ข้อมูลโลกและตัวละคร
           </h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-neutral-500">ภาษา: </span>
-              <span className="text-neutral-300">{worldConfig?.language}</span>
+              <span className="text-amber-400/60">ภาษา: </span>
+              <span className="text-amber-50/80">{worldConfig?.language}</span>
             </div>
             <div>
-              <span className="text-neutral-500">โทนเรื่อง: </span>
-              <span className="text-neutral-300">{worldConfig?.tone}</span>
+              <span className="text-amber-400/60">โทนเรื่อง: </span>
+              <span className="text-amber-50/80">{worldConfig?.tone}</span>
             </div>
             <div className="col-span-2">
-              <span className="text-neutral-500">แนวเรื่อง: </span>
-              <span className="text-neutral-300">{worldConfig?.genre}</span>
+              <span className="text-amber-400/60">แนวเรื่อง: </span>
+              <span className="text-amber-50/80">{worldConfig?.genre}</span>
             </div>
           </div>
           {worldConfig?.character && (
             <div className="pt-2">
-              <span className="text-neutral-500 text-sm">ตัวละคร: </span>
-              <p className="text-sm text-neutral-300 leading-relaxed mt-1 whitespace-pre-wrap">
+              <span className="text-amber-400/60 text-sm">ตัวละคร: </span>
+              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">
                 {worldConfig.character}
               </p>
             </div>
           )}
           {worldConfig?.customWorld && (
             <div className="pt-2">
-              <span className="text-neutral-500 text-sm">ฉากหลังโลก: </span>
-              <p className="text-sm text-neutral-300 leading-relaxed mt-1 whitespace-pre-wrap">
+              <span className="text-amber-400/60 text-sm">ฉากหลังโลก: </span>
+              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">
                 {worldConfig.customWorld}
               </p>
             </div>
           )}
           {worldConfig?.openingSeed && (
             <div className="pt-2">
-              <span className="text-neutral-500 text-sm">จุดเริ่มต้น: </span>
-              <p className="text-sm text-neutral-300 leading-relaxed mt-1 whitespace-pre-wrap">
+              <span className="text-amber-400/60 text-sm">จุดเริ่มต้น: </span>
+              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">
                 {worldConfig.openingSeed}
               </p>
             </div>
@@ -103,7 +103,7 @@ export default function JournalModal({
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
+          <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
             โมเดล AI (Ollama / Cloud)
           </h3>
           <select
@@ -120,7 +120,7 @@ export default function JournalModal({
                   : worldConfig,
               });
             }}
-            className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-3 py-2 text-sm focus:outline-none transition-colors"
+            className="w-full bg-stone-900/60 border border-amber-900/30 focus:border-amber-500/60 rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors"
           >
             {AI_MODELS.map((m) => (
               <option key={m.id} value={m.id}>
@@ -139,7 +139,7 @@ export default function JournalModal({
                 </option>
               )}
           </select>
-          <p className="text-xs text-neutral-500 leading-relaxed">
+          <p className="text-xs text-amber-400/60 leading-relaxed">
             {
               ALL_AI_MODELS.find((m) => m.id === (worldConfig?.aiModel || ALL_AI_MODELS[0].id))
                 ?.desc

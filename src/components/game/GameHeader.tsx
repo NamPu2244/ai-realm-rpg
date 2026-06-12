@@ -26,17 +26,17 @@ export default function GameHeader({
 }: Readonly<GameHeaderProps>) {
   return (
     <header
-      className={`p-4 border-b border-neutral-800 backdrop-blur transition-colors duration-500 ${isLowHp ? "bg-red-950/40" : "bg-neutral-950/80"}`}
+      className={`p-4 border-b backdrop-blur transition-colors duration-500 ${isLowHp ? "bg-red-950/40 border-red-900/40" : "bg-stone-950/70 border-amber-900/20"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-widest">
-            AI REALM
+          <h1 className="text-xl font-bold tracking-widest bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(217,119,6,0.25)]">
+            ⚔️ AI REALM
           </h1>
-          <p className="text-xs text-neutral-500 uppercase tracking-wider mt-1">
+          <p className="text-xs text-amber-100/40 uppercase tracking-wider mt-1">
             Language: {worldConfig?.language} | Tone: {worldConfig?.tone}{" "}
             {isLowHp && (
-              <span className="text-red-500 ml-2 font-bold animate-pulse">
+              <span className="text-red-400 ml-2 font-bold animate-pulse">
                 ⚠️ LOW HP WARNING
               </span>
             )}
@@ -47,7 +47,7 @@ export default function GameHeader({
             type="button"
             onClick={onOpenJournal}
             title="เปิดสมุดบันทึกนักเดินทาง"
-            className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+            className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
           >
             📖 สมุดบันทึก
           </button>
@@ -55,7 +55,7 @@ export default function GameHeader({
             type="button"
             onClick={onExportSave}
             title="บันทึกเกมเป็นไฟล์"
-            className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+            className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
           >
             บันทึกเกม
           </button>
@@ -63,7 +63,7 @@ export default function GameHeader({
             type="button"
             onClick={() => importInputRef.current?.click()}
             title="โหลดเกมจากไฟล์"
-            className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+            className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
           >
             โหลดเกม
           </button>
@@ -79,7 +79,7 @@ export default function GameHeader({
               type="button"
               onClick={onQuitToDashboard}
               title="ซิงค์ความคืบหน้าขึ้นคลาวด์แล้วกลับไปหน้าแดชบอร์ด"
-              className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+              className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
             >
               🏠 กลับแดชบอร์ด
             </button>
@@ -88,7 +88,7 @@ export default function GameHeader({
               type="button"
               onClick={onNewGame}
               title="กลับไปหน้าสร้างโลกใหม่ (จะมีการถามยืนยัน เพราะความคืบหน้าปัจจุบันจะหายไป)"
-              className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+              className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
             >
               เมนูหลัก
             </button>

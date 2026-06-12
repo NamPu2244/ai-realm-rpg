@@ -31,15 +31,20 @@ export default function ChatHistory({
               className={`flex ${chat.role === "player" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] rounded-lg px-5 py-4 ${
+                className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${
                   chat.role === "player"
-                    ? "bg-neutral-800 border border-neutral-700 text-neutral-300"
-                    : "prose prose-invert prose-p:leading-relaxed text-neutral-200"
+                    ? "bg-gradient-to-br from-stone-800 to-stone-800/60 border border-amber-900/30 text-amber-50 rounded-br-md"
+                    : "prose prose-invert prose-p:leading-relaxed text-amber-50/90 bg-gradient-to-br from-amber-950/20 to-stone-950/40 border border-amber-900/20 rounded-bl-md"
                 }`}
               >
                 {chat.role === "player" && (
-                  <div className="text-xs text-neutral-500 mb-2 uppercase tracking-wider font-bold">
-                    You
+                  <div className="text-xs text-amber-400/60 mb-2 uppercase tracking-wider font-bold">
+                    🧝 You
+                  </div>
+                )}
+                {chat.role !== "player" && (
+                  <div className="text-xs text-amber-500/50 mb-2 uppercase tracking-wider font-bold">
+                    📜 GM
                   </div>
                 )}
                 {roll !== null && (
@@ -53,7 +58,7 @@ export default function ChatHistory({
           );
         })
       ) : (
-        <div className="flex items-center justify-center h-full text-neutral-600 animate-pulse">
+        <div className="flex items-center justify-center h-full text-amber-100/30 animate-pulse">
           กำลังเชื่อมต่อจิตวิญญาณ...
         </div>
       )}
@@ -62,9 +67,9 @@ export default function ChatHistory({
         const { roll, text } = parseDiceRoll(streamingNarrative);
         return (
           <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-lg px-5 py-4 prose prose-invert prose-p:leading-relaxed text-neutral-200 border border-neutral-800 bg-neutral-950/50 shadow-lg">
-              <div className="text-xs text-blue-400 mb-2 uppercase tracking-wider font-bold animate-pulse">
-                GM Is Typing...
+            <div className="max-w-[85%] rounded-2xl rounded-bl-md px-5 py-4 prose prose-invert prose-p:leading-relaxed text-amber-50/90 border border-amber-900/20 bg-gradient-to-br from-amber-950/20 to-stone-950/40 shadow-md">
+              <div className="text-xs text-amber-400 mb-2 uppercase tracking-wider font-bold animate-pulse">
+                📜 GM Is Typing...
               </div>
               {roll !== null && <DiceRollBadge roll={roll} />}
               <div className="whitespace-pre-wrap">{text}</div>
@@ -75,8 +80,8 @@ export default function ChatHistory({
 
       {isLoading && !streamingNarrative && (
         <div className="flex justify-start">
-          <div className="max-w-[85%] rounded-lg px-5 py-4 text-neutral-500 italic animate-pulse border border-transparent">
-            GM กำลังคำนวณผลลัพธ์และทอยเต๋าโชคชะตา...
+          <div className="max-w-[85%] rounded-2xl px-5 py-4 text-amber-100/40 italic animate-pulse border border-transparent">
+            🎲 GM กำลังคำนวณผลลัพธ์และทอยเต๋าโชคชะตา...
           </div>
         </div>
       )}

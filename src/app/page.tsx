@@ -465,11 +465,11 @@ export default function GamePage() {
 
   return (
     <div
-      className={`relative flex h-screen bg-neutral-950 text-neutral-200 font-sans selection:bg-neutral-700 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
+      className={`relative flex h-screen bg-transparent text-amber-50 font-sans selection:bg-amber-800/60 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
     >
       {showTransition && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black animate-fade-out-cinematic pointer-events-none">
-          <p className="text-neutral-400 text-sm tracking-[0.3em] uppercase animate-pulse">
+          <p className="text-amber-400/80 text-sm tracking-[0.3em] uppercase animate-pulse">
             การเดินทางเริ่มต้นขึ้น...
           </p>
         </div>
@@ -514,7 +514,7 @@ export default function GamePage() {
         />
       )}
 
-      <div className="flex-1 flex flex-col justify-between max-w-5xl mx-auto border-x border-neutral-800 bg-neutral-900/30">
+      <div className="flex-1 flex flex-col justify-between max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/40 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
         <GameHeader
           worldConfig={world_config}
           isLowHp={isLowHp}

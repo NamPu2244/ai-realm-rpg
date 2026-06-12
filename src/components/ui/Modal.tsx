@@ -36,7 +36,7 @@ function Modal({ onDismiss, children }: Readonly<ModalProps>) {
         onClick={onDismiss}
         tabIndex={onDismiss ? 0 : -1}
       />
-      <div className="relative w-full max-w-sm bg-neutral-950 border border-neutral-700 rounded-xl shadow-2xl p-6 space-y-4 animate-modal-pop">
+      <div className="relative w-full max-w-sm bg-stone-950/95 border border-amber-900/30 rounded-2xl shadow-2xl p-6 space-y-4 animate-modal-pop">
         {children}
       </div>
     </div>
@@ -69,14 +69,14 @@ export function AlertModal({
           {title || "แจ้งเตือน"}
         </h2>
       </div>
-      <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
+      <p className="text-sm text-amber-50/80 leading-relaxed whitespace-pre-wrap">
         {message}
       </p>
       <button
         type="button"
         onClick={onClose}
         autoFocus
-        className={`w-full py-2.5 rounded border font-bold text-sm tracking-wider transition-colors ${styles.button}`}
+        className={`w-full py-2.5 rounded-xl border font-bold text-sm tracking-wider transition-colors ${styles.button}`}
       >
         {buttonText}
       </button>
@@ -114,14 +114,14 @@ export function ConfirmModal({
           {title || "ยืนยันการทำรายการ"}
         </h2>
       </div>
-      <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
+      <p className="text-sm text-amber-50/80 leading-relaxed whitespace-pre-wrap">
         {message}
       </p>
       <div className="flex gap-3">
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded border border-neutral-700 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-bold text-sm tracking-wider transition-colors"
+          className="flex-1 py-2.5 rounded-xl border border-amber-900/30 bg-stone-900/60 hover:bg-stone-800 text-amber-50/70 font-bold text-sm tracking-wider transition-colors"
         >
           {cancelText}
         </button>
@@ -129,7 +129,7 @@ export function ConfirmModal({
           type="button"
           onClick={onConfirm}
           autoFocus
-          className={`flex-1 py-2.5 rounded border font-bold text-sm tracking-wider transition-colors ${styles.button}`}
+          className={`flex-1 py-2.5 rounded-xl border font-bold text-sm tracking-wider transition-colors ${styles.button}`}
         >
           {confirmText}
         </button>

@@ -74,6 +74,19 @@ const OPENING_SEEDS: Record<string, string[]> = {
   ],
 };
 
+// ใช้แทน custom world/character เมื่อผู้เล่นไม่กรอกอะไรเลย เพื่อหลีกเลี่ยงโครงเรื่องซ้ำๆ
+// (ตื่นในถ้ำ/โรงเตี๊ยม/ความจำเสื่อม/เสียงประหลาด) แล้วเปิดเรื่องแบบหนัง In Media Res แทน
+const RANDOM_PROLOGUES: string[] = [
+  "ลืมตาขึ้นมาพบว่าตัวเองกำลังดิ่งพสุธาจากท้องฟ้า โดยที่ร่มชูชีพมีรอยฉีกขาด",
+  "คุณนั่งอยู่ในงานเลี้ยงหรูหรา แต่จู่ๆ ทุกคนในห้องก็หยุดนิ่งและหันมาจ้องคุณด้วยสายตาอาฆาต",
+  "รอดชีวิตจากเหตุการณ์ยานอวกาศตกบนดาวเคราะห์น้ำแข็ง และออกซิเจนชุดสูทเหลือเพียง 10 นาที",
+  "ตื่นขึ้นมากลางพิธีบูชายัญ โดยที่คุณไม่ใช่คนทำพิธี แต่เป็นเครื่องสังเวยที่ถูกมัดอยู่",
+  "คุณกำลังขับรถหนีด้วยความเร็วสูงบนทางด่วน ขณะที่เฮลิคอปเตอร์ติดไฟฉายส่องตามหลังและเสียงไซเรนถี่ขึ้นทุกที",
+  "สายไฟเบอร์ออปติกในร่างกายของคุณกะพริบเตือนสีแดง เคาท์ดาวน์การฆ่าตัวเองของชิปฝังสมองเหลืออีกไม่กี่นาที กลางตรอกย่านเมืองไซเบอร์พังก์ที่ฝนกรดตกไม่หยุด",
+  "เรือที่คุณโดยสารมาอับปางกลางพายุ คุณเกาะแผ่นไม้ลอยมาติดเกาะร้างที่เต็มไปด้วยซากปรักหักพังประหลาด ขณะที่คลื่นยักษ์กำลังก่อตัวซัดเข้าฝั่งอีกครั้ง",
+  "ระหว่างพิธีราชาภิเษกของคุณเอง มีคนลอบสังหารกษัตริย์องค์ก่อนต่อหน้าทุกคน และทุกสายตาในท้องพระโรงกำลังจับจ้องมาที่คุณในฐานะผู้ต้องสงสัยอันดับหนึ่ง",
+];
+
 export const AI_MODELS: { id: string; label: string; desc: string; provider: AiProvider }[] = [
   {
     id: "qwen2.5:14b",
@@ -191,8 +204,15 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
       : "Let the GM invent a fitting concept and background for this character based on the personality traits and the chosen genre.";
     const resolvedCharacter = `${genderText} ${orientationText} ${traitText} ${conceptText}`.trim();
 
-    const seedPool = customGenre.trim() ? OPENING_SEEDS.generic : (OPENING_SEEDS[genreId] || OPENING_SEEDS.generic);
-    const openingSeed = seedPool[Math.floor(Math.random() * seedPool.length)];
+    // ถ้าผู้เล่นไม่กรอกรายละเอียดโลกเอง สุ่ม "Cinematic Prologue" ภาษาไทยมาแทน
+    // เพื่อเลี่ยงโครงเรื่องซ้ำๆ (ตื่นในถ้ำ/โรงเตี๊ยม/ความจำเสื่อม) จาก seed ทั่วไป
+    let openingSeed: string;
+    if (customWorld.trim()) {
+      const seedPool = customGenre.trim() ? OPENING_SEEDS.generic : (OPENING_SEEDS[genreId] || OPENING_SEEDS.generic);
+      openingSeed = seedPool[Math.floor(Math.random() * seedPool.length)];
+    } else {
+      openingSeed = RANDOM_PROLOGUES[Math.floor(Math.random() * RANDOM_PROLOGUES.length)];
+    }
 
     const resolvedModel = customModel.trim() || aiModel;
     const resolvedProvider: AiProvider = customModel.trim()

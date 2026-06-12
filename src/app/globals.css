@@ -40,13 +40,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #14100c;
+    --foreground: #f5e9d9;
   }
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(217, 119, 6, 0.12), transparent),
+    radial-gradient(ellipse 60% 50% at 100% 100%, rgba(120, 53, 15, 0.15), transparent),
+    var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

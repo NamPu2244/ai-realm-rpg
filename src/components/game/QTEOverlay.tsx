@@ -38,7 +38,7 @@ export default function QTEOverlay({
                 type="button"
                 onClick={() => onSelect(option)}
                 disabled={isLoading}
-                className="px-4 py-2 bg-red-900/80 hover:bg-red-700 text-red-100 border border-red-600 rounded font-bold text-sm whitespace-nowrap transition-colors disabled:opacity-50 shadow-lg animate-pulse"
+                className="px-4 py-2 bg-red-900/80 hover:bg-red-700 text-red-100 border border-red-600 rounded-full font-bold text-sm whitespace-nowrap transition-colors disabled:opacity-50 shadow-lg animate-pulse"
               >
                 {option}
               </button>
