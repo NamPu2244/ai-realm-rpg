@@ -12,6 +12,8 @@
   --font-mono: var(--font-geist-mono), var(--font-noto-sans-thai);
   --animate-shake: shake 0.4s ease-in-out;
   --animate-fade-out-cinematic: fadeOutCinematic 1.8s ease-out forwards;
+  --animate-modal-backdrop: modalBackdrop 0.2s ease-out forwards;
+  --animate-modal-pop: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes shake {
@@ -24,6 +26,16 @@
   0% { opacity: 1; }
   65% { opacity: 1; }
   100% { opacity: 0; visibility: hidden; }
+}
+
+@keyframes modalBackdrop {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes modalPop {
+  0% { opacity: 0; transform: scale(0.95) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @media (prefers-color-scheme: dark) {

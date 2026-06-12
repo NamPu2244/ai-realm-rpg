@@ -22,7 +22,7 @@ export interface ChatLog {
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
 
-export type AiProvider = 'ollama' | 'groq';
+export type AiProvider = 'ollama' | 'groq' | 'gemini';
 
 export interface WorldConfig {
   language: string;
@@ -169,6 +169,9 @@ export const useGameStore = create<GameState>()(
 
         set({
           ...initialState,
+          user: get().user,
+          auth_status: get().auth_status,
+          save_slots: get().save_slots,
           world_config: data.world_config,
           player_status: { ...initialState.player_status, ...data.player_status },
           history: Array.isArray(data.history) ? data.history : [],

@@ -1,0 +1,86 @@
+// ฟังก์ชันสกัด JSON object ตัวแรกที่สมบูรณ์ออกจากข้อความ โดยนับวงเล็บปีกกา
+// แบบเคารพ string literal และ escape character เพื่อไม่ให้ "{"/"}"
+// ที่อยู่ในข้อความ narrative ทำให้ตัดขอบเขตผิด
+export function extractAndParseJSON(rawAiResponse: string) {
+  try {
+    const startIndex = rawAiResponse.indexOf("{");
+    if (startIndex === -1) throw new Error("No JSON object found.");
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let endIndex = -1;
+
+    for (let i = startIndex; i < rawAiResponse.length; i++) {
+      const char = rawAiResponse[i];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+      } else if (char === "{") {
+        depth++;
+      } else if (char === "}") {
+        depth--;
+        if (depth === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (endIndex === -1) throw new Error("No complete JSON object found.");
+
+    const jsonString = rawAiResponse.substring(startIndex, endIndex + 1);
+    return { success: true, data: JSON.parse(jsonString) };
+  } catch (error) {
+    console.error("Parse Error:", error, "Raw AI response:", rawAiResponse);
+    return { success: false, rawData: rawAiResponse };
+  }
+}
+
+// สัญญาณที่ส่งให้ AI เมื่อ QTE หมดเวลา (ห้ามแก้ข้อความนี้ เพราะ system prompt ฝั่ง
+// API จับคู่ข้อความนี้แบบ exact เพื่อ narrate ผลของการยืนนิ่งเฉย)
+export const QTE_TIMEOUT_SIGNAL = "[TIME OUT: Player failed to react in time and stood completely still]";
+
+// ข้อความที่แสดงในแชทแทนสัญญาณข้างบน ให้ตรงกับภาษาที่ผู้เล่นเลือก
+const QTE_TIMEOUT_DISPLAY: Record<string, string> = {
+  "ไทย": "⏱️ คุณยืนนิ่งเฉย ไม่ทันตอบสนอง...",
+  "English": "⏱️ You freeze up, failing to react in time...",
+  "日本語": "⏱️ あなたは反応できず、その場に立ち尽くした...",
+};
+
+export function getQteTimeoutDisplay(language?: string): string {
+  return QTE_TIMEOUT_DISPLAY[language || ""] || QTE_TIMEOUT_DISPLAY.English;
+}
+
+// ฟังก์ชันแยกผลทอยเต๋า D20 ออกจากข้อความบรรยาย
+const DICE_ROLL_REGEX = /\[\s*(?:ทอยเต๋า\s*)?D20\s*[:：]\s*(\d+)\s*\]\s*-?\s*/i;
+
+export function parseDiceRoll(text: string): { roll: number | null; text: string } {
+  const match = DICE_ROLL_REGEX.exec(text);
+  if (!match || match.index === undefined) return { roll: null, text };
+
+  const cleaned = (
+    text.slice(0, match.index) + text.slice(match.index + match[0].length)
+  ).replace(/^\s+/, "");
+
+  return { roll: Number.parseInt(match[1], 10), text: cleaned };
+}
+
+export function diceRollStyle(roll: number): string {
+  if (roll === 20) return "bg-amber-500/20 border-amber-400 text-amber-300";
+  if (roll === 1) return "bg-red-950/50 border-red-600 text-red-400";
+  if (roll <= 5) return "bg-red-950/30 border-red-800 text-red-400";
+  if (roll >= 15) return "bg-green-950/30 border-green-700 text-green-400";
+  return "bg-neutral-800/80 border-neutral-600 text-neutral-300";
+}
