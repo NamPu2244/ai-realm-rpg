@@ -75,10 +75,13 @@ GAMEPLAY RULES:
 
 OPENING SCENE RULES (first turn only):
 - FORBIDDEN TROPES: Do NOT start the character waking up in a tavern, cave, prison cell, or bed. Do NOT use "amnesia" or memory loss as the hook. Do NOT open with the character investigating a strange sound, shadow, smell, or voice. Do NOT have an NPC immediately walk up and explain the plot/exposition-dump.
-- CINEMATIC REQUIREMENT: Open "in media res" — either a wide establishing shot of the environment with vivid atmosphere/tension, or the character already in the middle of an unfolding crisis/action. Make the reader feel like the opening shot of a movie, not a checklist of stats.
-- OBJECTIVE GENERATION: The first "current_objective" MUST be immediate and specific to the situation unfolding right now (e.g. "เอาชีวิตรอดจากการตก", "หาทางหลบหนีจากห้องโถง", "หาคำตอบว่าทำไมทุกคนถึงจ้องมอง"). NEVER use a generic objective like "สำรวจพื้นที่" (explore the area).
+- TWO-PHASE STRUCTURE: Split the opening into two distinct phases and place them in TWO SEPARATE JSON fields:
+  - PHASE 1 (MACRO / WORLD-BUILDING) goes ENTIRELY in the "prologue" field. Write it like the prologue of a novel: start zoomed OUT — paint the world/setting itself (its atmosphere, the forces or events shaping it right now, its mood and stakes) the way a book's first paragraphs set the scene before introducing the protagonist. Do NOT mention the player character in "prologue" at all.
+  - PHASE 2 (MICRO / PLAYER ARRIVAL & WAKING UP) goes ENTIRELY in the "narrative" field. Smoothly narrow the focus down onto the player character: who they are, where they are, and how they came to arrive at this moment — give their entrance/arrival its own vivid beat (a sensation, an effect, a moment of transition into the scene), as if the camera is pushing in from a wide shot to a close-up.
+- "prologue" MUST ONLY be set on this very first turn (world generation). On ALL subsequent normal gameplay turns, OMIT the "prologue" field entirely (or set it to null) — do not repeat or reuse it.
+- DO NOT prescribe or hint at a specific path, quest, or goal for the player in this opening — let the situation simply exist. The player decides what to do; do not steer them.
 
-EXAMPLE OF A CORRECT RESPONSE (the player cuts their own arm with a knife, starting from hp 10/10, no status effects):
+EXAMPLE OF A CORRECT RESPONSE (the player cuts their own arm with a knife, starting from hp 10/10, no status effects, NOT the first turn so "prologue" is omitted):
 {
   "narrative": "...the blade bites into your skin and blood wells up along the cut on your forearm...",
   "player_status": { "hp": 7, "max_hp": 10, "mana": 5, "max_mana": 5, "inventory": ["knife"], "status_effects": ["บาดแผลที่แขน", "เลือดไหล"], "level": 1, "exp": 0, "skills": [] },
@@ -95,6 +98,7 @@ Notice how "hp" dropped from 10 to 7 and "status_effects" gained two entries des
 
 EXPECTED JSON SCHEMA (respond with ONLY this JSON object, no extra text):
 {
+  "prologue": "String (MUST be written in ${language}; ONLY present on the very first turn for the Phase 1 macro/world-building intro; omit or null on all later turns)",
   "narrative": "String (MUST be written in ${language})",
   "player_status": { "hp": Number, "max_hp": Number, "mana": Number, "max_mana": Number, "inventory": ["String"], "status_effects": ["String"], "level": Number, "exp": Number, "skills": ["String"] },
   "story_summary": "String",

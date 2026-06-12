@@ -26,10 +26,17 @@ export default function ChatHistory({
               : { roll: null, text: chat.content };
 
           return (
-            <div
-              key={index}
-              className={`flex ${chat.role === "player" ? "justify-end" : "justify-start"}`}
-            >
+            <div key={index} className="space-y-8">
+              {chat.prologue && (
+                <div className="w-full px-6 py-8 md:px-12 md:py-10 bg-black/50 border-y border-amber-900/30 shadow-[inset_0_0_60px_rgba(0,0,0,0.5)]">
+                  <div className="max-w-3xl mx-auto text-center text-amber-100/70 italic leading-loose tracking-wide whitespace-pre-wrap font-serif">
+                    {chat.prologue}
+                  </div>
+                </div>
+              )}
+              <div
+                className={`flex ${chat.role === "player" ? "justify-end" : "justify-start"}`}
+              >
               <div
                 className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${
                   chat.role === "player"
@@ -53,6 +60,7 @@ export default function ChatHistory({
                   </div>
                 )}
                 <div className="whitespace-pre-wrap">{text}</div>
+              </div>
               </div>
             </div>
           );

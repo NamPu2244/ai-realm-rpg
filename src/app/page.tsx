@@ -251,7 +251,11 @@ export default function GamePage() {
           lives_left: typeof data.lives_left === "number" ? data.lives_left : lives_left,
           history: [
             ...newHistory,
-            { role: "gm", content: data.narrative },
+            {
+              role: "gm",
+              content: data.narrative,
+              ...(data.prologue ? { prologue: data.prologue } : {}),
+            },
           ],
         });
         setStreamingNarrative("");

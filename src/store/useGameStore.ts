@@ -18,6 +18,7 @@ export interface PlayerStatus {
 export interface ChatLog {
   role: 'player' | 'gm';
   content: string;
+  prologue?: string;
 }
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
