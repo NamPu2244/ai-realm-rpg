@@ -107,7 +107,12 @@ export default function GamePage() {
         if (useGameStore.getState().game_phase !== "Playing") {
           setGameState({ game_phase: "Dashboard" });
         }
-      } else if (useGameStore.getState().auth_status !== "guest") {
+      } else if (
+        useGameStore.getState().auth_status !== "guest" &&
+        useGameStore.getState().game_phase !== "Playing"
+      ) {
+        // ไม่ดีดผู้เล่นที่กำลังเล่นอยู่ออกจากเกม เผื่อ session หลุดชั่วคราว
+        // ตอนสลับแท็บแล้ว Supabase auto-refresh ล้มเหลว (event นี้จะถูกยิงซ้ำได้)
         setGameState({ game_phase: "Auth" });
       }
     };
