@@ -208,7 +208,10 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
 
         {/* Language */}
         <section className="space-y-3">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="ภาษาที่ AI จะใช้บรรยายเนื้อเรื่องและข้อความในเกมทั้งหมด"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             1. ภาษาในการเล่น
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -241,7 +244,10 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
 
         {/* Genre */}
         <section className="space-y-3">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="กำหนดบรรยากาศ ธีม และเนื้อเรื่องของโลกที่คุณจะผจญภัย"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             2. แนวโลก (Genre)
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -274,7 +280,10 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
 
         {/* Tone */}
         <section className="space-y-3">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="กำหนดความเข้มงวดของกฎเกมและความเสี่ยงต่อการตาย ตั้งแต่สมจริงสุดๆ ไปจนถึงอิสระไม่มีข้อจำกัด"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             3. โทนความยาก / ความเข้มงวด
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -300,13 +309,16 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
 
         {/* Character */}
         <section className="space-y-3">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="กำหนดเพศ รสนิยม บุคลิก และที่มาของตัวละครที่คุณจะสวมบทบาท AI จะใช้ข้อมูลนี้ในการเล่าเรื่อง"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             4. สร้างตัวละคร: จิตใจและลักษณะนิสัย
           </h2>
 
           {/* Gender */}
           <div className="space-y-2">
-            <p className="text-xs text-neutral-500">เพศของตัวละคร</p>
+            <p title="ใช้เพื่อให้ AI บรรยายและเรียกตัวละครได้ถูกต้อง" className="text-xs text-neutral-500 cursor-help">เพศของตัวละคร</p>
             <div className="flex flex-wrap gap-2">
               {GENDERS.map((g) => (
                 <button
@@ -337,7 +349,7 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
 
           {/* Sexual orientation */}
           <div className="space-y-2">
-            <p className="text-xs text-neutral-500">รสนิยมทางเพศ</p>
+            <p title="มีผลต่อความสัมพันธ์และเนื้อเรื่องโรแมนซ์ที่ AI อาจสร้างขึ้นระหว่างเกม" className="text-xs text-neutral-500 cursor-help">รสนิยมทางเพศ</p>
             <div className="flex flex-wrap gap-2">
               {ORIENTATIONS.map((o) => (
                 <button
@@ -366,7 +378,7 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
             />
           </div>
 
-          <p className="text-xs text-neutral-500">เลือกบุคลิกได้สูงสุด 5 อย่าง (เลือกแล้ว {traits.length}/5)</p>
+          <p title="บุคลิกเหล่านี้จะกำหนดวิธีที่ AI ให้ตัวละครของคุณคิด พูด และตัดสินใจในสถานการณ์ต่างๆ" className="text-xs text-neutral-500 cursor-help">เลือกบุคลิกได้สูงสุด 5 อย่าง (เลือกแล้ว {traits.length}/5)</p>
           <div className="flex flex-wrap gap-2">
             {PERSONALITY_TRAITS.map((trait) => (
               <button
@@ -394,7 +406,10 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
 
         {/* Custom world details */}
         <section className="space-y-3">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="ใส่กฎพิเศษ ระบบเวทมนตร์ แฟกชัน หรือสิ่งที่อยากให้/ไม่อยากให้เกิดขึ้น เพื่อให้ AI รู้ไว้ล่วงหน้า"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             5. รายละเอียดโลกเพิ่มเติม (ไม่บังคับ)
           </h2>
           <textarea
@@ -408,11 +423,14 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
 
         {/* AI Model */}
         <section className="space-y-3">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="โมเดล AI ที่จะทำหน้าที่เป็น Game Master เล่าเรื่อง ตัดสินผลการกระทำ และอัปเดตสถานะตัวละคร"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             6. โมเดล AI
           </h2>
 
-          <p className="text-xs text-neutral-500 uppercase tracking-widest">รันในเครื่อง (Ollama)</p>
+          <p title="รันบนเครื่องของคุณเองผ่าน Ollama ไม่ต้องใช้อินเทอร์เน็ตหรือ API Key" className="text-xs text-neutral-500 uppercase tracking-widest cursor-help">รันในเครื่อง (Ollama)</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {AI_MODELS.map((m) => (
               <button
@@ -443,7 +461,7 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
             className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors"
           />
 
-          <p className="text-xs text-neutral-500 uppercase tracking-widest pt-2">รันบนคลาวด์ (Groq)</p>
+          <p title="รันบนเซิร์ฟเวอร์คลาวด์ผ่าน Groq ตอบเร็วและไม่กินทรัพยากรเครื่อง แต่ต้องตั้งค่า GROQ_API_KEY บนเซิร์ฟเวอร์ล่วงหน้า" className="text-xs text-neutral-500 uppercase tracking-widest pt-2 cursor-help">รันบนคลาวด์ (Groq)</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {CLOUD_AI_MODELS.map((m) => (
               <button

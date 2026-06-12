@@ -96,7 +96,8 @@ function DiceRollBadge({ roll }: Readonly<{ roll: number }>) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded border text-xs font-bold tracking-widest ${style}`}
+      title="ผลทอยเต๋า D20 ใช้ตัดสินความสำเร็จของการกระทำ: 1 = ล้มเหลวขั้นวิกฤต, 20 = สำเร็จขั้นวิกฤต"
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded border text-xs font-bold tracking-widest cursor-help ${style}`}
     >
       🎲 D20: {roll}
     </span>
@@ -481,7 +482,10 @@ export default function GamePage() {
       {is_qte_active && !isLoading && (
         <div className="fixed inset-0 z-30 pointer-events-none border-[6px] border-red-600 animate-pulse shadow-[inset_0_0_80px_rgba(220,38,38,0.6)]">
           <div className="absolute top-0 left-0 right-0 flex flex-col items-center pt-4 px-6 pointer-events-auto">
-            <p className="text-red-400 font-bold tracking-[0.3em] uppercase text-sm mb-2 animate-pulse">
+            <p
+              title="Quick Time Event: เลือกตัวเลือกด้านล่างให้ทันก่อนเวลาหมด ไม่เช่นนั้นจะถือว่าคุณยืนนิ่งเฉยและอาจได้รับผลเสีย"
+              className="text-red-400 font-bold tracking-[0.3em] uppercase text-sm mb-2 animate-pulse cursor-help"
+            >
               ⚠️ ปฏิกิริยาด่วน! ⚠️
             </p>
             <div className="w-full max-w-md bg-neutral-900/80 border border-red-700 rounded-full h-3 overflow-hidden mb-3">
@@ -698,6 +702,7 @@ export default function GamePage() {
               <button
                 type="button"
                 onClick={handleNewGame}
+                title="กลับไปหน้าสร้างโลกใหม่ (จะมีการถามยืนยัน เพราะความคืบหน้าปัจจุบันจะหายไป)"
                 className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
               >
                 เมนูหลัก
@@ -823,6 +828,7 @@ export default function GamePage() {
                       key={i}
                       onClick={() => handleSend(action)}
                       disabled={isLoading}
+                      title="ตัวเลือกที่ AI แนะนำ - คลิกเพื่อทำตามทันที หรือพิมพ์การกระทำของคุณเองในช่องด้านล่าง"
                       className="px-3 py-1.5 bg-neutral-800/80 hover:bg-neutral-700 text-neutral-400 hover:text-neutral-200 rounded border border-neutral-700/50 text-xs transition-colors disabled:opacity-50"
                     >
                       {action}
@@ -867,7 +873,10 @@ export default function GamePage() {
         className={`w-80 bg-neutral-950 p-6 overflow-y-auto flex flex-col gap-8 border-l transition-colors duration-500 ${isLowHp ? "border-red-900/30" : "border-neutral-800"}`}
       >
         <div className="space-y-3">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="ข้อมูลตัวละครและฉากหลังที่คุณสร้างไว้ตอนเริ่มเกม"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             Character
           </h2>
           <p className="text-xs text-neutral-400 leading-relaxed">
@@ -880,7 +889,10 @@ export default function GamePage() {
 
         {current_objective && (
           <div className="space-y-3">
-            <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+            <h2
+              title="เป้าหมายปัจจุบันที่ AI กำหนดให้ในเนื้อเรื่อง อาจเปลี่ยนไปตามสถานการณ์"
+              className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+            >
               Objective
             </h2>
             <p className="text-sm text-amber-300/90 leading-relaxed">
@@ -890,7 +902,10 @@ export default function GamePage() {
         )}
 
         <div className="space-y-5">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="Level และ EXP ของตัวละคร เมื่อ EXP สะสมครบ 100 จะเลื่อนเลเวล"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             Progression
           </h2>
           <div>
@@ -907,14 +922,20 @@ export default function GamePage() {
               ></div>
             </div>
           </div>
-          <div className="flex justify-between text-sm font-medium">
+          <div
+            title="จำนวนชีวิตที่เหลือ หากตัวละครตายและชีวิตหมด เกมจะจบลง"
+            className="flex justify-between text-sm font-medium cursor-help"
+          >
             <span className="text-pink-400">Lives</span>
             <span>{"❤️".repeat(Math.max(0, lives_left))}</span>
           </div>
         </div>
 
         <div className="space-y-5">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+          <h2
+            title="HP (พลังชีวิต) และ Mana (พลังเวทมนตร์) ของตัวละคร หาก HP เหลือ 0 ตัวละครจะเสียชีวิต"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
+          >
             Vitals
           </h2>
           <div>
@@ -951,7 +972,10 @@ export default function GamePage() {
           </div>
         </div>
         <div>
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3">
+          <h2
+            title="สถานะและเอฟเฟกต์ที่ติดตัวละครอยู่ในขณะนี้ เช่น บาดเจ็บ, ถูกวางยาพิษ, ได้รับพร"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3 cursor-help"
+          >
             Conditions
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -972,7 +996,10 @@ export default function GamePage() {
           </div>
         </div>
         <div>
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3">
+          <h2
+            title="ทักษะพิเศษที่ตัวละครเรียนรู้หรือได้รับมาระหว่างการเดินทาง"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3 cursor-help"
+          >
             Skills
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -993,7 +1020,10 @@ export default function GamePage() {
           </div>
         </div>
         <div className="flex-1">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3">
+          <h2
+            title="ไอเทมและอุปกรณ์ที่ตัวละครพกติดตัวอยู่ในขณะนี้"
+            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 mb-3 cursor-help"
+          >
             Inventory
           </h2>
           <ul className="space-y-2">
