@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useGameStore, WorldConfig, ChatLog } from "@/store/useGameStore";
 import WorldCreationMenu, { AI_MODELS, ALL_AI_MODELS, CLOUD_AI_MODELS } from "@/components/WorldCreationMenu";
+import AuthScreen from "@/components/AuthScreen";
+import MainMenuDashboard from "@/components/MainMenuDashboard";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 // 1. ฟังก์ชันสกัด JSON object ตัวแรกที่สมบูรณ์ออกจากข้อความ โดยนับวงเล็บปีกกา
 // แบบเคารพ string literal และ escape character เพื่อไม่ให้ "{"/"}"
@@ -119,8 +123,13 @@ export default function GamePage() {
     qte_time_limit,
     qte_options,
     lives_left,
+    auth_status,
     setGameState,
     resetGame,
+    fetchUserSaves,
+    createNewSaveSlot,
+    syncCurrentGameToCloud,
+    quitToMainMenu,
   } = useGameStore();
 
   const [input, setInput] = useState("");
@@ -163,6 +172,40 @@ export default function GamePage() {
     }
     prevHpRef.current = player_status.hp;
   }, [player_status.hp]);
+
+  // ตรวจสอบสถานะ login กับ Supabase ตอนเปิดแอป และติดตามการเปลี่ยนสถานะ
+  // (login/logout) เพื่อสลับไปหน้า Dashboard/Auth ให้ถูกต้อง
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+
+    const applySession = (sessionUser: { id: string; email?: string } | null | undefined) => {
+      if (sessionUser) {
+        setGameState({
+          user: { id: sessionUser.id, email: sessionUser.email ?? "" },
+          auth_status: "authenticated",
+        });
+        fetchUserSaves(sessionUser.id);
+        if (useGameStore.getState().game_phase !== "Playing") {
+          setGameState({ game_phase: "Dashboard" });
+        }
+      } else if (useGameStore.getState().auth_status !== "guest") {
+        setGameState({ game_phase: "Auth" });
+      }
+    };
+
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
+      applySession(data.session?.user ?? null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session: Session | null) => {
+        applySession(session?.user ?? null);
+      },
+    );
+
+    return () => listener.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ปิดฉาก Cinematic Transition หลังจากเข้าสู่เกม
   useEffect(() => {
@@ -294,6 +337,10 @@ export default function GamePage() {
         });
         setStreamingNarrative("");
         setRetryAction(null);
+
+        if (useGameStore.getState().auth_status === "authenticated") {
+          syncCurrentGameToCloud();
+        }
       } else {
         setError("AI ตอบกลับมาผิดพลาด ไม่สามารถอ่านข้อมูลได้ ลองอีกครั้ง");
         setRetryAction({ newHistory, message, worldConfig });
@@ -355,8 +402,12 @@ export default function GamePage() {
     }
   }, [qteTimeLeft, is_qte_active, qte_time_limit, isLoading]);
 
-  const handleStartGame = (config: WorldConfig) => {
-    setGameState({ world_config: config, game_phase: "Playing", history: [] });
+  const handleStartGame = async (config: WorldConfig) => {
+    if (auth_status === "authenticated") {
+      await createNewSaveSlot(config);
+    } else {
+      setGameState({ world_config: config, game_phase: "Playing", history: [] });
+    }
     setShowTransition(true);
     handleSend("Begin the adventure.", true, config);
   };
@@ -444,25 +495,40 @@ export default function GamePage() {
     reader.readAsText(file);
   };
 
+  if (game_phase === "Auth") {
+    return <AuthScreen />;
+  }
+
+  if (game_phase === "Dashboard") {
+    return <MainMenuDashboard />;
+  }
+
   if (game_phase === "Menu") {
     return (
       <>
-        <WorldCreationMenu onStart={handleStartGame} />
-        <input
-          ref={importInputRef}
-          type="file"
-          accept="application/json"
-          onChange={handleImportSave}
-          className="hidden"
+        <WorldCreationMenu
+          onStart={handleStartGame}
+          onCancel={auth_status === "authenticated" ? () => setGameState({ game_phase: "Dashboard" }) : undefined}
         />
-        <button
-          type="button"
-          onClick={() => importInputRef.current?.click()}
-          title="โหลดเกมจากไฟล์"
-          className="fixed bottom-6 right-6 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors shadow-lg"
-        >
-          โหลดเกมจากไฟล์
-        </button>
+        {auth_status !== "authenticated" && (
+          <>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              onChange={handleImportSave}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+              title="โหลดเกมจากไฟล์"
+              className="fixed bottom-6 right-6 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors shadow-lg"
+            >
+              โหลดเกมจากไฟล์
+            </button>
+          </>
+        )}
       </>
     );
   }
@@ -699,14 +765,25 @@ export default function GamePage() {
                 onChange={handleImportSave}
                 className="hidden"
               />
-              <button
-                type="button"
-                onClick={handleNewGame}
-                title="กลับไปหน้าสร้างโลกใหม่ (จะมีการถามยืนยัน เพราะความคืบหน้าปัจจุบันจะหายไป)"
-                className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
-              >
-                เมนูหลัก
-              </button>
+              {auth_status === "authenticated" ? (
+                <button
+                  type="button"
+                  onClick={() => quitToMainMenu()}
+                  title="ซิงค์ความคืบหน้าขึ้นคลาวด์แล้วกลับไปหน้าแดชบอร์ด"
+                  className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+                >
+                  🏠 กลับแดชบอร์ด
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleNewGame}
+                  title="กลับไปหน้าสร้างโลกใหม่ (จะมีการถามยืนยัน เพราะความคืบหน้าปัจจุบันจะหายไป)"
+                  className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors"
+                >
+                  เมนูหลัก
+                </button>
+              )}
             </div>
           </div>
         </header>

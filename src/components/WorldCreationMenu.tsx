@@ -136,9 +136,10 @@ const PERSONALITY_TRAITS = [
 
 interface WorldCreationMenuProps {
   onStart: (config: WorldConfig) => void;
+  onCancel?: () => void;
 }
 
-export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
+export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldCreationMenuProps>) {
   const [language, setLanguage] = useState(LANGUAGES[0]);
   const [customLanguage, setCustomLanguage] = useState("");
   const [genreId, setGenreId] = useState(GENRES[0].id);
@@ -493,6 +494,16 @@ export default function WorldCreationMenu({ onStart }: WorldCreationMenuProps) {
         >
           เริ่มการผจญภัย
         </button>
+
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-sm tracking-widest transition-colors"
+          >
+            ← กลับไปแดชบอร์ด
+          </button>
+        )}
       </div>
     </div>
   );
