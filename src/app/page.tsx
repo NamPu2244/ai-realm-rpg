@@ -191,6 +191,7 @@ export default function GamePage() {
     newHistory: ChatLog[],
     message: string,
     worldConfig: WorldConfig | null,
+    isSystemInit = false,
   ) => {
     setIsLoading(true);
     setStreamingNarrative("");
@@ -298,7 +299,7 @@ export default function GamePage() {
 
         // 25% chance ที่โลกจะส่ง ambient event เอง (ไม่ fire ถ้าเป็น ambient/QTE turn เอง หรือตายแล้ว)
         const isAmbientOrSystem = message === WORLD_EVENT_SIGNAL || message === QTE_TIMEOUT_SIGNAL;
-        if (!isAmbientOrSystem && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
+        if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
           const delay = 6000 + Math.random() * 6000; // 6-12 วินาที
           ambientTimerRef.current = setTimeout(() => {
             const s = useGameStore.getState();
@@ -372,7 +373,7 @@ export default function GamePage() {
       : [...history, { role: "player" as const, content: displayContent }];
     if (!isSystemInit) setGameState({ history: newHistory });
 
-    await runTurn(newHistory, message, worldConfig);
+    await runTurn(newHistory, message, worldConfig, isSystemInit);
   };
 
   const handleRetry = () => {
