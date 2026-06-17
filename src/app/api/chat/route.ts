@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { WorldConfig } from '@/store/useGameStore';
+import { generateEmbedding } from '@/utils/embeddings';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 const TONE_RULES: Record<string, string> = {
   hardcore: `TONE - HARDCORE REALISM:
@@ -68,6 +70,7 @@ GAMEPLAY RULES:
 - UPDATE "current_objective" every turn with a single short sentence (in ${language}) describing what the player should probably do next or is currently trying to achieve. Change it whenever the immediate goal changes.
 - If the player enters a NEW location, encounters a notable NEW creature/boss, or the scene changes visually in a major way, write a highly detailed, comma-separated ENGLISH prompt for an AI image generator in "scene_image_prompt" (e.g., "dark fantasy, wet cave, glowing moss, cinematic lighting, 8k, unreal engine"). If the scene hasn't changed visually, leave it as an empty string "".
 - PROGRESSION RULE: Award "exp" in "player_status" after successful encounters, battles, puzzles, or notable accomplishments (typical gains: 5-30 depending on difficulty). When "exp" reaches a logical threshold (e.g. 100), increment "level" by 1, reset "exp" to the leftover amount (e.g. exp - 100), and grant a new appropriate entry to "skills" reflecting what the character learned or trained based on the story so far. Never decrease "level".
+- WORLD EVENT RULE: If the player action is exactly "[WORLD EVENT]", this is an automatic ambient pulse triggered by the passage of time — NOT a player choice. Ignore all player-input validation rules. Write a brief immersive moment (40-110 words) that makes the world feel alive: an NPC doing something nearby, a fragment of overheard dialogue, a shift in light or weather, a distant sound, or a small environmental detail the player can witness without acting. Do NOT address the player directly, do NOT set a new quest or directive, do NOT trigger is_qte_active. Leave player_status completely unchanged. This is pure atmosphere — no stats, no stakes, just world breathing.
 - QTE RULE (Quick Time Event): If an enemy or hazard launches a sudden, fast, or potentially lethal attack that demands an immediate reaction, set "is_qte_active" to true, set "qte_time_limit" to a number of seconds (2-7) based on how fast the threat is, and provide 2-3 short "qte_options" (in ${language}) describing immediate reactions (e.g. "หลบซ้าย", "ป้องกัน", "反撃"). On all other turns, set "is_qte_active" to false, "qte_time_limit" to 0, and "qte_options" to an empty array. If the player's action was a "[TIME OUT...]" message, narrate the consequence of standing completely still and apply appropriate damage/effects.
 - LIVES & RESPAWN RULE: If "hp" drops to 0 or below: if "lives_left" > 0, decrease "lives_left" by 1, restore "hp" to "max_hp", clear "inventory" to an empty array, and narrate the character's soul/body being returned to the last safe zone or camp (keep "is_dead" false). If "lives_left" is already 0 when "hp" drops to 0 or below, set "is_dead" to true and keep "hp" at 0. Otherwise keep "lives_left" unchanged.
 - If the player's HP reaches 0 or they otherwise perish with no lives left, set "is_dead" to true. Otherwise keep it false.
@@ -112,88 +115,6 @@ EXPECTED JSON SCHEMA (respond with ONLY this JSON object, no extra text):
 }`;
 }
 
-// Converts Groq's OpenAI-compatible SSE stream into the same NDJSON shape
-// the client already expects from Ollama: one `{"response": "..."}` object per line.
-function groqStreamToOllamaFormat(groqBody: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
-  const reader = groqBody.getReader();
-  const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
-  let buffer = "";
-
-  return new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-
-        const data = trimmed.slice("data:".length).trim();
-        if (data === "[DONE]") {
-          controller.enqueue(encoder.encode(JSON.stringify({ response: "", done: true }) + "\n"));
-          continue;
-        }
-
-        try {
-          const parsed = JSON.parse(data);
-          const delta: string = parsed.choices?.[0]?.delta?.content || "";
-          if (delta) {
-            controller.enqueue(encoder.encode(JSON.stringify({ response: delta, done: false }) + "\n"));
-          }
-        } catch {
-          // ignore malformed/partial SSE chunks
-        }
-      }
-    },
-  });
-}
-
-// Converts Gemini's SSE stream (alt=sse) into the same NDJSON shape
-// the client already expects from Ollama: one `{"response": "..."}` object per line.
-function geminiStreamToOllamaFormat(geminiBody: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
-  const reader = geminiBody.getReader();
-  const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
-  let buffer = "";
-
-  return new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-
-        const data = trimmed.slice("data:".length).trim();
-        try {
-          const parsed = JSON.parse(data);
-          const delta: string = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          if (delta) {
-            controller.enqueue(encoder.encode(JSON.stringify({ response: delta, done: false }) + "\n"));
-          }
-        } catch {
-          // ignore malformed/partial SSE chunks
-        }
-      }
-    },
-  });
-}
 
 // ตรวจสอบ shape/ขนาดของ request body แบบหยาบๆ ก่อนนำไปประกอบ prompt
 // เพื่อกัน payload ที่ผิดรูปแบบหรือใหญ่เกินไปจนทำให้ prompt บวมหรือ context ล้น
@@ -223,15 +144,42 @@ function validateRequestBody(body: unknown): string | null {
   if (b.worldConfig !== undefined && b.worldConfig !== null) {
     if (typeof b.worldConfig !== 'object') return "'worldConfig' must be an object.";
     const w = b.worldConfig as Record<string, unknown>;
-    if (w.aiProvider !== undefined && w.aiProvider !== 'ollama' && w.aiProvider !== 'groq' && w.aiProvider !== 'gemini') {
-      return "'worldConfig.aiProvider' must be 'ollama', 'groq', or 'gemini'.";
-    }
     if (w.customWorld !== undefined && typeof w.customWorld === 'string' && w.customWorld.length > 4000) {
       return "'worldConfig.customWorld' is too long (max 4000 chars).";
     }
   }
 
+  if (b.saveSlotId !== undefined && b.saveSlotId !== null && typeof b.saveSlotId !== 'string') {
+    return "'saveSlotId' must be a string.";
+  }
+
   return null;
+}
+
+// Fetches the top-N most relevant past memories for the player's current prompt.
+// Returns an empty array if the feature is unconfigured (no OPENAI_API_KEY /
+// no SUPABASE_SERVICE_ROLE_KEY) so the rest of the turn proceeds normally.
+async function fetchRelevantMemories(
+  playerPrompt: string,
+  saveSlotId: string,
+): Promise<string[]> {
+  try {
+    const embedding = await generateEmbedding(playerPrompt);
+    const supabase = getSupabaseServerClient();
+
+    const { data, error } = await supabase.rpc('match_memories', {
+      p_save_slot_id: saveSlotId,
+      query_embedding: `[${embedding.join(',')}]`,
+      match_count: 3,
+      similarity_threshold: 0.4,
+    });
+
+    if (error || !data) return [];
+    return (data as { memory_text: string }[]).map((r) => r.memory_text);
+  } catch {
+    // Non-fatal: degrade gracefully if embeddings or DB are unavailable
+    return [];
+  }
 }
 
 export async function POST(req: Request) {
@@ -243,7 +191,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const { prompt, history, currentState, currentSummary, worldConfig, livesLeft } = body;
+    const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId } = body;
+
+    // Retrieve relevant past memories before building the prompt.
+    // This runs only when the player has a cloud save and OPENAI_API_KEY is set.
+    let memoriesSection = "";
+    if (saveSlotId && process.env.OPENAI_API_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const memories = await fetchRelevantMemories(prompt || 'Begin the adventure.', saveSlotId);
+      if (memories.length > 0) {
+        memoriesSection = `\n\n[RELEVANT PAST MEMORIES — Key events from earlier in the story that may be pertinent right now]\n${memories.map((m) => `- ${m}`).join('\n')}`;
+      }
+    }
 
     let historyContext = "";
     if (history && history.length > 0) {
@@ -254,135 +212,39 @@ export async function POST(req: Request) {
 
     const systemPrompt = buildSystemPrompt(worldConfig);
 
-    const userPrompt = `[STORY SO FAR (Memory)]\n${currentSummary || "The story just began."}
+    const storySoFar = currentSummary || "The story just began.";
+    const livesDisplay = typeof livesLeft === 'number' ? livesLeft : 3;
+    const playerAction = prompt || 'Begin the adventure.';
+
+    const userPrompt = `[STORY SO FAR (Memory)]\n${storySoFar}${memoriesSection}
 ${historyContext}
 \n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}
-\n[LIVES LEFT]\n${typeof livesLeft === 'number' ? livesLeft : 3}
-\n[NEW PLAYER ACTION]\nPlayer: ${prompt || 'Begin the adventure.'}`;
-
-    if (worldConfig?.aiProvider === 'groq') {
-      const apiKey = process.env.GROQ_API_KEY;
-      if (!apiKey) {
-        return NextResponse.json(
-          { error: "GROQ_API_KEY is not configured on the server." },
-          { status: 500 }
-        );
-      }
-
-      const groqModel = worldConfig?.aiModel || "llama-3.3-70b-versatile";
-      // Reasoning models (e.g. qwen3, deepseek-r1) stream <think>...</think>
-      // tokens inline in `content` by default, which corrupts the JSON
-      // output. Hide reasoning so `content` is pure JSON.
-      const isReasoningModel = /qwen3|deepseek-r1/i.test(groqModel);
-
-      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: groqModel,
-          stream: true,
-          response_format: { type: "json_object" },
-          ...(isReasoningModel ? { reasoning_format: "hidden" } : {}),
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-        }),
-      });
-
-      if (!groqResponse.ok || !groqResponse.body) {
-        const errText = await groqResponse.text().catch(() => "");
-        return NextResponse.json(
-          { error: `Groq API error: ${groqResponse.status} ${errText}` },
-          { status: 502 }
-        );
-      }
-
-      return new Response(groqStreamToOllamaFormat(groqResponse.body), {
-        headers: { 'Content-Type': 'text/event-stream' }
-      });
-    }
-
-    if (worldConfig?.aiProvider === 'gemini') {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return NextResponse.json(
-          { error: "GEMINI_API_KEY is not configured on the server." },
-          { status: 500 }
-        );
-      }
-
-      const geminiModel = worldConfig?.aiModel || "gemini-2.5-flash";
-
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-            generationConfig: {
-              responseMimeType: "application/json",
-              maxOutputTokens: 8192,
-              // gemini-2.5 models spend a large hidden "thinking" token
-              // budget by default, which can eat into maxOutputTokens and
-              // truncate the JSON before fields near the end (e.g. QTE
-              // fields) are written. Disable thinking for fast, complete output.
-              thinkingConfig: { thinkingBudget: 0 },
-            },
-            // The GM prompt explicitly allows mature/violent narrative content
-            // (private adult fiction). Without this, Gemini's default safety
-            // thresholds can cut the response short mid-stream, leaving an
-            // incomplete JSON object that fails to parse on the client.
-            safetySettings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-            ],
-          }),
-        }
-      );
-
-      if (!geminiResponse.ok || !geminiResponse.body) {
-        const errText = await geminiResponse.text().catch(() => "");
-        return NextResponse.json(
-          { error: `Gemini API error: ${geminiResponse.status} ${errText}` },
-          { status: 502 }
-        );
-      }
-
-      return new Response(geminiStreamToOllamaFormat(geminiResponse.body), {
-        headers: { 'Content-Type': 'text/event-stream' }
-      });
-    }
+\n[LIVES LEFT]\n${livesDisplay}
+\n[NEW PLAYER ACTION]\nPlayer: ${playerAction}
+\n[QTE REMINDER] After writing the narrative, ask yourself: did a sudden dangerous attack/hazard just strike the player with no time to think? If YES → is_qte_active: true, set qte_time_limit (2-7s), provide 2-3 short qte_options. If NO → is_qte_active: false, qte_time_limit: 0, qte_options: [].`;
 
     const finalPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
-    const ollamaModel = worldConfig?.aiModel || "qwen2.5:14b";
-    // Reasoning models (e.g. qwen3) emit hidden "thinking" tokens by default,
-    // which corrupts the JSON output. Ask Ollama to skip them.
-    const isReasoningModel = /qwen3|deepseek-r1/i.test(ollamaModel);
-
     const ollamaPayload = {
-      model: ollamaModel,
+      model: "ai-realm-rpg",
       prompt: finalPrompt,
       format: "json",
       stream: true,
-      ...(isReasoningModel ? { think: false } : {}),
       options: {
         // The system prompt + history + status JSON can easily exceed Ollama's
         // default 2048-token context window, especially with custom world
         // details. A truncated context cuts off the JSON output mid-response
         // and breaks parsing on the client, so request a larger window.
         num_ctx: 8192,
+        // Cap output to avoid runaway generation — a full GM response rarely
+        // needs more than ~1200 tokens; 1500 gives headroom for long narratives.
+        num_predict: 1500,
+        // Keep the model loaded in VRAM between turns so the next request does
+        // not pay the full reload penalty (can be 10-30s on large models).
+        keep_alive: "30m",
+        // Reduce repetition of phrases/sentences within a single response.
+        repeat_penalty: 1.1,
+        temperature: 0.7,
       },
     };
 

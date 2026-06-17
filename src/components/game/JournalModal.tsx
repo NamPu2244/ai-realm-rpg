@@ -1,5 +1,4 @@
-import { useGameStore, WorldConfig } from "@/store/useGameStore";
-import { AI_MODELS, ALL_AI_MODELS, CLOUD_AI_MODELS } from "@/components/WorldCreationMenu";
+import { WorldConfig } from "@/store/useGameStore";
 
 interface JournalModalProps {
   currentObjective: string;
@@ -14,8 +13,6 @@ export default function JournalModal({
   worldConfig,
   onClose,
 }: Readonly<JournalModalProps>) {
-  const { setGameState } = useGameStore();
-
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <button
@@ -102,50 +99,6 @@ export default function JournalModal({
           )}
         </div>
 
-        <div className="space-y-2">
-          <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
-            โมเดล AI (Ollama / Cloud)
-          </h3>
-          <select
-            value={worldConfig?.aiModel || ALL_AI_MODELS[0].id}
-            onChange={(e) => {
-              const selected = ALL_AI_MODELS.find((m) => m.id === e.target.value);
-              setGameState({
-                world_config: worldConfig
-                  ? {
-                      ...worldConfig,
-                      aiModel: e.target.value,
-                      aiProvider: selected?.provider || "ollama",
-                    }
-                  : worldConfig,
-              });
-            }}
-            className="w-full bg-stone-900/60 border border-amber-900/30 focus:border-amber-500/60 rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors"
-          >
-            {AI_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-            {CLOUD_AI_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-            {worldConfig?.aiModel &&
-              !ALL_AI_MODELS.some((m) => m.id === worldConfig.aiModel) && (
-                <option value={worldConfig.aiModel}>
-                  {worldConfig.aiModel}
-                </option>
-              )}
-          </select>
-          <p className="text-xs text-amber-400/60 leading-relaxed">
-            {
-              ALL_AI_MODELS.find((m) => m.id === (worldConfig?.aiModel || ALL_AI_MODELS[0].id))
-                ?.desc
-            }
-          </p>
-        </div>
       </div>
     </div>
   );

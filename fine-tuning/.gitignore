@@ -1,0 +1,9 @@
+.venv/
+dataset*.jsonl
+lora-adapters/
+fused-model/
+merged-model/
+gguf/
+Modelfile
+__pycache__/
+*.pyc

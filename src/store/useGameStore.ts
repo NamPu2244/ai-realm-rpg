@@ -23,8 +23,6 @@ export interface ChatLog {
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
 
-export type AiProvider = 'ollama' | 'groq' | 'gemini';
-
 export interface WorldConfig {
   language: string;
   genre: string;
@@ -32,8 +30,6 @@ export interface WorldConfig {
   character: string;
   customWorld: string;
   openingSeed: string;
-  aiModel: string;
-  aiProvider: AiProvider;
 }
 
 export interface AuthUser {

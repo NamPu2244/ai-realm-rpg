@@ -17,6 +17,7 @@ import CharacterSidebar from "@/components/game/CharacterSidebar";
 import {
   extractAndParseJSON,
   QTE_TIMEOUT_SIGNAL,
+  WORLD_EVENT_SIGNAL,
   getQteTimeoutDisplay,
 } from "@/lib/gameText";
 
@@ -36,6 +37,7 @@ export default function GamePage() {
     qte_options,
     lives_left,
     auth_status,
+    current_save_slot_id,
     setGameState,
     resetGame,
     fetchUserSaves,
@@ -58,6 +60,11 @@ export default function GamePage() {
   const prevHpRef = useRef(player_status.hp);
 
   const [isShaking, setIsShaking] = useState(false);
+  const [isDamageFlash, setIsDamageFlash] = useState(false);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [levelUpNum, setLevelUpNum] = useState(0);
+  const prevLevelRef = useRef(player_status.level);
+  const ambientTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showJournal, setShowJournal] = useState(false);
   const [showTransition, setShowTransition] = useState(false);
   const [qteTimeLeft, setQteTimeLeft] = useState(0);
@@ -81,16 +88,30 @@ export default function GamePage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history, streamingNarrative, current_image_prompt]);
 
-  // สั่นหน้าจอเมื่อ HP ลดลง
+  // สั่นหน้าจอและ flash แดงเมื่อ HP ลดลง
   useEffect(() => {
     if (player_status.hp < prevHpRef.current) {
       setIsShaking(true);
-      const timer = setTimeout(() => setIsShaking(false), 400);
+      setIsDamageFlash(true);
+      const shakeTimer = setTimeout(() => setIsShaking(false), 400);
+      const flashTimer = setTimeout(() => setIsDamageFlash(false), 350);
       prevHpRef.current = player_status.hp;
-      return () => clearTimeout(timer);
+      return () => { clearTimeout(shakeTimer); clearTimeout(flashTimer); };
     }
     prevHpRef.current = player_status.hp;
   }, [player_status.hp]);
+
+  // แสดง banner เมื่อ level ขึ้น
+  useEffect(() => {
+    if (player_status.level > prevLevelRef.current && prevLevelRef.current > 0) {
+      setLevelUpNum(player_status.level);
+      setShowLevelUp(true);
+      const timer = setTimeout(() => setShowLevelUp(false), 2200);
+      prevLevelRef.current = player_status.level;
+      return () => clearTimeout(timer);
+    }
+    prevLevelRef.current = player_status.level;
+  }, [player_status.level]);
 
   // ตรวจสอบสถานะ login กับ Supabase ตอนเปิดแอป และติดตามการเปลี่ยนสถานะ
   // (login/logout) เพื่อสลับไปหน้า Dashboard/Auth ให้ถูกต้อง
@@ -179,6 +200,7 @@ export default function GamePage() {
           currentSummary: story_summary,
           worldConfig,
           livesLeft: lives_left,
+          saveSlotId: current_save_slot_id ?? undefined,
         }),
       });
 
@@ -266,8 +288,36 @@ export default function GamePage() {
         setStreamingNarrative("");
         setRetryAction(null);
 
+        // 25% chance ที่โลกจะส่ง ambient event เอง (ไม่ fire ถ้าเป็น ambient/QTE turn เอง หรือตายแล้ว)
+        const isAmbientOrSystem = message === WORLD_EVENT_SIGNAL || message === QTE_TIMEOUT_SIGNAL;
+        if (!isAmbientOrSystem && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
+          const delay = 6000 + Math.random() * 6000; // 6-12 วินาที
+          ambientTimerRef.current = setTimeout(() => {
+            const s = useGameStore.getState();
+            if (!s.is_dead && !s.is_qte_active && s.game_phase === "Playing") {
+              handleSendRef.current(WORLD_EVENT_SIGNAL, true);
+            }
+          }, delay);
+        }
+
         if (useGameStore.getState().auth_status === "authenticated") {
           syncCurrentGameToCloud();
+
+          // Every 10 GM turns, distil recent events into a searchable memory.
+          // Fire-and-forget: don't await so it never blocks the UI.
+          const slotId = useGameStore.getState().current_save_slot_id;
+          const fullHistory = [...newHistory, { role: "gm" as const, content: data.narrative }];
+          const gmCount = fullHistory.filter((h) => h.role === "gm").length;
+          if (slotId && gmCount > 0 && gmCount % 10 === 0) {
+            fetch("/api/memories", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                saveSlotId: slotId,
+                recentHistory: fullHistory.slice(-20),
+              }),
+            }).catch((err) => console.warn("[memories] background trigger failed:", err));
+          }
         }
       } else {
         setError("AI ตอบกลับมาผิดพลาด ไม่สามารถอ่านข้อมูลได้ ลองอีกครั้ง");
@@ -296,6 +346,12 @@ export default function GamePage() {
   ) => {
     if (!message.trim() && !isSystemInit) return;
 
+    // ยกเลิก ambient event ที่รออยู่เมื่อผู้เล่นส่ง action
+    if (ambientTimerRef.current) {
+      clearTimeout(ambientTimerRef.current);
+      ambientTimerRef.current = null;
+    }
+
     const worldConfig = worldConfigOverride || world_config;
 
     setInput("");
@@ -321,6 +377,12 @@ export default function GamePage() {
   useEffect(() => {
     handleSendRef.current = handleSend;
   });
+
+  useEffect(() => {
+    return () => {
+      if (ambientTimerRef.current) clearTimeout(ambientTimerRef.current);
+    };
+  }, []);
 
   // หมดเวลา QTE -> ส่ง action "ยืนนิ่งไม่ทำอะไร" อัตโนมัติ
   useEffect(() => {
@@ -481,6 +543,19 @@ export default function GamePage() {
           <p className="text-amber-400/80 text-sm tracking-[0.3em] uppercase animate-pulse">
             การเดินทางเริ่มต้นขึ้น...
           </p>
+        </div>
+      )}
+
+      {isDamageFlash && (
+        <div className="fixed inset-0 z-40 bg-red-700 animate-damage-flash pointer-events-none" />
+      )}
+
+      {showLevelUp && (
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-40 pointer-events-none animate-level-up-pop">
+          <div className="px-8 py-3 bg-amber-900/90 border border-amber-400/60 rounded-xl shadow-[0_0_30px_rgba(251,191,36,0.4)] text-center">
+            <p className="text-xs text-amber-400/80 uppercase tracking-widest mb-0.5">Level Up!</p>
+            <p className="text-2xl font-bold text-amber-300">Level {levelUpNum}</p>
+          </div>
         </div>
       )}
 
