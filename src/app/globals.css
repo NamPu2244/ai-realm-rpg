@@ -14,6 +14,9 @@
   --animate-fade-out-cinematic: fadeOutCinematic 1.8s ease-out forwards;
   --animate-modal-backdrop: modalBackdrop 0.2s ease-out forwards;
   --animate-modal-pop: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-damage-flash: damageFlash 0.35s ease-out forwards;
+  --animate-level-up-pop: levelUpPop 2.2s ease-in-out forwards;
+  --animate-item-glow: itemGlow 2s ease-out forwards;
 }
 
 @keyframes shake {
@@ -36,6 +39,24 @@
 @keyframes modalPop {
   0% { opacity: 0; transform: scale(0.95) translateY(8px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes damageFlash {
+  0%   { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
+@keyframes levelUpPop {
+  0%   { opacity: 0; transform: translateY(-24px) scale(0.9); }
+  15%  { opacity: 1; transform: translateY(0) scale(1.04); }
+  75%  { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
+@keyframes itemGlow {
+  0%   { box-shadow: 0 0 14px 2px rgba(251,191,36,0.5); border-color: rgba(251,191,36,0.7); background-color: rgba(120,53,15,0.4); }
+  60%  { box-shadow: 0 0 8px 1px rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.4); }
+  100% { box-shadow: none; border-color: rgba(120,53,15,0.2); background-color: rgba(12,10,9,0.4); }
 }
 
 @media (prefers-color-scheme: dark) {

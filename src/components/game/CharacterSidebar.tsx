@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState } from "react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
 
 interface CharacterSidebarProps {
@@ -17,6 +18,28 @@ export default function CharacterSidebar({
   isLowHp,
   livesLeft,
 }: Readonly<CharacterSidebarProps>) {
+  const prevInventoryRef = useRef<string[]>(playerStatus.inventory);
+  const [newItems, setNewItems] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const prev = prevInventoryRef.current;
+    const curr = playerStatus.inventory;
+    const added = curr.filter((item) => !prev.includes(item));
+    if (added.length > 0) {
+      setNewItems((s) => new Set([...s, ...added]));
+      const timer = setTimeout(() => {
+        setNewItems((s) => {
+          const next = new Set(s);
+          added.forEach((item) => next.delete(item));
+          return next;
+        });
+      }, 2000);
+      prevInventoryRef.current = curr;
+      return () => clearTimeout(timer);
+    }
+    prevInventoryRef.current = curr;
+  }, [playerStatus.inventory]);
+
   return (
     <div
       className={`w-80 bg-stone-950/40 p-5 overflow-y-auto flex flex-col gap-4 border-l transition-colors duration-500 ${isLowHp ? "border-red-900/30" : "border-amber-900/20"}`}
@@ -180,7 +203,11 @@ export default function CharacterSidebar({
             playerStatus.inventory.map((item, i) => (
               <li
                 key={i}
-                className="text-sm bg-stone-950/40 px-3 py-2 border border-amber-900/20 rounded-lg text-amber-50/80 hover:border-amber-700/40 transition-colors"
+                className={`text-sm px-3 py-2 border rounded-lg transition-colors ${
+                  newItems.has(item)
+                    ? "animate-item-glow text-amber-200"
+                    : "bg-stone-950/40 border-amber-900/20 text-amber-50/80 hover:border-amber-700/40"
+                }`}
               >
                 {item}
               </li>

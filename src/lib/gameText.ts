@@ -52,6 +52,10 @@ export function extractAndParseJSON(rawAiResponse: string) {
 // API จับคู่ข้อความนี้แบบ exact เพื่อ narrate ผลของการยืนนิ่งเฉย)
 export const QTE_TIMEOUT_SIGNAL = "[TIME OUT: Player failed to react in time and stood completely still]";
 
+// สัญญาณ ambient event ที่ client ส่งโดยอัตโนมัติเมื่อผู้เล่นเงียบนานพอ
+// ให้ AI narrate เหตุการณ์สั้นๆ ในโลกโดยไม่ต้องรอ input จากผู้เล่น
+export const WORLD_EVENT_SIGNAL = "[WORLD EVENT]";
+
 // ข้อความที่แสดงในแชทแทนสัญญาณข้างบน ให้ตรงกับภาษาที่ผู้เล่นเลือก
 const QTE_TIMEOUT_DISPLAY: Record<string, string> = {
   "ไทย": "⏱️ คุณยืนนิ่งเฉย ไม่ทันตอบสนอง...",
