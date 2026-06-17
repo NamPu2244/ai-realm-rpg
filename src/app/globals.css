@@ -17,6 +17,7 @@
   --animate-damage-flash: damageFlash 0.35s ease-out forwards;
   --animate-level-up-pop: levelUpPop 2.2s ease-in-out forwards;
   --animate-item-glow: itemGlow 2s ease-out forwards;
+  --animate-narrative-in: narrativeIn 0.5s ease-out forwards;
 }
 
 @keyframes shake {
@@ -51,6 +52,11 @@
   15%  { opacity: 1; transform: translateY(0) scale(1.04); }
   75%  { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-12px); }
+}
+
+@keyframes narrativeIn {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes itemGlow {

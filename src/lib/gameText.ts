@@ -81,6 +81,12 @@ export function parseDiceRoll(text: string): { roll: number | null; text: string
   return { roll: Number.parseInt(match[1], 10), text: cleaned };
 }
 
+const SCENE_IMAGE_STYLE = ", dark fantasy RPG concept art, cinematic lighting, dramatic atmosphere, highly detailed, moody, painterly";
+
+export function buildSceneImageUrl(prompt: string): string {
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + SCENE_IMAGE_STYLE)}?width=1024&height=420&nologo=true`;
+}
+
 export function diceRollStyle(roll: number): string {
   if (roll === 20) return "bg-amber-500/20 border-amber-400 text-amber-300";
   if (roll === 1) return "bg-red-950/50 border-red-600 text-red-400";

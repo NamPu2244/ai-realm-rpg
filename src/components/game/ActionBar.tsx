@@ -49,16 +49,18 @@ export default function ActionBar({
       ) : (
         <>
           {suggestedActions.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-1.5">
+              <div className="text-[10px] text-amber-400/35 uppercase tracking-widest px-1">ตัวเลือก</div>
               {suggestedActions.map((action, i) => (
                 <button
-                  key={i}
+                  key={`${i}-${action.slice(0, 12)}`}
                   onClick={() => onSend(action)}
                   disabled={isLoading}
-                  title="ตัวเลือกที่ AI แนะนำ - คลิกเพื่อทำตามทันที หรือพิมพ์การกระทำของคุณเองในช่องด้านล่าง"
-                  className="px-3 py-1.5 bg-amber-950/30 hover:bg-amber-900/40 text-amber-200/70 hover:text-amber-100 rounded-full border border-amber-800/30 hover:border-amber-600/50 text-xs transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:translate-y-0"
+                  title="ตัวเลือกที่ AI แนะนำ — คลิกเพื่อทำทันที หรือพิมพ์คำสั่งของคุณเองด้านล่าง"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-stone-900/50 hover:bg-amber-950/40 text-amber-200/65 hover:text-amber-100 border border-stone-800/60 hover:border-amber-800/50 rounded-lg transition-all disabled:opacity-40 group"
                 >
-                  ✦ {action}
+                  <span className="text-amber-700/60 group-hover:text-amber-500/80 text-xs font-mono w-4 shrink-0 select-none">{i + 1}.</span>
+                  <span className="leading-snug">{action}</span>
                 </button>
               ))}
             </div>

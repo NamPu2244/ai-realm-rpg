@@ -19,6 +19,7 @@ import {
   QTE_TIMEOUT_SIGNAL,
   WORLD_EVENT_SIGNAL,
   getQteTimeoutDisplay,
+  buildSceneImageUrl,
 } from "@/lib/gameText";
 
 export default function GamePage() {
@@ -270,7 +271,7 @@ export default function GamePage() {
           story_summary: data.story_summary,
           current_objective: data.current_objective || "",
           is_dead: !!data.is_dead,
-          current_image_prompt: data.scene_image_prompt || "",
+          current_image_prompt: data.scene_image_prompt || current_image_prompt,
           suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
           is_qte_active: !!data.is_qte_active,
           qte_time_limit: typeof data.qte_time_limit === "number" ? data.qte_time_limit : 0,
@@ -282,6 +283,7 @@ export default function GamePage() {
               role: "gm",
               content: data.narrative,
               ...(data.prologue ? { prologue: data.prologue } : {}),
+              ...(data.scene_image_prompt ? { scene_image_prompt: data.scene_image_prompt } : {}),
             },
           ],
         });
@@ -538,6 +540,23 @@ export default function GamePage() {
     <div
       className={`relative flex h-screen bg-transparent text-amber-50 font-sans selection:bg-amber-800/60 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
     >
+      {current_image_prompt && (
+        <div
+          className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            className="absolute inset-0 scale-110"
+            style={{
+              backgroundImage: `url(${buildSceneImageUrl(current_image_prompt)})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(48px) brightness(0.12) saturate(0.8)",
+            }}
+          />
+        </div>
+      )}
+
       {showTransition && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black animate-fade-out-cinematic pointer-events-none">
           <p className="text-amber-400/80 text-sm tracking-[0.3em] uppercase animate-pulse">
@@ -598,49 +617,65 @@ export default function GamePage() {
         />
       )}
 
-      <div className="flex-1 flex flex-col justify-between max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/40 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
-        <GameHeader
+      {/* z-10 wrapper ensures content sits above the fixed z-0 atmospheric background */}
+      <div className="relative z-10 flex flex-1 min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/60 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
+          <GameHeader
+            worldConfig={world_config}
+            isLowHp={isLowHp}
+            authStatus={auth_status}
+            importInputRef={importInputRef}
+            onOpenJournal={() => setShowJournal(true)}
+            onExportSave={handleExportSave}
+            onImportSave={handleImportSave}
+            onQuitToDashboard={() => quitToMainMenu()}
+            onNewGame={handleNewGame}
+          />
+
+          {/* Persistent scene image — shows current location/scene, updates every time scene changes */}
+          {current_image_prompt && (
+            <div className="relative shrink-0 overflow-hidden border-b border-amber-900/20" style={{ height: "200px" }}>
+              <img
+                key={current_image_prompt}
+                src={buildSceneImageUrl(current_image_prompt)}
+                alt=""
+                className="w-full h-full object-cover animate-narrative-in"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/10 to-transparent" />
+            </div>
+          )}
+
+          <ChatHistory
+            history={history}
+            streamingNarrative={streamingNarrative}
+            isLoading={isLoading}
+            chatEndRef={chatEndRef}
+          />
+
+          <ActionBar
+            error={error}
+            isLoading={isLoading}
+            isDead={is_dead}
+            suggestedActions={suggested_actions}
+            input={input}
+            isLowHp={isLowHp}
+            onInputChange={setInput}
+            onSend={(message) => handleSend(message)}
+            onSubmit={() => handleSend(input)}
+            onRetry={handleRetry}
+            onRestart={handleRestart}
+          />
+        </div>
+
+        <CharacterSidebar
           worldConfig={world_config}
+          currentObjective={current_objective}
+          playerStatus={player_status}
+          hpPercent={hpPercent}
           isLowHp={isLowHp}
-          authStatus={auth_status}
-          importInputRef={importInputRef}
-          onOpenJournal={() => setShowJournal(true)}
-          onExportSave={handleExportSave}
-          onImportSave={handleImportSave}
-          onQuitToDashboard={() => quitToMainMenu()}
-          onNewGame={handleNewGame}
-        />
-
-        <ChatHistory
-          history={history}
-          streamingNarrative={streamingNarrative}
-          isLoading={isLoading}
-          chatEndRef={chatEndRef}
-        />
-
-        <ActionBar
-          error={error}
-          isLoading={isLoading}
-          isDead={is_dead}
-          suggestedActions={suggested_actions}
-          input={input}
-          isLowHp={isLowHp}
-          onInputChange={setInput}
-          onSend={(message) => handleSend(message)}
-          onSubmit={() => handleSend(input)}
-          onRetry={handleRetry}
-          onRestart={handleRestart}
+          livesLeft={lives_left}
         />
       </div>
-
-      <CharacterSidebar
-        worldConfig={world_config}
-        currentObjective={current_objective}
-        playerStatus={player_status}
-        hpPercent={hpPercent}
-        isLowHp={isLowHp}
-        livesLeft={lives_left}
-      />
     </div>
   );
 }

@@ -19,6 +19,7 @@ export interface ChatLog {
   role: 'player' | 'gm';
   content: string;
   prologue?: string;
+  scene_image_prompt?: string;
 }
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';

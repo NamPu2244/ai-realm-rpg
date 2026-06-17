@@ -1,3 +1,5 @@
+"use client";
+
 import { RefObject } from "react";
 import { ChatLog } from "@/store/useGameStore";
 import { parseDiceRoll } from "@/lib/gameText";
@@ -10,6 +12,18 @@ interface ChatHistoryProps {
   chatEndRef: RefObject<HTMLDivElement | null>;
 }
 
+function GMMessage({ chat, isStreaming = false }: Readonly<{ chat: Pick<ChatLog, "content" | "scene_image_prompt">; isStreaming?: boolean }>) {
+  const { roll, text } = parseDiceRoll(chat.content);
+  return (
+    <div className={`space-y-4 ${isStreaming ? "" : "animate-narrative-in"}`}>
+      {roll !== null && <DiceRollBadge roll={roll} />}
+      <p className={`text-amber-50/85 leading-[2] text-[0.95rem] whitespace-pre-wrap tracking-wide border-l-2 border-amber-800/40 pl-5 ${isStreaming ? "animate-pulse" : ""}`}>
+        {text}
+      </p>
+    </div>
+  );
+}
+
 export default function ChatHistory({
   history,
   streamingNarrative,
@@ -17,80 +31,50 @@ export default function ChatHistory({
   chatEndRef,
 }: Readonly<ChatHistoryProps>) {
   return (
-    <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8">
+    <div className="flex-1 overflow-y-auto px-6 md:px-10 py-8 space-y-10">
       {history.length > 0 ? (
-        history.map((chat, index) => {
-          const { roll, text } =
-            chat.role === "gm"
-              ? parseDiceRoll(chat.content)
-              : { roll: null, text: chat.content };
-
-          return (
-            <div key={index} className="space-y-8">
-              {chat.prologue && (
-                <div className="w-full px-6 py-8 md:px-12 md:py-10 bg-black/50 border-y border-amber-900/30 shadow-[inset_0_0_60px_rgba(0,0,0,0.5)]">
-                  <div className="max-w-3xl mx-auto text-center text-amber-100/70 italic leading-loose tracking-wide whitespace-pre-wrap font-serif">
-                    {chat.prologue}
-                  </div>
+        history.map((chat, index) => (
+          <div key={`${chat.role}-${index}-${chat.content.slice(0, 16)}`} className="space-y-6">
+            {chat.prologue && (
+              <div className="w-full px-6 py-8 md:px-12 md:py-10 bg-black/50 border-y border-amber-900/30 shadow-[inset_0_0_60px_rgba(0,0,0,0.5)]">
+                <div className="max-w-3xl mx-auto text-center text-amber-100/70 italic leading-loose tracking-wide whitespace-pre-wrap font-serif text-sm">
+                  {chat.prologue}
                 </div>
-              )}
-              <div
-                className={`flex ${chat.role === "player" ? "justify-end" : "justify-start"}`}
-              >
-              <div
-                className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${
-                  chat.role === "player"
-                    ? "bg-gradient-to-br from-stone-800 to-stone-800/60 border border-amber-900/30 text-amber-50 rounded-br-md"
-                    : "prose prose-invert prose-p:leading-relaxed text-amber-50/90 bg-gradient-to-br from-amber-950/20 to-stone-950/40 border border-amber-900/20 rounded-bl-md"
-                }`}
-              >
-                {chat.role === "player" && (
-                  <div className="text-xs text-amber-400/60 mb-2 uppercase tracking-wider font-bold">
-                    🧝 You
-                  </div>
-                )}
-                {chat.role !== "player" && (
-                  <div className="text-xs text-amber-500/50 mb-2 uppercase tracking-wider font-bold">
-                    📜 GM
-                  </div>
-                )}
-                {roll !== null && (
-                  <div>
-                    <DiceRollBadge roll={roll} />
-                  </div>
-                )}
-                <div className="whitespace-pre-wrap">{text}</div>
               </div>
+            )}
+
+            {chat.role === "gm" ? (
+              <GMMessage chat={chat} />
+            ) : (
+              <div className="flex justify-end">
+                <div className="max-w-[75%] px-4 py-3 bg-stone-800/60 border border-amber-900/25 rounded-2xl rounded-br-sm text-amber-50/90 text-sm shadow-md">
+                  <div className="text-[10px] text-amber-400/40 mb-1.5 uppercase tracking-widest font-semibold">คุณ</div>
+                  <div className="whitespace-pre-wrap leading-relaxed">{chat.content}</div>
+                </div>
               </div>
-            </div>
-          );
-        })
+            )}
+
+            {index < history.length - 1 && chat.role === "gm" && history[index + 1]?.role === "gm" && (
+              <div className="border-t border-amber-900/10 w-1/2 mx-auto" />
+            )}
+          </div>
+        ))
       ) : (
-        <div className="flex items-center justify-center h-full text-amber-100/30 animate-pulse">
+        <div className="flex items-center justify-center h-full text-amber-100/30 animate-pulse text-sm tracking-widest">
           กำลังเชื่อมต่อจิตวิญญาณ...
         </div>
       )}
 
-      {streamingNarrative && (() => {
-        const { roll, text } = parseDiceRoll(streamingNarrative);
-        return (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-2xl rounded-bl-md px-5 py-4 prose prose-invert prose-p:leading-relaxed text-amber-50/90 border border-amber-900/20 bg-gradient-to-br from-amber-950/20 to-stone-950/40 shadow-md">
-              <div className="text-xs text-amber-400 mb-2 uppercase tracking-wider font-bold animate-pulse">
-                📜 GM Is Typing...
-              </div>
-              {roll !== null && <DiceRollBadge roll={roll} />}
-              <div className="whitespace-pre-wrap">{text}</div>
-            </div>
-          </div>
-        );
-      })()}
+      {streamingNarrative && (
+        <div className="space-y-3">
+          <div className="text-[10px] text-amber-400/40 uppercase tracking-widest animate-pulse">กำลังเขียน...</div>
+          <GMMessage chat={{ content: streamingNarrative }} isStreaming />
+        </div>
+      )}
 
       {isLoading && !streamingNarrative && (
-        <div className="flex justify-start">
-          <div className="max-w-[85%] rounded-2xl px-5 py-4 text-amber-100/40 italic animate-pulse border border-transparent">
-            🎲 GM กำลังคำนวณผลลัพธ์และทอยเต๋าโชคชะตา...
-          </div>
+        <div className="text-amber-100/30 italic animate-pulse text-sm tracking-wide">
+          🎲 กำลังทอยเต๋าโชคชะตา...
         </div>
       )}
 
