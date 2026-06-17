@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject } from "react";
+import { memo, RefObject } from "react";
 import { ChatLog } from "@/store/useGameStore";
 import { parseDiceRoll } from "@/lib/gameText";
 import DiceRollBadge from "./DiceRollBadge";
@@ -17,14 +17,17 @@ function GMMessage({ chat, isStreaming = false }: Readonly<{ chat: Pick<ChatLog,
   return (
     <div className={`space-y-4 ${isStreaming ? "" : "animate-narrative-in"}`}>
       {roll !== null && <DiceRollBadge roll={roll} />}
-      <p className={`text-amber-50/85 leading-[2] text-[0.95rem] whitespace-pre-wrap tracking-wide border-l-2 border-amber-800/40 pl-5 ${isStreaming ? "animate-pulse" : ""}`}>
+      <p className="text-amber-50/85 leading-[2] text-[0.95rem] whitespace-pre-wrap tracking-wide border-l-2 border-amber-800/40 pl-5">
         {text}
+        {isStreaming && (
+          <span className="inline-block w-0.5 h-[1em] bg-amber-400/80 ml-0.5 align-middle animate-cursor-blink" />
+        )}
       </p>
     </div>
   );
 }
 
-export default function ChatHistory({
+function ChatHistory({
   history,
   streamingNarrative,
   isLoading,
@@ -82,3 +85,5 @@ export default function ChatHistory({
     </div>
   );
 }
+
+export default memo(ChatHistory);

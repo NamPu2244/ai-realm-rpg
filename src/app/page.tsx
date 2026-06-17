@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useGameStore, WorldConfig, ChatLog } from "@/store/useGameStore";
 import WorldCreationMenu from "@/components/WorldCreationMenu";
 import AuthScreen from "@/components/AuthScreen";
@@ -12,6 +12,7 @@ import JournalModal from "@/components/game/JournalModal";
 import QTEOverlay from "@/components/game/QTEOverlay";
 import ChatHistory from "@/components/game/ChatHistory";
 import GameHeader from "@/components/game/GameHeader";
+import SceneBanner from "@/components/game/SceneBanner";
 import ActionBar from "@/components/game/ActionBar";
 import CharacterSidebar from "@/components/game/CharacterSidebar";
 import {
@@ -83,11 +84,16 @@ export default function GamePage() {
     player_status.max_hp > 0
       ? (player_status.hp / player_status.max_hp) * 100
       : 100;
+
+  const sceneImageUrl = useMemo(
+    () => (current_image_prompt ? buildSceneImageUrl(current_image_prompt) : null),
+    [current_image_prompt],
+  );
   const isLowHp = hpPercent <= 30 && hpPercent > 0 && game_phase === "Playing";
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history, streamingNarrative, current_image_prompt]);
+  }, [history, streamingNarrative]);
 
   // สั่นหน้าจอและ flash แดงเมื่อ HP ลดลง
   useEffect(() => {
@@ -540,7 +546,7 @@ export default function GamePage() {
     <div
       className={`relative flex h-screen bg-transparent text-amber-50 font-sans selection:bg-amber-800/60 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
     >
-      {current_image_prompt && (
+      {sceneImageUrl && (
         <div
           className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
           aria-hidden="true"
@@ -548,7 +554,7 @@ export default function GamePage() {
           <div
             className="absolute inset-0 scale-110"
             style={{
-              backgroundImage: `url(${buildSceneImageUrl(current_image_prompt)})`,
+              backgroundImage: `url(${sceneImageUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
               filter: "blur(48px) brightness(0.12) saturate(0.8)",
@@ -634,15 +640,7 @@ export default function GamePage() {
 
           {/* Persistent scene image — shows current location/scene, updates every time scene changes */}
           {current_image_prompt && (
-            <div className="relative shrink-0 overflow-hidden border-b border-amber-900/20" style={{ height: "200px" }}>
-              <img
-                key={current_image_prompt}
-                src={buildSceneImageUrl(current_image_prompt)}
-                alt=""
-                className="w-full h-full object-cover animate-narrative-in"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/10 to-transparent" />
-            </div>
+            <SceneBanner imagePrompt={current_image_prompt} />
           )}
 
           <ChatHistory

@@ -18,6 +18,8 @@
   --animate-level-up-pop: levelUpPop 2.2s ease-in-out forwards;
   --animate-item-glow: itemGlow 2s ease-out forwards;
   --animate-narrative-in: narrativeIn 0.5s ease-out forwards;
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+  --animate-cursor-blink: cursorBlink 1s step-end infinite;
 }
 
 @keyframes shake {
@@ -57,6 +59,16 @@
 @keyframes narrativeIn {
   0% { opacity: 0; transform: translateY(6px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 @keyframes itemGlow {

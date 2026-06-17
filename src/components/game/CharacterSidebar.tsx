@@ -42,7 +42,7 @@ export default function CharacterSidebar({
 
   return (
     <div
-      className={`w-80 bg-stone-950/40 p-5 overflow-y-auto flex flex-col gap-4 border-l transition-colors duration-500 ${isLowHp ? "border-red-900/30" : "border-amber-900/20"}`}
+      className={`hidden lg:flex w-80 bg-stone-950/40 p-5 overflow-y-auto flex-col gap-4 border-l transition-colors duration-500 ${isLowHp ? "border-red-900/30" : "border-amber-900/20"}`}
     >
       <div className="space-y-3 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
         <h2
