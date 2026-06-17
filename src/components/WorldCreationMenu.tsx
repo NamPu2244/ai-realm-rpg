@@ -134,6 +134,7 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
   const [traits, setTraits] = useState<string[]>([]);
   const [characterConcept, setCharacterConcept] = useState("");
   const [customWorld, setCustomWorld] = useState("");
+  const [worldName, setWorldName] = useState("");
 
   const toggleTrait = (trait: string) => {
     setTraits((prev) => {
@@ -176,6 +177,7 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
       character: resolvedCharacter,
       customWorld: customWorld.trim(),
       openingSeed,
+      worldName: worldName.trim(),
     });
   };
 
@@ -186,6 +188,22 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
           <h1 className="text-3xl font-bold text-white tracking-widest">AI REALM</h1>
           <p className="text-sm text-neutral-500">รังสรรค์โลกของคุณเอง แล้วเริ่มการผจญภัย</p>
         </div>
+
+        {/* Adventure Name */}
+        <section className="space-y-3">
+          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
+            ชื่อการผจญภัย (ไม่บังคับ)
+          </h2>
+          <input
+            type="text"
+            value={worldName}
+            onChange={(e) => setWorldName(e.target.value)}
+            maxLength={60}
+            placeholder="เช่น ตำนานแห่งดินแดนหิมะ, The Last Outpost..."
+            className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded-lg px-4 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none transition-colors"
+          />
+          <p className="text-xs text-neutral-600">ชื่อนี้จะแสดงใน Dashboard — หากไม่กรอกจะใช้ชื่อแนวเรื่องแทน</p>
+        </section>
 
         {/* Language */}
         <section className="space-y-3">

@@ -81,10 +81,16 @@ export function parseDiceRoll(text: string): { roll: number | null; text: string
   return { roll: Number.parseInt(match[1], 10), text: cleaned };
 }
 
-const SCENE_IMAGE_STYLE = ", dark fantasy RPG concept art, cinematic lighting, dramatic atmosphere, highly detailed, moody, painterly";
+const SCENE_IMAGE_STYLE: Record<string, string> = {
+  hardcore: ", gritty dark fantasy, brutal realism, harsh lighting, desaturated, grimdark, detailed textures, cinematic",
+  balanced: ", dark fantasy RPG concept art, cinematic lighting, dramatic atmosphere, highly detailed, moody, painterly",
+  story:    ", storybook illustration, soft warm lighting, painterly, lush colors, atmospheric, highly detailed, epic fantasy art",
+  sandbox:  ", vibrant fantasy concept art, colorful, creative, imaginative, high detail, whimsical yet epic, digital painting",
+};
 
-export function buildSceneImageUrl(prompt: string): string {
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + SCENE_IMAGE_STYLE)}?width=1024&height=420&nologo=true`;
+export function buildSceneImageUrl(prompt: string, tone?: string): string {
+  const style = SCENE_IMAGE_STYLE[tone ?? ""] ?? SCENE_IMAGE_STYLE.balanced;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + style)}?width=1024&height=420&nologo=true`;
 }
 
 export function diceRollStyle(roll: number): string {

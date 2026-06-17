@@ -56,10 +56,10 @@ export default function ActionBar({
                   key={`${i}-${action.slice(0, 12)}`}
                   onClick={() => onSend(action)}
                   disabled={isLoading}
-                  title="ตัวเลือกที่ AI แนะนำ — คลิกเพื่อทำทันที หรือพิมพ์คำสั่งของคุณเองด้านล่าง"
+                  title={`ตัวเลือกที่ AI แนะนำ — กดปุ่ม [${i + 1}] หรือคลิกเพื่อทำทันที`}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-stone-900/50 hover:bg-amber-950/40 text-amber-200/65 hover:text-amber-100 border border-stone-800/60 hover:border-amber-800/50 rounded-lg transition-all disabled:opacity-40 group"
                 >
-                  <span className="text-amber-700/60 group-hover:text-amber-500/80 text-xs font-mono w-4 shrink-0 select-none">{i + 1}.</span>
+                  <span className="text-amber-700/60 group-hover:text-amber-500/80 text-xs font-mono w-5 shrink-0 select-none">[{i + 1}]</span>
                   <span className="leading-snug">{action}</span>
                 </button>
               ))}

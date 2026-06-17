@@ -31,6 +31,7 @@ export interface WorldConfig {
   character: string;
   customWorld: string;
   openingSeed: string;
+  worldName?: string;
 }
 
 export interface AuthUser {
@@ -193,7 +194,7 @@ export const useGameStore = create<GameState>()(
           .from('save_slots')
           .insert({
             user_id: user.id,
-            world_name: worldConfig.genre || 'New World',
+            world_name: worldConfig.worldName?.trim() || worldConfig.genre || 'New World',
             world_config: worldConfig,
             player_status: initialState.player_status,
             game_state: {},

@@ -69,7 +69,7 @@ GAMEPLAY RULES:
 - UPDATE "story_summary" every turn with a concise running log of important events, NPCs, locations, and current goals.
 - UPDATE "current_objective" every turn with a single short sentence (in ${language}) describing what the player should probably do next or is currently trying to achieve. Change it whenever the immediate goal changes.
 - If the player enters a NEW location, encounters a notable NEW creature/boss, or the scene changes visually in a major way, write a highly detailed, comma-separated ENGLISH prompt for an AI image generator in "scene_image_prompt" (e.g., "dark fantasy, wet cave, glowing moss, cinematic lighting, 8k, unreal engine"). If the scene hasn't changed visually, leave it as an empty string "".
-- PROGRESSION RULE: Award "exp" in "player_status" after successful encounters, battles, puzzles, or notable accomplishments (typical gains: 5-30 depending on difficulty). When "exp" reaches a logical threshold (e.g. 100), increment "level" by 1, reset "exp" to the leftover amount (e.g. exp - 100), and grant a new appropriate entry to "skills" reflecting what the character learned or trained based on the story so far. Never decrease "level".
+- PROGRESSION RULE: Award "exp" in "player_status" after successful encounters, battles, puzzles, or notable accomplishments (typical gains: 5-30 depending on difficulty). The level-up threshold is ALWAYS exactly 100 EXP — no exceptions. When "exp" reaches 100 or more, increment "level" by 1, reset "exp" to the exact leftover amount (exp - 100), and grant a new appropriate entry to "skills" reflecting what the character learned or trained based on the story so far. Never decrease "level". Never use any threshold other than 100.
 - WORLD EVENT RULE: If the player action is exactly "[WORLD EVENT]", this is an automatic ambient pulse triggered by the passage of time — NOT a player choice. Ignore all player-input validation rules. Write a brief immersive moment (40-110 words) that makes the world feel alive: an NPC doing something nearby, a fragment of overheard dialogue, a shift in light or weather, a distant sound, or a small environmental detail the player can witness without acting. Do NOT address the player directly, do NOT set a new quest or directive, do NOT trigger is_qte_active. Leave player_status completely unchanged. This is pure atmosphere — no stats, no stakes, just world breathing.
 - QTE RULE (Quick Time Event): If an enemy or hazard launches a sudden, fast, or potentially lethal attack that demands an immediate reaction, set "is_qte_active" to true, set "qte_time_limit" to a number of seconds (2-7) based on how fast the threat is, and provide 2-3 short "qte_options" (in ${language}) describing immediate reactions (e.g. "หลบซ้าย", "ป้องกัน", "反撃"). On all other turns, set "is_qte_active" to false, "qte_time_limit" to 0, and "qte_options" to an empty array. If the player's action was a "[TIME OUT...]" message, narrate the consequence of standing completely still and apply appropriate damage/effects.
 - LIVES & RESPAWN RULE: If "hp" drops to 0 or below: if "lives_left" > 0, decrease "lives_left" by 1, restore "hp" to "max_hp", clear "inventory" to an empty array, and narrate the character's soul/body being returned to the last safe zone or camp (keep "is_dead" false). If "lives_left" is already 0 when "hp" drops to 0 or below, set "is_dead" to true and keep "hp" at 0. Otherwise keep "lives_left" unchanged.
@@ -199,7 +199,8 @@ export async function POST(req: Request) {
     if (saveSlotId && process.env.OPENAI_API_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
       const memories = await fetchRelevantMemories(prompt || 'Begin the adventure.', saveSlotId);
       if (memories.length > 0) {
-        memoriesSection = `\n\n[RELEVANT PAST MEMORIES — Key events from earlier in the story that may be pertinent right now]\n${memories.map((m) => `- ${m}`).join('\n')}`;
+        const memoryLines = memories.map((m) => "- " + m).join("\n");
+        memoriesSection = "\n\n[RELEVANT PAST MEMORIES — Key events from earlier in the story that may be pertinent right now]\n" + memoryLines;
       }
     }
 
@@ -256,8 +257,16 @@ ${historyContext}
 
     if (!response.ok || !response.body) {
       const errText = await response.text().catch(() => "");
+      // Ollama returns 404 with "model not found" when the model hasn't been pulled yet
+      const modelName = ollamaPayload.model;
+      if (response.status === 404 || errText.toLowerCase().includes("model") && errText.toLowerCase().includes("not found")) {
+        return NextResponse.json(
+          { error: `ไม่พบโมเดล "${modelName}" ใน Ollama — รันคำสั่ง: ollama pull ${modelName}` },
+          { status: 502 }
+        );
+      }
       return NextResponse.json(
-        { error: `Ollama API error: ${response.status} ${errText}` },
+        { error: `Ollama ตอบกลับผิดพลาด (${response.status}) — ตรวจสอบว่า Ollama กำลังทำงานอยู่ที่ http://127.0.0.1:11434` },
         { status: 502 }
       );
     }
@@ -266,7 +275,14 @@ ${historyContext}
       headers: { 'Content-Type': 'text/event-stream' }
     });
 
-  } catch {
+  } catch (err) {
+    const isConnRefused = err instanceof Error && (err.message.includes("ECONNREFUSED") || err.message.includes("fetch failed"));
+    if (isConnRefused) {
+      return NextResponse.json(
+        { error: "เชื่อมต่อ Ollama ไม่ได้ — ตรวจสอบว่า Ollama กำลังทำงานอยู่ที่ http://127.0.0.1:11434" },
+        { status: 502 }
+      );
+    }
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

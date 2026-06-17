@@ -3,16 +3,16 @@
 import { useState, useRef, useEffect } from "react";
 import { buildSceneImageUrl } from "@/lib/gameText";
 
-export default function SceneBanner({ imagePrompt }: { imagePrompt: string }) {
+export default function SceneBanner({ imagePrompt, tone }: Readonly<{ imagePrompt: string; tone?: string }>) {
   const [currentSrc, setCurrentSrc] = useState<string | null>(null);
-  const [incomingSrc, setIncomingSrc] = useState<string | null>(() => buildSceneImageUrl(imagePrompt));
+  const [incomingSrc, setIncomingSrc] = useState<string | null>(() => buildSceneImageUrl(imagePrompt, tone));
   const [isIncomingVisible, setIsIncomingVisible] = useState(false);
   // Track the expected URL to discard stale onLoad events from old images
-  const expectedRef = useRef<string>(buildSceneImageUrl(imagePrompt));
+  const expectedRef = useRef<string>(buildSceneImageUrl(imagePrompt, tone));
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const url = buildSceneImageUrl(imagePrompt);
+    const url = buildSceneImageUrl(imagePrompt, tone);
     if (url === expectedRef.current) return;
     expectedRef.current = url;
     setIncomingSrc(url);
@@ -20,7 +20,7 @@ export default function SceneBanner({ imagePrompt }: { imagePrompt: string }) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [imagePrompt]);
+  }, [imagePrompt, tone]);
 
   const handleLoad = () => {
     if (incomingSrc !== expectedRef.current) return;
@@ -47,8 +47,11 @@ export default function SceneBanner({ imagePrompt }: { imagePrompt: string }) {
       style={{ height: "200px" }}
     >
       {showSkeleton && (
-        <div className="absolute inset-0 bg-stone-900">
-          <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-stone-900 via-stone-700/40 to-stone-900 bg-[length:200%_100%]" />
+        <div className="absolute inset-0 bg-stone-800/60">
+          <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-stone-800/60 via-stone-600/30 to-stone-800/60 bg-[length:200%_100%]" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-xs text-amber-500/40 tracking-widest uppercase animate-pulse">กำลังสร้างฉาก...</span>
+          </div>
         </div>
       )}
 

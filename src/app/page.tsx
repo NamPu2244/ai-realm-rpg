@@ -15,6 +15,7 @@ import GameHeader from "@/components/game/GameHeader";
 import SceneBanner from "@/components/game/SceneBanner";
 import ActionBar from "@/components/game/ActionBar";
 import CharacterSidebar from "@/components/game/CharacterSidebar";
+import MobileStatsDrawer from "@/components/game/MobileStatsDrawer";
 import {
   extractAndParseJSON,
   QTE_TIMEOUT_SIGNAL,
@@ -22,6 +23,7 @@ import {
   getQteTimeoutDisplay,
   buildSceneImageUrl,
 } from "@/lib/gameText";
+import { playDamage, playLevelUp, playQteAlert, playQteSelect, playQteTimeout, playAmbient } from "@/lib/sounds";
 
 export default function GamePage() {
   const {
@@ -71,6 +73,7 @@ export default function GamePage() {
   const [showTransition, setShowTransition] = useState(false);
   const [qteTimeLeft, setQteTimeLeft] = useState(0);
   const qteTriggeredRef = useRef(false);
+  const [showMobileStats, setShowMobileStats] = useState(false);
 
   // กล่องแจ้งเตือน/ยืนยันแบบ modal (แทน window.alert / window.confirm)
   const [alertInfo, setAlertInfo] = useState<string | null>(null);
@@ -86,8 +89,8 @@ export default function GamePage() {
       : 100;
 
   const sceneImageUrl = useMemo(
-    () => (current_image_prompt ? buildSceneImageUrl(current_image_prompt) : null),
-    [current_image_prompt],
+    () => (current_image_prompt ? buildSceneImageUrl(current_image_prompt, world_config?.tone) : null),
+    [current_image_prompt, world_config?.tone],
   );
   const isLowHp = hpPercent <= 30 && hpPercent > 0 && game_phase === "Playing";
 
@@ -100,6 +103,7 @@ export default function GamePage() {
     if (player_status.hp < prevHpRef.current) {
       setIsShaking(true);
       setIsDamageFlash(true);
+      playDamage();
       const shakeTimer = setTimeout(() => setIsShaking(false), 400);
       const flashTimer = setTimeout(() => setIsDamageFlash(false), 350);
       prevHpRef.current = player_status.hp;
@@ -113,6 +117,7 @@ export default function GamePage() {
     if (player_status.level > prevLevelRef.current && prevLevelRef.current > 0) {
       setLevelUpNum(player_status.level);
       setShowLevelUp(true);
+      playLevelUp();
       const timer = setTimeout(() => setShowLevelUp(false), 2200);
       prevLevelRef.current = player_status.level;
       return () => clearTimeout(timer);
@@ -173,6 +178,7 @@ export default function GamePage() {
       const t = setTimeout(() => setQteTimeLeft(0), 0);
       return () => clearTimeout(t);
     }
+    playQteAlert();
     qteTriggeredRef.current = false;
     const startTime = Date.now();
     const tick = () => {
@@ -299,6 +305,7 @@ export default function GamePage() {
 
         // 25% chance ที่โลกจะส่ง ambient event เอง (ไม่ fire ถ้าเป็น ambient/QTE turn เอง หรือตายแล้ว)
         const isAmbientOrSystem = message === WORLD_EVENT_SIGNAL || message === QTE_TIMEOUT_SIGNAL;
+        if (message === WORLD_EVENT_SIGNAL) playAmbient();
         if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
           const delay = 6000 + Math.random() * 6000; // 6-12 วินาที
           ambientTimerRef.current = setTimeout(() => {
@@ -329,6 +336,7 @@ export default function GamePage() {
           }
         }
       } else {
+        setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
         setError("AI ตอบกลับมาผิดพลาด ไม่สามารถอ่านข้อมูลได้ ลองอีกครั้ง");
         setRetryAction({ newHistory, message, worldConfig });
         setStreamingNarrative("");
@@ -336,6 +344,7 @@ export default function GamePage() {
     } catch (err) {
       console.error("Network Error:", err);
       const detail = err instanceof Error ? err.message : "";
+      setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
       setError(
         detail
           ? `เชื่อมต่อกับ AI ไม่สำเร็จ: ${detail}`
@@ -397,9 +406,24 @@ export default function GamePage() {
   useEffect(() => {
     if (is_qte_active && qteTimeLeft <= 0 && qte_time_limit > 0 && !isLoading && !qteTriggeredRef.current) {
       qteTriggeredRef.current = true;
+      playQteTimeout();
       handleSendRef.current(QTE_TIMEOUT_SIGNAL);
     }
   }, [qteTimeLeft, is_qte_active, qte_time_limit, isLoading]);
+
+  // กด 1/2/3/4 เพื่อเลือก suggested action ทันที (เฉพาะตอนไม่มี QTE และไม่ loading)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (is_qte_active || isLoading || is_dead) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const idx = Number.parseInt(e.key) - 1;
+      if (idx >= 0 && idx < suggested_actions.length) {
+        handleSendRef.current(suggested_actions[idx]);
+      }
+    };
+    globalThis.addEventListener("keydown", handleKeyDown);
+    return () => globalThis.removeEventListener("keydown", handleKeyDown);
+  }, [is_qte_active, isLoading, is_dead, suggested_actions]);
 
   const handleStartGame = async (config: WorldConfig) => {
     if (auth_status === "authenticated") {
@@ -591,7 +615,7 @@ export default function GamePage() {
           qteTimeLimit={qte_time_limit}
           qteOptions={qte_options}
           isLoading={isLoading}
-          onSelect={(option) => handleSend(option)}
+          onSelect={(option) => { playQteSelect(); handleSend(option); }}
         />
       )}
 
@@ -641,7 +665,7 @@ export default function GamePage() {
 
           {/* Persistent scene image — shows current location/scene, updates every time scene changes */}
           {current_image_prompt && (
-            <SceneBanner imagePrompt={current_image_prompt} />
+            <SceneBanner imagePrompt={current_image_prompt} tone={world_config?.tone} />
           )}
 
           <ChatHistory
@@ -675,6 +699,30 @@ export default function GamePage() {
           livesLeft={lives_left}
         />
       </div>
+
+      {/* Mobile stats FAB — visible only on small screens */}
+      <button
+        type="button"
+        onClick={() => setShowMobileStats(true)}
+        aria-label="เปิดสถานะตัวละคร"
+        className={`fixed bottom-24 right-4 z-30 lg:hidden flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl border shadow-lg backdrop-blur transition-colors ${isLowHp ? "bg-red-950/80 border-red-700/60 animate-pulse" : "bg-stone-900/80 border-amber-900/40"}`}
+      >
+        <span className="text-lg leading-none">❤️</span>
+        <span className={`text-xs font-bold tabular-nums leading-none ${isLowHp ? "text-red-400" : "text-amber-400"}`}>
+          {player_status.hp}/{player_status.max_hp}
+        </span>
+      </button>
+
+      <MobileStatsDrawer
+        isOpen={showMobileStats}
+        onClose={() => setShowMobileStats(false)}
+        playerStatus={player_status}
+        hpPercent={hpPercent}
+        isLowHp={isLowHp}
+        livesLeft={lives_left}
+        currentObjective={current_objective}
+        worldConfig={world_config}
+      />
     </div>
   );
 }
