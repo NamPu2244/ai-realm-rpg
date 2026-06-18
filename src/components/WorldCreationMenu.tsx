@@ -1,18 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import {
+  Sword, Rocket, Bot, Biohazard, Ghost, Building2, Swords,
+  Skull, Scale, BookOpen, Palette, ChevronLeft,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { WorldConfig, WorldTone } from "@/store/useGameStore";
 
 const LANGUAGES = ["ไทย", "English", "日本語"];
 
-const GENRES = [
-  { id: "fantasy", label: "🗡️ แฟนตาซี", value: "High fantasy with magic, monsters, and medieval kingdoms" },
-  { id: "scifi", label: "🚀 Sci-Fi", value: "Science fiction with advanced technology, space travel, and aliens" },
-  { id: "cyberpunk", label: "🤖 ไซเบอร์พังก์", value: "Cyberpunk dystopia with megacorporations, hackers, and neon-lit cities" },
-  { id: "apocalypse", label: "☣️ หลังหายนะ", value: "Post-apocalyptic wasteland with survivors, mutants, and scarce resources" },
-  { id: "horror", label: "👻 สยองขวัญ", value: "Cosmic and psychological horror, full of dread and sanity-testing events" },
-  { id: "modern", label: "🏙️ โลกปัจจุบัน", value: "Modern-day urban setting with hidden supernatural elements" },
-  { id: "wuxia", label: "⚔️ กำลังภายใน", value: "Wuxia/Xianxia world of martial arts sects, cultivation, and ancient-China-inspired settings" },
+const GENRES: { id: string; icon: LucideIcon; label: string; value: string }[] = [
+  { id: "fantasy",    icon: Sword,     label: "แฟนตาซี",       value: "High fantasy with magic, monsters, and medieval kingdoms" },
+  { id: "scifi",      icon: Rocket,    label: "Sci-Fi",         value: "Science fiction with advanced technology, space travel, and aliens" },
+  { id: "cyberpunk",  icon: Bot,       label: "ไซเบอร์พังก์",   value: "Cyberpunk dystopia with megacorporations, hackers, and neon-lit cities" },
+  { id: "apocalypse", icon: Biohazard, label: "หลังหายนะ",      value: "Post-apocalyptic wasteland with survivors, mutants, and scarce resources" },
+  { id: "horror",     icon: Ghost,     label: "สยองขวัญ",       value: "Cosmic and psychological horror, full of dread and sanity-testing events" },
+  { id: "modern",     icon: Building2, label: "โลกปัจจุบัน",    value: "Modern-day urban setting with hidden supernatural elements" },
+  { id: "wuxia",      icon: Swords,    label: "กำลังภายใน",     value: "Wuxia/Xianxia world of martial arts sects, cultivation, and ancient-China-inspired settings" },
 ];
 
 const OPENING_SEEDS: Record<string, string[]> = {
@@ -74,8 +79,6 @@ const OPENING_SEEDS: Record<string, string[]> = {
   ],
 };
 
-// ใช้แทน custom world/character เมื่อผู้เล่นไม่กรอกอะไรเลย เพื่อหลีกเลี่ยงโครงเรื่องซ้ำๆ
-// (ตื่นในถ้ำ/โรงเตี๊ยม/ความจำเสื่อม/เสียงประหลาด) แล้วเปิดเรื่องแบบหนัง In Media Res แทน
 const RANDOM_PROLOGUES: string[] = [
   "ลืมตาขึ้นมาพบว่าตัวเองกำลังดิ่งพสุธาจากท้องฟ้า โดยที่ร่มชูชีพมีรอยฉีกขาด",
   "คุณนั่งอยู่ในงานเลี้ยงหรูหรา แต่จู่ๆ ทุกคนในห้องก็หยุดนิ่งและหันมาจ้องคุณด้วยสายตาอาฆาต",
@@ -87,27 +90,26 @@ const RANDOM_PROLOGUES: string[] = [
   "ระหว่างพิธีราชาภิเษกของคุณเอง มีคนลอบสังหารกษัตริย์องค์ก่อนต่อหน้าทุกคน และทุกสายตาในท้องพระโรงกำลังจับจ้องมาที่คุณในฐานะผู้ต้องสงสัยอันดับหนึ่ง",
 ];
 
-
-const TONES: { id: WorldTone; label: string; desc: string }[] = [
-  { id: "hardcore", label: "💀 Hardcore", desc: "โลกสมจริงเข้มข้น การกระทำโง่ๆ อาจถึงตาย ผลลัพธ์รุนแรงและจริงจัง" },
-  { id: "balanced", label: "⚖️ Balanced", desc: "ท้าทายแต่ยุติธรรม มีโอกาสแก้ตัวก่อนถึงทางตัน" },
-  { id: "story", label: "📖 Story-Focused", desc: "เน้นเนื้อเรื่องและดราม่า โอกาสตายต่ำ" },
-  { id: "sandbox", label: "🎨 Sandbox", desc: "อิสระสุดๆ AI ตามใจผู้เล่น แทบไม่มีข้อจำกัด" },
+const TONES: { id: WorldTone; icon: LucideIcon; label: string; desc: string }[] = [
+  { id: "hardcore", icon: Skull,     label: "Hardcore",      desc: "โลกสมจริงเข้มข้น การกระทำโง่ๆ อาจถึงตาย ผลลัพธ์รุนแรงและจริงจัง" },
+  { id: "balanced", icon: Scale,     label: "Balanced",      desc: "ท้าทายแต่ยุติธรรม มีโอกาสแก้ตัวก่อนถึงทางตัน" },
+  { id: "story",    icon: BookOpen,  label: "Story-Focused", desc: "เน้นเนื้อเรื่องและดราม่า โอกาสตายต่ำ" },
+  { id: "sandbox",  icon: Palette,   label: "Sandbox",       desc: "อิสระสุดๆ AI ตามใจผู้เล่น แทบไม่มีข้อจำกัด" },
 ];
 
 const GENDERS = [
   { id: "unspecified", label: "ไม่ระบุ / ให้ AI กำหนด" },
-  { id: "male", label: "ชาย" },
-  { id: "female", label: "หญิง" },
-  { id: "nonbinary", label: "นอกบรรทัดฐานทางเพศ" },
+  { id: "male",        label: "ชาย" },
+  { id: "female",      label: "หญิง" },
+  { id: "nonbinary",   label: "นอกบรรทัดฐานทางเพศ" },
 ];
 
 const ORIENTATIONS = [
-  { id: "unspecified", label: "ไม่ระบุ" },
-  { id: "heterosexual", label: "รักต่างเพศ" },
-  { id: "homosexual", label: "รักเพศเดียวกัน" },
-  { id: "bisexual", label: "รักสองเพศ" },
-  { id: "asexual", label: "ไม่ฝักใฝ่ทางเพศ" },
+  { id: "unspecified",   label: "ไม่ระบุ" },
+  { id: "heterosexual",  label: "รักต่างเพศ" },
+  { id: "homosexual",    label: "รักเพศเดียวกัน" },
+  { id: "bisexual",      label: "รักสองเพศ" },
+  { id: "asexual",       label: "ไม่ฝักใฝ่ทางเพศ" },
 ];
 
 const PERSONALITY_TRAITS = [
@@ -116,25 +118,70 @@ const PERSONALITY_TRAITS = [
   "โหดเหี้ยม", "มีเมตตา", "ขี้สงสัย", "มองโลกในแง่ร้าย", "ร่าเริง", "เงียบขรึม",
 ];
 
+// Deterministic particles — no Math.random() to avoid hydration mismatch
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+  id: i,
+  x: (i * 5.9) % 100,
+  delay: (i * 1.53) % 11,
+  duration: 10 + (i * 1.27) % 10,
+  size: 2 + (i * 0.65) % 3,
+}));
+
+// ── Shared style tokens ────────────────────────────────────────────────────────
+const INPUT = [
+  "w-full bg-neutral-950/60 border border-neutral-700/50 rounded-xl px-4 py-2.5 text-sm",
+  "text-neutral-200 placeholder:text-neutral-700",
+  "focus:outline-none focus:border-amber-600/60 focus:shadow-[0_0_0_3px_rgba(217,119,6,0.1)]",
+  "transition-all duration-200",
+].join(" ");
+
+const TEXTAREA = INPUT + " resize-none";
+
+const PILL_ON  = "bg-amber-900/40 text-amber-300 border-amber-600/50 font-semibold";
+const PILL_OFF = "bg-neutral-900/50 text-neutral-400 border-neutral-700/40 hover:border-neutral-600 hover:text-neutral-300";
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+function StepCard({
+  num, title, tooltip, children,
+}: Readonly<{ num?: number; title: string; tooltip?: string; children: React.ReactNode }>) {
+  return (
+    <section className="bg-neutral-900/35 border border-neutral-800/50 rounded-2xl p-5 space-y-4">
+      <h2
+        title={tooltip}
+        className={`flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-widest text-neutral-500 ${tooltip ? "cursor-help" : ""}`}
+      >
+        {num !== undefined && (
+          <span className="w-5 h-5 rounded-full bg-amber-900/40 border border-amber-700/40 flex items-center justify-center text-amber-500 text-[9px] font-bold shrink-0">
+            {num}
+          </span>
+        )}
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 interface WorldCreationMenuProps {
   onStart: (config: WorldConfig) => void;
   onCancel?: () => void;
 }
 
 export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldCreationMenuProps>) {
-  const [language, setLanguage] = useState(LANGUAGES[0]);
-  const [customLanguage, setCustomLanguage] = useState("");
-  const [genreId, setGenreId] = useState(GENRES[0].id);
-  const [customGenre, setCustomGenre] = useState("");
-  const [tone, setTone] = useState<WorldTone>("balanced");
-  const [genderId, setGenderId] = useState("unspecified");
-  const [customGender, setCustomGender] = useState("");
-  const [orientationId, setOrientationId] = useState("unspecified");
+  const [language, setLanguage]               = useState(LANGUAGES[0]);
+  const [customLanguage, setCustomLanguage]   = useState("");
+  const [genreId, setGenreId]                 = useState(GENRES[0].id);
+  const [customGenre, setCustomGenre]         = useState("");
+  const [tone, setTone]                       = useState<WorldTone>("balanced");
+  const [genderId, setGenderId]               = useState("unspecified");
+  const [customGender, setCustomGender]       = useState("");
+  const [orientationId, setOrientationId]     = useState("unspecified");
   const [customOrientation, setCustomOrientation] = useState("");
-  const [traits, setTraits] = useState<string[]>([]);
+  const [traits, setTraits]                   = useState<string[]>([]);
   const [characterConcept, setCharacterConcept] = useState("");
-  const [customWorld, setCustomWorld] = useState("");
-  const [worldName, setWorldName] = useState("");
+  const [customWorld, setCustomWorld]         = useState("");
+  const [worldName, setWorldName]             = useState("");
 
   const toggleTrait = (trait: string) => {
     setTraits((prev) => {
@@ -151,17 +198,14 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
 
     const resolvedGender = customGender.trim() || (genderId === "unspecified" ? "" : GENDERS.find((g) => g.id === genderId)?.label);
     const resolvedOrientation = customOrientation.trim() || (orientationId === "unspecified" ? "" : ORIENTATIONS.find((o) => o.id === orientationId)?.label);
-    const genderText = resolvedGender ? `Gender: ${resolvedGender}.` : "";
+    const genderText      = resolvedGender      ? `Gender: ${resolvedGender}.`           : "";
     const orientationText = resolvedOrientation ? `Sexual orientation: ${resolvedOrientation}.` : "";
-
-    const traitText = traits.length > 0 ? `Personality traits: ${traits.join(", ")}.` : "";
-    const conceptText = characterConcept.trim()
+    const traitText       = traits.length > 0   ? `Personality traits: ${traits.join(", ")}.`  : "";
+    const conceptText     = characterConcept.trim()
       ? `Concept/background: ${characterConcept.trim()}`
       : "Let the GM invent a fitting concept and background for this character based on the personality traits and the chosen genre.";
     const resolvedCharacter = `${genderText} ${orientationText} ${traitText} ${conceptText}`.trim();
 
-    // ถ้าผู้เล่นไม่กรอกรายละเอียดโลกเอง สุ่ม "Cinematic Prologue" ภาษาไทยมาแทน
-    // เพื่อเลี่ยงโครงเรื่องซ้ำๆ (ตื่นในถ้ำ/โรงเตี๊ยม/ความจำเสื่อม) จาก seed ทั่วไป
     let openingSeed: string;
     if (customWorld.trim()) {
       const seedPool = customGenre.trim() ? OPENING_SEEDS.generic : (OPENING_SEEDS[genreId] || OPENING_SEEDS.generic);
@@ -170,62 +214,67 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
       openingSeed = RANDOM_PROLOGUES[Math.floor(Math.random() * RANDOM_PROLOGUES.length)];
     }
 
-    onStart({
-      language: resolvedLanguage,
-      genre: resolvedGenre,
-      tone,
-      character: resolvedCharacter,
-      customWorld: customWorld.trim(),
-      openingSeed,
-      worldName: worldName.trim(),
-    });
+    onStart({ language: resolvedLanguage, genre: resolvedGenre, tone, character: resolvedCharacter, customWorld: customWorld.trim(), openingSeed, worldName: worldName.trim() });
   };
 
   return (
-    <div className="h-screen overflow-y-auto bg-neutral-950 text-neutral-200">
-      <div className="max-w-3xl mx-auto px-6 py-12 space-y-10">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-white tracking-widest">AI REALM</h1>
+    <div className="relative h-screen overflow-y-auto bg-neutral-950 text-neutral-200 font-sans">
+
+      {/* ── Fixed background ── */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_-5%,rgba(217,119,6,0.11),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_55%_at_100%_100%,rgba(120,53,15,0.16),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_45%_at_0%_70%,rgba(15,15,40,0.25),transparent)]" />
+        {PARTICLES.map((p) => (
+          <span
+            key={p.id}
+            className="absolute rounded-full bg-amber-400/20"
+            style={{
+              left: `${p.x}%`,
+              bottom: -6,
+              width: p.size,
+              height: p.size,
+              animation: `floatParticle ${p.duration}s ${-p.delay}s ease-in-out infinite`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ── Scrollable content ── */}
+      <div className="relative z-10 max-w-2xl mx-auto px-5 pt-10 pb-20 space-y-4">
+
+        {/* Header */}
+        <div className="text-center space-y-2 pb-4">
+          <h1 className="text-[1.85rem] font-extrabold tracking-[0.35em] bg-gradient-to-r from-amber-300 via-amber-100 to-amber-400 bg-clip-text text-transparent">
+            AI REALM
+          </h1>
           <p className="text-sm text-neutral-500">รังสรรค์โลกของคุณเอง แล้วเริ่มการผจญภัย</p>
+          <div className="h-px w-24 mx-auto bg-gradient-to-r from-transparent via-amber-700/50 to-transparent mt-3" />
         </div>
 
-        {/* Adventure Name */}
-        <section className="space-y-3">
-          <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2">
-            ชื่อการผจญภัย (ไม่บังคับ)
-          </h2>
+        {/* ── 0. Adventure name ── */}
+        <StepCard title="ชื่อการผจญภัย (ไม่บังคับ)">
           <input
             type="text"
             value={worldName}
             onChange={(e) => setWorldName(e.target.value)}
             maxLength={60}
             placeholder="เช่น ตำนานแห่งดินแดนหิมะ, The Last Outpost..."
-            className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded-lg px-4 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none transition-colors"
+            className={INPUT}
           />
-          <p className="text-xs text-neutral-600">ชื่อนี้จะแสดงใน Dashboard — หากไม่กรอกจะใช้ชื่อแนวเรื่องแทน</p>
-        </section>
+          <p className="text-xs text-neutral-600">จะแสดงใน Dashboard — หากไม่กรอกจะใช้ชื่อแนวเรื่องแทน</p>
+        </StepCard>
 
-        {/* Language */}
-        <section className="space-y-3">
-          <h2
-            title="ภาษาที่ AI จะใช้บรรยายเนื้อเรื่องและข้อความในเกมทั้งหมด"
-            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
-          >
-            1. ภาษาในการเล่น
-          </h2>
+        {/* ── 1. Language ── */}
+        <StepCard num={1} title="ภาษาในการเล่น" tooltip="ภาษาที่ AI จะใช้บรรยายเนื้อเรื่องและข้อความในเกมทั้งหมด">
           <div className="flex flex-wrap gap-2">
             {LANGUAGES.map((lang) => (
               <button
                 key={lang}
                 type="button"
-                onClick={() => {
-                  setLanguage(lang);
-                  setCustomLanguage("");
-                }}
-                className={`px-4 py-2 rounded border text-sm transition-colors ${
-                  language === lang && !customLanguage
-                    ? "bg-white text-black border-white font-bold"
-                    : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
+                onClick={() => { setLanguage(lang); setCustomLanguage(""); }}
+                className={`px-4 py-2 rounded-xl border text-sm transition-colors ${
+                  language === lang && !customLanguage ? PILL_ON : PILL_OFF
                 }`}
               >
                 {lang}
@@ -237,100 +286,82 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
             value={customLanguage}
             onChange={(e) => setCustomLanguage(e.target.value)}
             placeholder="หรือพิมพ์ภาษาอื่น..."
-            className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors"
+            className={INPUT}
           />
-        </section>
+        </StepCard>
 
-        {/* Genre */}
-        <section className="space-y-3">
-          <h2
-            title="กำหนดบรรยากาศ ธีม และเนื้อเรื่องของโลกที่คุณจะผจญภัย"
-            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
-          >
-            2. แนวโลก (Genre)
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {GENRES.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                onClick={() => {
-                  setGenreId(g.id);
-                  setCustomGenre("");
-                }}
-                className={`px-3 py-2 rounded border text-sm text-left transition-colors ${
-                  genreId === g.id && !customGenre
-                    ? "bg-white text-black border-white font-bold"
-                    : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
-                }`}
-              >
-                {g.label}
-              </button>
-            ))}
+        {/* ── 2. Genre ── */}
+        <StepCard num={2} title="แนวโลก (Genre)" tooltip="กำหนดบรรยากาศ ธีม และเนื้อเรื่องของโลกที่คุณจะผจญภัย">
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+            {GENRES.map((g) => {
+              const active = genreId === g.id && !customGenre;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => { setGenreId(g.id); setCustomGenre(""); }}
+                  className={`flex flex-col items-center gap-2 px-2 py-3.5 rounded-xl border text-center transition-all duration-200 ${
+                    active ? PILL_ON : PILL_OFF
+                  }`}
+                >
+                  <g.icon size={18} className={active ? "text-amber-400" : "text-neutral-500"} />
+                  <span className="text-xs leading-tight">{g.label}</span>
+                </button>
+              );
+            })}
           </div>
           <textarea
             value={customGenre}
             onChange={(e) => setCustomGenre(e.target.value)}
             placeholder="หรือบรรยายแนวโลกแบบ Custom เอง..."
             rows={2}
-            className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors resize-none"
+            className={TEXTAREA}
           />
-        </section>
+        </StepCard>
 
-        {/* Tone */}
-        <section className="space-y-3">
-          <h2
-            title="กำหนดความเข้มงวดของกฎเกมและความเสี่ยงต่อการตาย ตั้งแต่สมจริงสุดๆ ไปจนถึงอิสระไม่มีข้อจำกัด"
-            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
-          >
-            3. โทนความยาก / ความเข้มงวด
-          </h2>
+        {/* ── 3. Tone ── */}
+        <StepCard num={3} title="โทนความยาก / ความเข้มงวด" tooltip="กำหนดความเข้มงวดของกฎเกมและความเสี่ยงต่อการตาย">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {TONES.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTone(t.id)}
-                className={`px-4 py-3 rounded border text-left transition-colors ${
-                  tone === t.id
-                    ? "bg-white text-black border-white"
-                    : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
-                }`}
-              >
-                <div className="font-bold text-sm">{t.label}</div>
-                <div className={`text-xs mt-1 ${tone === t.id ? "text-neutral-700" : "text-neutral-500"}`}>
-                  {t.desc}
-                </div>
-              </button>
-            ))}
+            {TONES.map((t) => {
+              const active = tone === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTone(t.id)}
+                  className={`px-4 py-3 rounded-xl border text-left transition-all duration-200 ${
+                    active ? PILL_ON : PILL_OFF
+                  }`}
+                >
+                  <div className={`flex items-center gap-2 font-bold text-sm ${active ? "text-amber-300" : "text-neutral-300"}`}>
+                    <t.icon size={14} className={active ? "text-amber-400" : "text-neutral-500"} />
+                    {t.label}
+                  </div>
+                  <div className={`text-xs mt-1 ${active ? "text-amber-200/60" : "text-neutral-600"}`}>
+                    {t.desc}
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        </section>
+        </StepCard>
 
-        {/* Character */}
-        <section className="space-y-3">
-          <h2
-            title="กำหนดเพศ รสนิยม บุคลิก และที่มาของตัวละครที่คุณจะสวมบทบาท AI จะใช้ข้อมูลนี้ในการเล่าเรื่อง"
-            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
-          >
-            4. สร้างตัวละคร: จิตใจและลักษณะนิสัย
-          </h2>
+        {/* ── 4. Character ── */}
+        <StepCard num={4} title="สร้างตัวละคร: จิตใจและลักษณะนิสัย" tooltip="กำหนดเพศ รสนิยม บุคลิก และที่มาของตัวละคร AI จะใช้ข้อมูลนี้ในการเล่าเรื่อง">
 
           {/* Gender */}
           <div className="space-y-2">
-            <p title="ใช้เพื่อให้ AI บรรยายและเรียกตัวละครได้ถูกต้อง" className="text-xs text-neutral-500 cursor-help">เพศของตัวละคร</p>
+            <p title="ใช้เพื่อให้ AI บรรยายและเรียกตัวละครได้ถูกต้อง" className="text-xs text-neutral-500 cursor-help">
+              เพศของตัวละคร
+            </p>
             <div className="flex flex-wrap gap-2">
               {GENDERS.map((g) => (
                 <button
                   key={g.id}
                   type="button"
-                  onClick={() => {
-                    setGenderId(g.id);
-                    setCustomGender("");
-                  }}
+                  onClick={() => { setGenderId(g.id); setCustomGender(""); }}
                   className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
-                    genderId === g.id && !customGender
-                      ? "bg-white text-black border-white font-bold"
-                      : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
+                    genderId === g.id && !customGender ? PILL_ON : PILL_OFF
                   }`}
                 >
                   {g.label}
@@ -342,26 +373,23 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
               value={customGender}
               onChange={(e) => setCustomGender(e.target.value)}
               placeholder="หรือระบุเพศแบบอื่นเอง..."
-              className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors"
+              className={INPUT}
             />
           </div>
 
-          {/* Sexual orientation */}
+          {/* Orientation */}
           <div className="space-y-2">
-            <p title="มีผลต่อความสัมพันธ์และเนื้อเรื่องโรแมนซ์ที่ AI อาจสร้างขึ้นระหว่างเกม" className="text-xs text-neutral-500 cursor-help">รสนิยมทางเพศ</p>
+            <p title="มีผลต่อความสัมพันธ์และเนื้อเรื่องโรแมนซ์ที่ AI อาจสร้างขึ้นระหว่างเกม" className="text-xs text-neutral-500 cursor-help">
+              รสนิยมทางเพศ
+            </p>
             <div className="flex flex-wrap gap-2">
               {ORIENTATIONS.map((o) => (
                 <button
                   key={o.id}
                   type="button"
-                  onClick={() => {
-                    setOrientationId(o.id);
-                    setCustomOrientation("");
-                  }}
+                  onClick={() => { setOrientationId(o.id); setCustomOrientation(""); }}
                   className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
-                    orientationId === o.id && !customOrientation
-                      ? "bg-white text-black border-white font-bold"
-                      : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
+                    orientationId === o.id && !customOrientation ? PILL_ON : PILL_OFF
                   }`}
                 >
                   {o.label}
@@ -373,68 +401,77 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
               value={customOrientation}
               onChange={(e) => setCustomOrientation(e.target.value)}
               placeholder="หรือระบุรสนิยมทางเพศแบบอื่นเอง..."
-              className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors"
+              className={INPUT}
             />
           </div>
 
-          <p title="บุคลิกเหล่านี้จะกำหนดวิธีที่ AI ให้ตัวละครของคุณคิด พูด และตัดสินใจในสถานการณ์ต่างๆ" className="text-xs text-neutral-500 cursor-help">เลือกบุคลิกได้สูงสุด 5 อย่าง (เลือกแล้ว {traits.length}/5)</p>
-          <div className="flex flex-wrap gap-2">
-            {PERSONALITY_TRAITS.map((trait) => (
-              <button
-                key={trait}
-                type="button"
-                onClick={() => toggleTrait(trait)}
-                className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
-                  traits.includes(trait)
-                    ? "bg-white text-black border-white font-bold"
-                    : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500"
-                }`}
-              >
-                {trait}
-              </button>
-            ))}
+          {/* Personality traits */}
+          <div className="space-y-2">
+            <p
+              title="บุคลิกเหล่านี้จะกำหนดวิธีที่ AI ให้ตัวละครของคุณคิด พูด และตัดสินใจ"
+              className="text-xs text-neutral-500 cursor-help"
+            >
+              เลือกบุคลิกได้สูงสุด 5 อย่าง{" "}
+              <span className={traits.length > 0 ? "text-amber-500" : ""}>{traits.length}/5</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PERSONALITY_TRAITS.map((trait) => (
+                <button
+                  key={trait}
+                  type="button"
+                  onClick={() => toggleTrait(trait)}
+                  className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                    traits.includes(trait) ? PILL_ON : PILL_OFF
+                  }`}
+                >
+                  {trait}
+                </button>
+              ))}
+            </div>
           </div>
+
           <textarea
             value={characterConcept}
             onChange={(e) => setCharacterConcept(e.target.value)}
             placeholder="อธิบายตัวละครเพิ่มเติม (ไม่บังคับ): เผ่าพันธุ์, อาชีพ, รูปลักษณ์, ที่มา..."
             rows={2}
-            className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors resize-none"
+            className={TEXTAREA}
           />
-        </section>
+        </StepCard>
 
-        {/* Custom world details */}
-        <section className="space-y-3">
-          <h2
-            title="ใส่กฎพิเศษ ระบบเวทมนตร์ แฟกชัน หรือสิ่งที่อยากให้/ไม่อยากให้เกิดขึ้น เพื่อให้ AI รู้ไว้ล่วงหน้า"
-            className="text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800 pb-2 cursor-help"
-          >
-            5. รายละเอียดโลกเพิ่มเติม (ไม่บังคับ)
-          </h2>
+        {/* ── 5. Custom world ── */}
+        <StepCard num={5} title="รายละเอียดโลกเพิ่มเติม (ไม่บังคับ)" tooltip="ใส่กฎพิเศษ ระบบเวทมนตร์ แฟกชัน หรือสิ่งที่อยากให้/ไม่อยากให้เกิดขึ้น เพื่อให้ AI รู้ไว้ล่วงหน้า">
           <textarea
             value={customWorld}
             onChange={(e) => setCustomWorld(e.target.value)}
             placeholder="เช่น กฎพิเศษของโลก, ระบบเวทมนตร์, แฟกชัน/อาณาจักรที่อยากให้มี, สิ่งที่ไม่อยากให้เกิดขึ้น..."
             rows={3}
-            className="w-full bg-neutral-900 border border-neutral-700 focus:border-neutral-400 rounded px-4 py-2 text-sm focus:outline-none transition-colors resize-none"
+            className={TEXTAREA}
           />
-        </section>
+        </StepCard>
 
+        {/* ── Start button ── */}
         <button
           type="button"
           onClick={handleStart}
-          className="w-full py-4 bg-white text-black font-bold rounded tracking-widest hover:bg-neutral-300 transition-colors"
+          className="relative w-full py-4 rounded-2xl font-bold text-sm overflow-hidden group transition-opacity duration-200"
         >
-          เริ่มการผจญภัย
+          <span className="absolute inset-0 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700" />
+          <span className="absolute inset-0 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <span className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.18)_50%,transparent_65%)] bg-[length:200%_100%] animate-[shimmer_1.6s_ease-in-out_infinite] transition-opacity duration-300" />
+          <span className="relative text-neutral-950 font-bold tracking-[0.2em] text-base">
+            ⚔ เริ่มการผจญภัย
+          </span>
         </button>
 
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-sm tracking-widest transition-colors"
+            className="group flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-neutral-800/50 hover:border-neutral-700/60 text-neutral-500 hover:text-neutral-300 text-sm transition-all duration-250 hover:bg-neutral-900/30"
           >
-            ← กลับไปแดชบอร์ด
+            <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            กลับไปแดชบอร์ด
           </button>
         )}
       </div>

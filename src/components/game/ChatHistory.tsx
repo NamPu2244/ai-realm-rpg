@@ -1,15 +1,63 @@
 "use client";
 
 import { memo, RefObject } from "react";
+import { Dices, TrendingDown, TrendingUp, Droplets } from "lucide-react";
 import { ChatLog } from "@/store/useGameStore";
 import { parseDiceRoll } from "@/lib/gameText";
 import DiceRollBadge from "./DiceRollBadge";
+
+export interface StatChange {
+  hp: number;
+  mana: number;
+}
 
 interface ChatHistoryProps {
   history: ChatLog[];
   streamingNarrative: string;
   isLoading: boolean;
   chatEndRef: RefObject<HTMLDivElement | null>;
+  lastStatChange: StatChange | null;
+}
+
+function StatChangeBadges({ delta }: Readonly<{ delta: StatChange }>) {
+  const badges: React.ReactNode[] = [];
+
+  if (delta.hp !== 0) {
+    const isGain = delta.hp > 0;
+    badges.push(
+      <span
+        key="hp"
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border animate-stat-pop ${
+          isGain
+            ? "bg-emerald-950/60 border-emerald-700/50 text-emerald-300"
+            : "bg-red-950/60 border-red-700/50 text-red-300"
+        }`}
+      >
+        {isGain ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+        {isGain ? "+" : ""}{delta.hp} HP
+      </span>
+    );
+  }
+
+  if (delta.mana !== 0) {
+    const isGain = delta.mana > 0;
+    badges.push(
+      <span
+        key="mana"
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border animate-stat-pop ${
+          isGain
+            ? "bg-sky-950/60 border-sky-700/50 text-sky-300"
+            : "bg-indigo-950/60 border-indigo-700/50 text-indigo-300"
+        }`}
+      >
+        <Droplets size={11} />
+        {isGain ? "+" : ""}{delta.mana} Mana
+      </span>
+    );
+  }
+
+  if (badges.length === 0) return null;
+  return <div className="flex flex-wrap gap-2 pl-5 pt-1">{badges}</div>;
 }
 
 function GMMessage({ chat, isStreaming = false }: Readonly<{ chat: Pick<ChatLog, "content" | "scene_image_prompt">; isStreaming?: boolean }>) {
@@ -32,7 +80,10 @@ function ChatHistory({
   streamingNarrative,
   isLoading,
   chatEndRef,
+  lastStatChange,
 }: Readonly<ChatHistoryProps>) {
+  const lastGmIndex = history.reduce((acc, chat, i) => (chat.role === "gm" ? i : acc), -1);
+
   return (
     <div className="flex-1 overflow-y-auto px-6 md:px-10 py-8 space-y-10">
       {history.length > 0 ? (
@@ -47,7 +98,12 @@ function ChatHistory({
             )}
 
             {chat.role === "gm" ? (
-              <GMMessage chat={chat} />
+              <div className="space-y-2">
+                <GMMessage chat={chat} />
+                {!isLoading && !streamingNarrative && index === lastGmIndex && lastStatChange && (
+                  <StatChangeBadges delta={lastStatChange} />
+                )}
+              </div>
             ) : (
               <div className="flex justify-end">
                 <div className="max-w-[75%] px-4 py-3 bg-stone-800/60 border border-amber-900/25 rounded-2xl rounded-br-sm text-amber-50/90 text-sm shadow-md">
@@ -76,8 +132,8 @@ function ChatHistory({
       )}
 
       {isLoading && !streamingNarrative && (
-        <div className="text-amber-100/30 italic animate-pulse text-sm tracking-wide">
-          🎲 กำลังทอยเต๋าโชคชะตา...
+        <div className="flex items-center gap-2 text-amber-100/30 italic animate-pulse text-sm tracking-wide">
+          <Dices size={14} /> กำลังทอยเต๋าโชคชะตา...
         </div>
       )}
 

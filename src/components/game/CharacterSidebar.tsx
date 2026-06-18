@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { UserRound, Crosshair, TrendingUp, Heart, Sparkles, Wand2, Backpack } from "lucide-react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
 
 interface CharacterSidebarProps {
@@ -47,9 +48,9 @@ export default function CharacterSidebar({
       <div className="space-y-3 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
         <h2
           title="ข้อมูลตัวละครและฉากหลังที่คุณสร้างไว้ตอนเริ่มเกม"
-          className="text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
+          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
         >
-          🧙 Character
+          <UserRound size={12} /> Character
         </h2>
         <p className="text-xs text-amber-50/70 leading-relaxed">
           {worldConfig?.character || "ไม่มีข้อมูลตัวละคร"}
@@ -63,9 +64,9 @@ export default function CharacterSidebar({
         <div className="space-y-3 bg-gradient-to-br from-amber-950/30 to-stone-900/40 border border-amber-700/30 rounded-xl p-4 shadow-sm">
           <h2
             title="เป้าหมายปัจจุบันที่ AI กำหนดให้ในเนื้อเรื่อง อาจเปลี่ยนไปตามสถานการณ์"
-            className="text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
+            className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
           >
-            🎯 Objective
+            <Crosshair size={12} /> Objective
           </h2>
           <p className="text-sm text-amber-200/90 leading-relaxed">
             {currentObjective}
@@ -76,9 +77,9 @@ export default function CharacterSidebar({
       <div className="space-y-5 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
         <h2
           title="Level และ EXP ของตัวละคร เมื่อ EXP สะสมครบ 100 จะเลื่อนเลเวล"
-          className="text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
+          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
         >
-          ⭐ Progression
+          <TrendingUp size={12} /> Progression
         </h2>
         <div>
           <div className="flex justify-between text-sm mb-1 font-medium">
@@ -99,16 +100,20 @@ export default function CharacterSidebar({
           className="flex justify-between text-sm font-medium cursor-help"
         >
           <span className="text-pink-400">Lives</span>
-          <span>{"❤️".repeat(Math.max(0, livesLeft))}</span>
+          <span className="flex items-center gap-0.5">
+            {Array.from({ length: Math.max(0, livesLeft) }, (_, i) => (
+              <Heart key={`life-${i}`} size={12} className="text-pink-400 fill-pink-400" />
+            ))}
+          </span>
         </div>
       </div>
 
       <div className="space-y-5 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
         <h2
           title="HP (พลังชีวิต) และ Mana (พลังเวทมนตร์) ของตัวละคร หาก HP เหลือ 0 ตัวละครจะเสียชีวิต"
-          className="text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
+          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
         >
-          ❤️ Vitals
+          <Heart size={12} /> Vitals
         </h2>
         <div>
           <div className="flex justify-between text-sm mb-1 font-medium">
@@ -146,9 +151,9 @@ export default function CharacterSidebar({
       <div className="bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
         <h2
           title="สถานะและเอฟเฟกต์ที่ติดตัวละครอยู่ในขณะนี้ เช่น บาดเจ็บ, ถูกวางยาพิษ, ได้รับพร"
-          className="text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
+          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
         >
-          ✨ Conditions
+          <Sparkles size={12} /> Conditions
         </h2>
         <div className="flex flex-wrap gap-2">
           {playerStatus.status_effects.length > 0 ? (
@@ -170,9 +175,9 @@ export default function CharacterSidebar({
       <div className="bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
         <h2
           title="ทักษะพิเศษที่ตัวละครเรียนรู้หรือได้รับมาระหว่างการเดินทาง"
-          className="text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
+          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
         >
-          🔮 Skills
+          <Wand2 size={12} /> Skills
         </h2>
         <div className="flex flex-wrap gap-2">
           {playerStatus.skills.length > 0 ? (
@@ -194,9 +199,9 @@ export default function CharacterSidebar({
       <div className="flex-1 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
         <h2
           title="ไอเทมและอุปกรณ์ที่ตัวละครพกติดตัวอยู่ในขณะนี้"
-          className="text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
+          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
         >
-          🎒 Inventory
+          <Backpack size={12} /> Inventory
         </h2>
         <ul className="space-y-2">
           {playerStatus.inventory.length > 0 ? (

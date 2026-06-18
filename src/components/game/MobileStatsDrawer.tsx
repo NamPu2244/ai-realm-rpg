@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { X, UserRound, Crosshair, Heart, TrendingUp, Sparkles, Wand2, Backpack } from "lucide-react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
 
 interface MobileStatsDrawerProps {
@@ -51,14 +52,14 @@ export default function MobileStatsDrawer({
             onClick={onClose}
             className="text-amber-100/40 hover:text-amber-200 text-sm px-2 py-1 transition-colors"
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
 
         <div className="p-4 space-y-4">
           {/* Character Info */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-            <p className="text-xs text-amber-400/60 uppercase tracking-widest mb-1">🧙 ตัวละคร</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><UserRound size={11} /> ตัวละคร</p>
             <p className="text-xs text-amber-50/70 leading-relaxed">{worldConfig?.character || "ไม่มีข้อมูล"}</p>
             <p className="text-xs text-amber-100/30 mt-0.5">{worldConfig?.genre}</p>
           </div>
@@ -66,14 +67,14 @@ export default function MobileStatsDrawer({
           {/* Objective */}
           {currentObjective && (
             <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-3">
-              <p className="text-xs text-amber-400/60 uppercase tracking-widest mb-1">🎯 เป้าหมาย</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><Crosshair size={11} /> เป้าหมาย</p>
               <p className="text-sm text-amber-200/90 leading-relaxed">{currentObjective}</p>
             </div>
           )}
 
           {/* Vitals */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-3">
-            <p className="text-xs text-amber-400/60 uppercase tracking-widest">❤️ สถานะร่างกาย</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Heart size={11} /> สถานะร่างกาย</p>
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-rose-400 font-medium">HP</span>
@@ -102,7 +103,7 @@ export default function MobileStatsDrawer({
 
           {/* Progression */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-2">
-            <p className="text-xs text-amber-400/60 uppercase tracking-widest">⭐ Progression</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><TrendingUp size={11} /> Progression</p>
             <div className="flex justify-between text-sm">
               <span className="text-amber-400 font-medium">Level {playerStatus.level}</span>
               <span className="text-amber-50/70">EXP: {playerStatus.exp}/100</span>
@@ -115,18 +116,22 @@ export default function MobileStatsDrawer({
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-pink-400">Lives</span>
-              <span>{"❤️".repeat(Math.max(0, livesLeft))}</span>
+              <span className="flex items-center gap-0.5">
+                {Array.from({ length: Math.max(0, livesLeft) }, (_, i) => (
+                  <Heart key={`life-${i}`} size={11} className="text-pink-400 fill-pink-400" />
+                ))}
+              </span>
             </div>
           </div>
 
           {/* Status Effects */}
           {playerStatus.status_effects.length > 0 && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-              <p className="text-xs text-amber-400/60 uppercase tracking-widest mb-2">✨ สถานะ</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Sparkles size={11} /> สถานะ</p>
               <div className="flex flex-wrap gap-2">
-                {playerStatus.status_effects.map((effect, i) => (
+                {playerStatus.status_effects.map((effect) => (
                   <span
-                    key={i}
+                    key={effect}
                     className={`px-2.5 py-1 text-xs border rounded-full ${effect.includes("บาดแผล") || effect.includes("เลือด") || effect.includes("ไหม้") ? "bg-red-950/30 text-red-400 border-red-700/40" : "bg-yellow-900/20 text-yellow-400 border-yellow-700/40"}`}
                   >
                     {effect}
@@ -139,10 +144,10 @@ export default function MobileStatsDrawer({
           {/* Skills */}
           {playerStatus.skills.length > 0 && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-              <p className="text-xs text-amber-400/60 uppercase tracking-widest mb-2">🔮 Skills</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Wand2 size={11} /> Skills</p>
               <div className="flex flex-wrap gap-2">
-                {playerStatus.skills.map((skill, i) => (
-                  <span key={i} className="px-2.5 py-1 text-xs bg-purple-900/20 border border-purple-700/40 text-purple-300 rounded-full">
+                {playerStatus.skills.map((skill) => (
+                  <span key={skill} className="px-2.5 py-1 text-xs bg-purple-900/20 border border-purple-700/40 text-purple-300 rounded-full">
                     {skill}
                   </span>
                 ))}
@@ -152,7 +157,7 @@ export default function MobileStatsDrawer({
 
           {/* Inventory */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 pb-5">
-            <p className="text-xs text-amber-400/60 uppercase tracking-widest mb-2">🎒 Inventory</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Backpack size={11} /> Inventory</p>
             {playerStatus.inventory.length > 0 ? (
               <ul className="space-y-1.5">
                 {playerStatus.inventory.map((item, i) => (

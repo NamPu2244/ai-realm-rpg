@@ -20,6 +20,10 @@
   --animate-narrative-in: narrativeIn 0.5s ease-out forwards;
   --animate-shimmer: shimmer 1.8s ease-in-out infinite;
   --animate-cursor-blink: cursorBlink 1s step-end infinite;
+  --animate-stat-pop: statPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-float-particle: floatParticle ease-in-out infinite;
+  --animate-auth-card-in: authCardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-glow-pulse: glowPulse 3s ease-in-out infinite;
 }
 
 @keyframes shake {
@@ -69,6 +73,41 @@
 @keyframes cursorBlink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
+}
+
+@keyframes statPop {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.9); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.05); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pageTransition {
+  0%   { opacity: 0; }
+  42%  { opacity: 1; }
+  58%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatParticle {
+  0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.5; }
+  100% { transform: translateY(-100vh) translateX(20px) scale(0.4); opacity: 0; }
+}
+
+@keyframes authCardIn {
+  0%   { opacity: 0; transform: translateY(24px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(217, 119, 6, 0.25), 0 0 40px rgba(217, 119, 6, 0.08); }
+  50%       { box-shadow: 0 0 28px rgba(217, 119, 6, 0.45), 0 0 60px rgba(217, 119, 6, 0.15); }
 }
 
 @keyframes itemGlow {

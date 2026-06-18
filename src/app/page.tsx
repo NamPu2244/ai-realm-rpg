@@ -16,10 +16,14 @@ import SceneBanner from "@/components/game/SceneBanner";
 import ActionBar from "@/components/game/ActionBar";
 import CharacterSidebar from "@/components/game/CharacterSidebar";
 import MobileStatsDrawer from "@/components/game/MobileStatsDrawer";
+import { Heart } from "lucide-react";
+import WorldLoadingScreen from "@/components/WorldLoadingScreen";
 import {
   extractAndParseJSON,
   QTE_TIMEOUT_SIGNAL,
-  WORLD_EVENT_SIGNAL,
+  WORLD_EVENT_TYPES,
+  buildWorldEventSignal,
+  isWorldEventSignal,
   getQteTimeoutDisplay,
   buildSceneImageUrl,
 } from "@/lib/gameText";
@@ -41,7 +45,6 @@ export default function GamePage() {
     qte_options,
     lives_left,
     auth_status,
-    current_save_slot_id,
     setGameState,
     resetGame,
     fetchUserSaves,
@@ -70,10 +73,29 @@ export default function GamePage() {
   const prevLevelRef = useRef(player_status.level);
   const ambientTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showJournal, setShowJournal] = useState(false);
-  const [showTransition, setShowTransition] = useState(false);
   const [qteTimeLeft, setQteTimeLeft] = useState(0);
+  const [worldLoading, setWorldLoading] = useState<{
+    active: boolean;
+    config: WorldConfig | null;
+    prologue: string | null;
+  }>({ active: false, config: null, prologue: null });
+
+  // Refs for AI prefetch (pre-generate responses to suggested actions in background)
+  const prefetchCacheRef = useRef<Map<string, unknown>>(new Map());
+  const prefetchControllersRef = useRef<AbortController[]>([]);
+  // Called once when the first AI turn completes (for world loading screen)
+  const onFirstTurnCompleteRef = useRef<((prologue?: string) => void) | null>(null);
+  // Tracks the last world event type fired — prevents the same type repeating back-to-back
+  const lastWorldEventTypeRef = useRef<string | null>(null);
   const qteTriggeredRef = useRef(false);
   const [showMobileStats, setShowMobileStats] = useState(false);
+  const [lastStatChange, setLastStatChange] = useState<{ hp: number; mana: number } | null>(null);
+  const statChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Page transition state
+  const displayedPhaseRef = useRef(game_phase);
+  const [displayedPhase, setDisplayedPhase] = useState(game_phase);
+  const [transOverlay, setTransOverlay] = useState(false);
 
   // กล่องแจ้งเตือน/ยืนยันแบบ modal (แทน window.alert / window.confirm)
   const [alertInfo, setAlertInfo] = useState<string | null>(null);
@@ -164,14 +186,6 @@ export default function GamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ปิดฉาก Cinematic Transition หลังจากเข้าสู่เกม
-  useEffect(() => {
-    if (showTransition) {
-      const timer = setTimeout(() => setShowTransition(false), 1800);
-      return () => clearTimeout(timer);
-    }
-  }, [showTransition]);
-
   // เริ่มจับเวลา QTE เมื่อ AI สั่งให้ active
   useEffect(() => {
     if (!is_qte_active) {
@@ -193,6 +207,159 @@ export default function GamePage() {
     };
   }, [is_qte_active, qte_time_limit]);
 
+  const cancelPrefetches = () => {
+    for (const ac of prefetchControllersRef.current) {
+      try { ac.abort(); } catch {}
+    }
+    prefetchControllersRef.current = [];
+  };
+
+  // Apply parsed AI turn data: update game state, schedule ambient events,
+  // sync to cloud, and kick off background prefetches for suggested actions.
+  // Called from both runTurn (after streaming) and the prefetch cache path (instant).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applyGameResult = (data: any, newHistory: ChatLog[], worldConfig: WorldConfig | null, message: string, isSystemInit: boolean) => {
+    const freshState = useGameStore.getState();
+    const prevHp = freshState.player_status.hp;
+    const prevMana = freshState.player_status.mana;
+    const newHp = data.player_status?.hp ?? prevHp;
+    const newMana = data.player_status?.mana ?? prevMana;
+    const hpDelta = newHp - prevHp;
+    const manaDelta = newMana - prevMana;
+
+    if (hpDelta !== 0 || manaDelta !== 0) {
+      if (statChangeTimerRef.current) clearTimeout(statChangeTimerRef.current);
+      setLastStatChange({ hp: hpDelta, mana: manaDelta });
+      statChangeTimerRef.current = setTimeout(() => setLastStatChange(null), 4000);
+    } else {
+      setLastStatChange(null);
+    }
+
+    const suggestedActions: string[] = Array.isArray(data.suggested_actions) ? data.suggested_actions : [];
+    const newLives = typeof data.lives_left === "number" ? data.lives_left : freshState.lives_left;
+
+    setGameState({
+      player_status: { level: 1, exp: 0, skills: [], ...data.player_status },
+      story_summary: data.story_summary,
+      current_objective: data.current_objective || "",
+      is_dead: !!data.is_dead,
+      current_image_prompt: data.scene_image_prompt || freshState.current_image_prompt,
+      suggested_actions: suggestedActions,
+      is_qte_active: !!data.is_qte_active,
+      qte_time_limit: typeof data.qte_time_limit === "number" ? data.qte_time_limit : 0,
+      qte_options: Array.isArray(data.qte_options) ? data.qte_options : [],
+      lives_left: newLives,
+      history: [
+        ...newHistory,
+        {
+          role: "gm",
+          content: data.narrative,
+          ...(data.prologue ? { prologue: data.prologue } : {}),
+          ...(data.scene_image_prompt ? { scene_image_prompt: data.scene_image_prompt } : {}),
+        },
+      ],
+    });
+    setStreamingNarrative("");
+    setRetryAction(null);
+
+    // Signal world loading screen that the first turn is ready
+    if (onFirstTurnCompleteRef.current) {
+      onFirstTurnCompleteRef.current(data.prologue);
+      onFirstTurnCompleteRef.current = null;
+    }
+
+    const isAmbientOrSystem = isWorldEventSignal(message) || message === QTE_TIMEOUT_SIGNAL;
+    if (isWorldEventSignal(message)) playAmbient();
+
+    // 25% chance of a typed ambient world event (skipped on system/QTE turns and after death)
+    if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
+      const delay = 6000 + Math.random() * 6000;
+      ambientTimerRef.current = setTimeout(() => {
+        const s = useGameStore.getState();
+        if (!s.is_dead && !s.is_qte_active && s.game_phase === "Playing") {
+          // Pick a type different from the last one to avoid back-to-back repetition
+          const available = WORLD_EVENT_TYPES.filter((t) => t !== lastWorldEventTypeRef.current);
+          const picked = available[Math.floor(Math.random() * available.length)];
+          lastWorldEventTypeRef.current = picked;
+          handleSendRef.current(buildWorldEventSignal(picked), true);
+        }
+      }, delay);
+    }
+
+    if (freshState.auth_status === "authenticated") {
+      syncCurrentGameToCloud();
+      const slotId = freshState.current_save_slot_id;
+      const fullHistory = [...newHistory, { role: "gm" as const, content: data.narrative }];
+      const gmCount = fullHistory.filter((h) => h.role === "gm").length;
+      if (slotId && gmCount > 0 && gmCount % 10 === 0) {
+        fetch("/api/memories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ saveSlotId: slotId, recentHistory: fullHistory.slice(-20) }),
+        }).catch((err) => console.warn("[memories] background trigger failed:", err));
+      }
+    }
+
+    // Pre-fetch suggested actions in background so the next player action can respond instantly
+    if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && suggestedActions.length > 0) {
+      cancelPrefetches();
+      prefetchCacheRef.current.clear();
+
+      const nextHistory = [...newHistory, { role: "gm" as const, content: data.narrative }];
+
+      for (const action of suggestedActions.slice(0, 4)) {
+        const controller = new AbortController();
+        prefetchControllersRef.current.push(controller);
+
+        (async () => {
+          try {
+            const res = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                prompt: action,
+                history: nextHistory.slice(-10),
+                currentState: data.player_status,
+                currentSummary: data.story_summary,
+                worldConfig,
+                livesLeft: newLives,
+                saveSlotId: freshState.current_save_slot_id ?? undefined,
+              }),
+              signal: controller.signal,
+            });
+
+            if (!res.ok || !res.body) return;
+
+            const reader = res.body.getReader();
+            const dec = new TextDecoder();
+            let raw = "";
+            let buf = "";
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buf += dec.decode(value, { stream: true });
+              const lines = buf.split("\n");
+              buf = lines.pop() || "";
+              for (const line of lines) {
+                if (!line.trim()) continue;
+                try { raw += (JSON.parse(line) as { response: string }).response; } catch {}
+              }
+            }
+            if (buf.trim()) { try { raw += (JSON.parse(buf) as { response: string }).response; } catch {} }
+
+            const r = extractAndParseJSON(raw);
+            if (r.success) prefetchCacheRef.current.set(action, r.data);
+          } catch (err) {
+            if (!(err instanceof Error && err.name === "AbortError")) {
+              console.warn("[prefetch]", action, err);
+            }
+          }
+        })();
+      }
+    }
+  };
+
   const runTurn = async (
     newHistory: ChatLog[],
     message: string,
@@ -204,24 +371,26 @@ export default function GamePage() {
     setError(null);
 
     try {
+      // อ่านค่าจาก store โดยตรง (ไม่ใช้ closure) เพื่อป้องกัน stale closure
+      // กรณีที่ createNewSaveSlot reset store แล้วยังไม่ re-render ก่อน runTurn ถูกเรียก
+      const freshState = useGameStore.getState();
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: message,
           history: newHistory.slice(-10),
-          currentState: player_status,
-          currentSummary: story_summary,
+          currentState: freshState.player_status,
+          currentSummary: freshState.story_summary,
           worldConfig,
-          livesLeft: lives_left,
-          saveSlotId: current_save_slot_id ?? undefined,
+          livesLeft: freshState.lives_left,
+          saveSlotId: freshState.current_save_slot_id ?? undefined,
         }),
       });
 
       if (!res.body) throw new Error("No response body");
 
-      // เมื่อ API คืนค่า error (เช่น Ollama/Groq ตอบผิดพลาด หรือ request ไม่ผ่าน validation)
-      // จะได้ JSON { error: "..." } กลับมาแทน NDJSON stream ปกติ ให้แสดงข้อความนั้นตรงๆ
+      // เมื่อ API คืนค่า error จะได้ JSON { error: "..." } กลับมาแทน NDJSON stream ปกติ
       if (!res.ok) {
         const errBody = await res.json().catch(() => null);
         throw new Error(errBody?.error || `Request failed with status ${res.status}`);
@@ -230,8 +399,6 @@ export default function GamePage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let rawAiResponse = "";
-      // เก็บส่วนท้ายของ chunk ที่ยังไม่ครบหนึ่งบรรทัด NDJSON ไว้ต่อกับ chunk ถัดไป
-      // ป้องกันไม่ให้ JSON.parse ล้มเหลวและบรรทัดนั้นหายไปเงียบๆ
       let lineBuffer = "";
 
       const processLine = (line: string) => {
@@ -239,10 +406,7 @@ export default function GamePage() {
         try {
           const parsed = JSON.parse(line);
           rawAiResponse += parsed.response;
-
-          const narrativeMatch = /"narrative":\s*"([^"\\]*(?:\\.[^"\\]*)*)/.exec(
-            rawAiResponse,
-          );
+          const narrativeMatch = /"narrative":\s*"([^"\\]*(?:\\.[^"\\]*)*)/.exec(rawAiResponse);
           if (narrativeMatch) {
             setStreamingNarrative(
               narrativeMatch[1].replaceAll("\\n", "\n").replaceAll('\\"', '"'),
@@ -256,85 +420,18 @@ export default function GamePage() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         const chunk = decoder.decode(value, { stream: true });
         lineBuffer += chunk;
         const lines = lineBuffer.split("\n");
         lineBuffer = lines.pop() || "";
-
-        for (const line of lines) {
-          processLine(line);
-        }
+        for (const line of lines) processLine(line);
       }
-
       processLine(lineBuffer);
 
       const result = extractAndParseJSON(rawAiResponse);
 
       if (result.success) {
-        const data = result.data;
-
-        setGameState({
-          player_status: {
-            level: 1,
-            exp: 0,
-            skills: [],
-            ...data.player_status,
-          },
-          story_summary: data.story_summary,
-          current_objective: data.current_objective || "",
-          is_dead: !!data.is_dead,
-          current_image_prompt: data.scene_image_prompt || current_image_prompt,
-          suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
-          is_qte_active: !!data.is_qte_active,
-          qte_time_limit: typeof data.qte_time_limit === "number" ? data.qte_time_limit : 0,
-          qte_options: Array.isArray(data.qte_options) ? data.qte_options : [],
-          lives_left: typeof data.lives_left === "number" ? data.lives_left : lives_left,
-          history: [
-            ...newHistory,
-            {
-              role: "gm",
-              content: data.narrative,
-              ...(data.prologue ? { prologue: data.prologue } : {}),
-              ...(data.scene_image_prompt ? { scene_image_prompt: data.scene_image_prompt } : {}),
-            },
-          ],
-        });
-        setStreamingNarrative("");
-        setRetryAction(null);
-
-        // 25% chance ที่โลกจะส่ง ambient event เอง (ไม่ fire ถ้าเป็น ambient/QTE turn เอง หรือตายแล้ว)
-        const isAmbientOrSystem = message === WORLD_EVENT_SIGNAL || message === QTE_TIMEOUT_SIGNAL;
-        if (message === WORLD_EVENT_SIGNAL) playAmbient();
-        if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
-          const delay = 6000 + Math.random() * 6000; // 6-12 วินาที
-          ambientTimerRef.current = setTimeout(() => {
-            const s = useGameStore.getState();
-            if (!s.is_dead && !s.is_qte_active && s.game_phase === "Playing") {
-              handleSendRef.current(WORLD_EVENT_SIGNAL, true);
-            }
-          }, delay);
-        }
-
-        if (useGameStore.getState().auth_status === "authenticated") {
-          syncCurrentGameToCloud();
-
-          // Every 10 GM turns, distil recent events into a searchable memory.
-          // Fire-and-forget: don't await so it never blocks the UI.
-          const slotId = useGameStore.getState().current_save_slot_id;
-          const fullHistory = [...newHistory, { role: "gm" as const, content: data.narrative }];
-          const gmCount = fullHistory.filter((h) => h.role === "gm").length;
-          if (slotId && gmCount > 0 && gmCount % 10 === 0) {
-            fetch("/api/memories", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                saveSlotId: slotId,
-                recentHistory: fullHistory.slice(-20),
-              }),
-            }).catch((err) => console.warn("[memories] background trigger failed:", err));
-          }
-        }
+        applyGameResult(result.data, newHistory, worldConfig, message, isSystemInit);
       } else {
         setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
         setError("AI ตอบกลับมาผิดพลาด ไม่สามารถอ่านข้อมูลได้ ลองอีกครั้ง");
@@ -371,16 +468,26 @@ export default function GamePage() {
     }
 
     const worldConfig = worldConfigOverride || world_config;
-
     setInput("");
 
     const displayContent =
       message === QTE_TIMEOUT_SIGNAL ? getQteTimeoutDisplay(worldConfig?.language) : message;
 
     const newHistory = isSystemInit
-      ? history
+      ? useGameStore.getState().history
       : [...history, { role: "player" as const, content: displayContent }];
     if (!isSystemInit) setGameState({ history: newHistory });
+
+    // Check prefetch cache for instant response on suggested actions
+    const canUsePrefetch = !isSystemInit && message !== QTE_TIMEOUT_SIGNAL && !isWorldEventSignal(message);
+    const cached = canUsePrefetch ? prefetchCacheRef.current.get(message) : null;
+    cancelPrefetches();
+    prefetchCacheRef.current.clear();
+
+    if (cached) {
+      applyGameResult(cached, newHistory, worldConfig, message, false);
+      return;
+    }
 
     await runTurn(newHistory, message, worldConfig, isSystemInit);
   };
@@ -399,6 +506,8 @@ export default function GamePage() {
   useEffect(() => {
     return () => {
       if (ambientTimerRef.current) clearTimeout(ambientTimerRef.current);
+      if (statChangeTimerRef.current) clearTimeout(statChangeTimerRef.current);
+      cancelPrefetches();
     };
   }, []);
 
@@ -425,13 +534,36 @@ export default function GamePage() {
     return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, [is_qte_active, isLoading, is_dead, suggested_actions]);
 
+  // Animated transitions between Auth / Dashboard / Menu
+  useEffect(() => {
+    const isMenuP = (p: string) => p === "Auth" || p === "Dashboard" || p === "Menu";
+    const prev = displayedPhaseRef.current;
+    if (game_phase === prev) return;
+    displayedPhaseRef.current = game_phase;
+
+    if (isMenuP(game_phase) && isMenuP(prev)) {
+      setTransOverlay(true);
+      const t1 = setTimeout(() => setDisplayedPhase(game_phase), 220);
+      const t2 = setTimeout(() => setTransOverlay(false), 520);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+    setDisplayedPhase(game_phase);
+  }, [game_phase]);
+
   const handleStartGame = async (config: WorldConfig) => {
+    // Show loading screen immediately while AI generates the opening
+    setGameState({ world_config: config, game_phase: "Playing", history: [] });
+    setWorldLoading({ active: true, config, prologue: null });
+
     if (auth_status === "authenticated") {
       await createNewSaveSlot(config);
-    } else {
-      setGameState({ world_config: config, game_phase: "Playing", history: [] });
     }
-    setShowTransition(true);
+
+    // When the first AI turn completes, hand the prologue to the loading screen
+    onFirstTurnCompleteRef.current = (prologueText) => {
+      setWorldLoading((prev) => ({ ...prev, prologue: prologueText ?? "" }));
+    };
+
     handleSend("Begin the adventure.", true, config);
   };
 
@@ -522,112 +654,203 @@ export default function GamePage() {
     reader.readAsText(file);
   };
 
-  if (game_phase === "Auth") {
-    return <AuthScreen />;
-  }
-
-  if (game_phase === "Dashboard") {
-    return <MainMenuDashboard />;
-  }
-
-  if (game_phase === "Menu") {
-    return (
-      <>
-        <WorldCreationMenu
-          onStart={handleStartGame}
-          onCancel={auth_status === "authenticated" ? () => setGameState({ game_phase: "Dashboard" }) : undefined}
+  const renderScreen = () => {
+    // World loading screen overlays everything when starting a new world
+    if (worldLoading.active && worldLoading.config) {
+      return (
+        <WorldLoadingScreen
+          config={worldLoading.config}
+          prologue={worldLoading.prologue}
+          onEnter={() => setWorldLoading({ active: false, config: null, prologue: null })}
         />
-        {auth_status !== "authenticated" && (
-          <>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept="application/json"
-              onChange={handleImportSave}
-              className="hidden"
+      );
+    }
+
+    if (displayedPhase === "Auth") {
+      return (
+        <div className="animate-[pageFadeIn_0.3s_ease-out_0.12s_both]">
+          <AuthScreen />
+        </div>
+      );
+    }
+
+    if (displayedPhase === "Dashboard") {
+      return (
+        <div className="animate-[pageFadeIn_0.3s_ease-out_0.12s_both]">
+          <MainMenuDashboard />
+        </div>
+      );
+    }
+
+    if (displayedPhase === "Menu") {
+      return (
+        <div className="animate-[pageFadeIn_0.3s_ease-out_0.12s_both]">
+          <WorldCreationMenu
+            onStart={handleStartGame}
+            onCancel={auth_status === "authenticated" ? () => setGameState({ game_phase: "Dashboard" }) : undefined}
+          />
+          {auth_status !== "authenticated" && (
+            <>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json"
+                onChange={handleImportSave}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                title="โหลดเกมจากไฟล์"
+                className="fixed bottom-6 right-6 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors shadow-lg"
+              >
+                โหลดเกมจากไฟล์
+              </button>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // Playing screen
+    return (
+      <div
+        className={`relative flex h-screen bg-transparent text-amber-50 font-sans selection:bg-amber-800/60 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
+      >
+        {sceneImageUrl && (
+          <div
+            className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
+            aria-hidden="true"
+          >
+            <div
+              className="absolute inset-0 scale-110"
+              style={{
+                backgroundImage: `url(${sceneImageUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                filter: "blur(48px) brightness(0.20) saturate(0.9)",
+              }}
             />
-            <button
-              type="button"
-              onClick={() => importInputRef.current?.click()}
-              title="โหลดเกมจากไฟล์"
-              className="fixed bottom-6 right-6 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors shadow-lg"
-            >
-              โหลดเกมจากไฟล์
-            </button>
-          </>
+          </div>
         )}
-        {alertInfo && (
-          <AlertModal
-            variant="danger"
-            message={alertInfo}
-            onClose={() => setAlertInfo(null)}
+
+        {isDamageFlash && (
+          <div className="fixed inset-0 z-40 bg-red-700 animate-damage-flash pointer-events-none" />
+        )}
+
+        {showLevelUp && (
+          <div className="fixed top-8 left-1/2 -translate-x-1/2 z-40 pointer-events-none animate-level-up-pop">
+            <div className="px-8 py-3 bg-amber-900/90 border border-amber-400/60 rounded-xl shadow-[0_0_30px_rgba(251,191,36,0.4)] text-center">
+              <p className="text-xs text-amber-400/80 uppercase tracking-widest mb-0.5">Level Up!</p>
+              <p className="text-2xl font-bold text-amber-300">Level {levelUpNum}</p>
+            </div>
+          </div>
+        )}
+
+        {is_qte_active && !isLoading && (
+          <QTEOverlay
+            qteTimeLeft={qteTimeLeft}
+            qteTimeLimit={qte_time_limit}
+            qteOptions={qte_options}
+            isLoading={isLoading}
+            onSelect={(option) => { playQteSelect(); handleSend(option); }}
           />
         )}
-      </>
+
+        {showJournal && (
+          <JournalModal
+            currentObjective={current_objective}
+            storySummary={story_summary}
+            worldConfig={world_config}
+            onClose={() => setShowJournal(false)}
+          />
+        )}
+
+        {/* z-10 wrapper ensures content sits above the fixed z-0 atmospheric background */}
+        <div className="relative z-10 flex flex-1 min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/60 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
+            <GameHeader
+              worldConfig={world_config}
+              isLowHp={isLowHp}
+              authStatus={auth_status}
+              importInputRef={importInputRef}
+              onOpenJournal={() => setShowJournal(true)}
+              onExportSave={handleExportSave}
+              onImportSave={handleImportSave}
+              onQuitToDashboard={() => quitToMainMenu()}
+              onNewGame={handleNewGame}
+            />
+
+            {/* Persistent scene image — shows current location/scene, updates every time scene changes */}
+            {current_image_prompt && (
+              <SceneBanner imagePrompt={current_image_prompt} tone={world_config?.tone} />
+            )}
+
+            <ChatHistory
+              history={history}
+              streamingNarrative={streamingNarrative}
+              isLoading={isLoading}
+              chatEndRef={chatEndRef}
+              lastStatChange={lastStatChange}
+            />
+
+            <ActionBar
+              error={error}
+              isLoading={isLoading}
+              isDead={is_dead}
+              suggestedActions={suggested_actions}
+              input={input}
+              isLowHp={isLowHp}
+              onInputChange={setInput}
+              onSend={(message) => handleSend(message)}
+              onSubmit={() => handleSend(input)}
+              onRetry={handleRetry}
+              onRestart={handleRestart}
+            />
+          </div>
+
+          <CharacterSidebar
+            worldConfig={world_config}
+            currentObjective={current_objective}
+            playerStatus={player_status}
+            hpPercent={hpPercent}
+            isLowHp={isLowHp}
+            livesLeft={lives_left}
+          />
+        </div>
+
+        {/* Mobile stats FAB — visible only on small screens */}
+        <button
+          type="button"
+          onClick={() => setShowMobileStats(true)}
+          aria-label="เปิดสถานะตัวละคร"
+          className={`fixed bottom-24 right-4 z-30 lg:hidden flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl border shadow-lg backdrop-blur transition-colors ${isLowHp ? "bg-red-950/80 border-red-700/60 animate-pulse" : "bg-stone-900/80 border-amber-900/40"}`}
+        >
+          <Heart size={18} className={isLowHp ? "text-red-400 fill-red-400" : "text-amber-400 fill-amber-400"} />
+          <span className={`text-xs font-bold tabular-nums leading-none ${isLowHp ? "text-red-400" : "text-amber-400"}`}>
+            {player_status.hp}/{player_status.max_hp}
+          </span>
+        </button>
+
+        <MobileStatsDrawer
+          isOpen={showMobileStats}
+          onClose={() => setShowMobileStats(false)}
+          playerStatus={player_status}
+          hpPercent={hpPercent}
+          isLowHp={isLowHp}
+          livesLeft={lives_left}
+          currentObjective={current_objective}
+          worldConfig={world_config}
+        />
+      </div>
     );
-  }
+  };
 
   return (
-    <div
-      className={`relative flex h-screen bg-transparent text-amber-50 font-sans selection:bg-amber-800/60 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
-    >
-      {sceneImageUrl && (
-        <div
-          className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
-          aria-hidden="true"
-        >
-          <div
-            className="absolute inset-0 scale-110"
-            style={{
-              backgroundImage: `url(${sceneImageUrl})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              filter: "blur(48px) brightness(0.12) saturate(0.8)",
-            }}
-          />
-        </div>
-      )}
+    <>
+      {renderScreen()}
 
-      {showTransition && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black animate-fade-out-cinematic pointer-events-none">
-          <p className="text-amber-400/80 text-sm tracking-[0.3em] uppercase animate-pulse">
-            การเดินทางเริ่มต้นขึ้น...
-          </p>
-        </div>
-      )}
-
-      {isDamageFlash && (
-        <div className="fixed inset-0 z-40 bg-red-700 animate-damage-flash pointer-events-none" />
-      )}
-
-      {showLevelUp && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-40 pointer-events-none animate-level-up-pop">
-          <div className="px-8 py-3 bg-amber-900/90 border border-amber-400/60 rounded-xl shadow-[0_0_30px_rgba(251,191,36,0.4)] text-center">
-            <p className="text-xs text-amber-400/80 uppercase tracking-widest mb-0.5">Level Up!</p>
-            <p className="text-2xl font-bold text-amber-300">Level {levelUpNum}</p>
-          </div>
-        </div>
-      )}
-
-      {is_qte_active && !isLoading && (
-        <QTEOverlay
-          qteTimeLeft={qteTimeLeft}
-          qteTimeLimit={qte_time_limit}
-          qteOptions={qte_options}
-          isLoading={isLoading}
-          onSelect={(option) => { playQteSelect(); handleSend(option); }}
-        />
-      )}
-
-      {showJournal && (
-        <JournalModal
-          currentObjective={current_objective}
-          storySummary={story_summary}
-          worldConfig={world_config}
-          onClose={() => setShowJournal(false)}
-        />
-      )}
-
+      {/* Shared modals — rendered outside renderScreen so they persist across transitions */}
       {alertInfo && (
         <AlertModal
           variant="danger"
@@ -635,7 +858,6 @@ export default function GamePage() {
           onClose={() => setAlertInfo(null)}
         />
       )}
-
       {confirmInfo && (
         <ConfirmModal
           variant="danger"
@@ -648,81 +870,10 @@ export default function GamePage() {
         />
       )}
 
-      {/* z-10 wrapper ensures content sits above the fixed z-0 atmospheric background */}
-      <div className="relative z-10 flex flex-1 min-w-0">
-        <div className="flex-1 flex flex-col min-w-0 max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/60 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
-          <GameHeader
-            worldConfig={world_config}
-            isLowHp={isLowHp}
-            authStatus={auth_status}
-            importInputRef={importInputRef}
-            onOpenJournal={() => setShowJournal(true)}
-            onExportSave={handleExportSave}
-            onImportSave={handleImportSave}
-            onQuitToDashboard={() => quitToMainMenu()}
-            onNewGame={handleNewGame}
-          />
-
-          {/* Persistent scene image — shows current location/scene, updates every time scene changes */}
-          {current_image_prompt && (
-            <SceneBanner imagePrompt={current_image_prompt} tone={world_config?.tone} />
-          )}
-
-          <ChatHistory
-            history={history}
-            streamingNarrative={streamingNarrative}
-            isLoading={isLoading}
-            chatEndRef={chatEndRef}
-          />
-
-          <ActionBar
-            error={error}
-            isLoading={isLoading}
-            isDead={is_dead}
-            suggestedActions={suggested_actions}
-            input={input}
-            isLowHp={isLowHp}
-            onInputChange={setInput}
-            onSend={(message) => handleSend(message)}
-            onSubmit={() => handleSend(input)}
-            onRetry={handleRetry}
-            onRestart={handleRestart}
-          />
-        </div>
-
-        <CharacterSidebar
-          worldConfig={world_config}
-          currentObjective={current_objective}
-          playerStatus={player_status}
-          hpPercent={hpPercent}
-          isLowHp={isLowHp}
-          livesLeft={lives_left}
-        />
-      </div>
-
-      {/* Mobile stats FAB — visible only on small screens */}
-      <button
-        type="button"
-        onClick={() => setShowMobileStats(true)}
-        aria-label="เปิดสถานะตัวละคร"
-        className={`fixed bottom-24 right-4 z-30 lg:hidden flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl border shadow-lg backdrop-blur transition-colors ${isLowHp ? "bg-red-950/80 border-red-700/60 animate-pulse" : "bg-stone-900/80 border-amber-900/40"}`}
-      >
-        <span className="text-lg leading-none">❤️</span>
-        <span className={`text-xs font-bold tabular-nums leading-none ${isLowHp ? "text-red-400" : "text-amber-400"}`}>
-          {player_status.hp}/{player_status.max_hp}
-        </span>
-      </button>
-
-      <MobileStatsDrawer
-        isOpen={showMobileStats}
-        onClose={() => setShowMobileStats(false)}
-        playerStatus={player_status}
-        hpPercent={hpPercent}
-        isLowHp={isLowHp}
-        livesLeft={lives_left}
-        currentObjective={current_objective}
-        worldConfig={world_config}
-      />
-    </div>
+      {/* Page transition overlay — flashes to black between menu screens */}
+      {transOverlay && (
+        <div className="fixed inset-0 z-[200] pointer-events-none bg-neutral-950 animate-[pageTransition_0.52s_ease-in-out_forwards]" />
+      )}
+    </>
   );
 }

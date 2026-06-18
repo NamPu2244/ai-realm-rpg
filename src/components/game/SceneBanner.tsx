@@ -7,7 +7,6 @@ export default function SceneBanner({ imagePrompt, tone }: Readonly<{ imagePromp
   const [currentSrc, setCurrentSrc] = useState<string | null>(null);
   const [incomingSrc, setIncomingSrc] = useState<string | null>(() => buildSceneImageUrl(imagePrompt, tone));
   const [isIncomingVisible, setIsIncomingVisible] = useState(false);
-  // Track the expected URL to discard stale onLoad events from old images
   const expectedRef = useRef<string>(buildSceneImageUrl(imagePrompt, tone));
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -42,37 +41,42 @@ export default function SceneBanner({ imagePrompt, tone }: Readonly<{ imagePromp
   const showSkeleton = !currentSrc && !isIncomingVisible;
 
   return (
-    <div
-      className="relative shrink-0 overflow-hidden border-b border-amber-900/20"
-      style={{ height: "200px" }}
-    >
-      {showSkeleton && (
-        <div className="absolute inset-0 bg-stone-800/60">
-          <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-stone-800/60 via-stone-600/30 to-stone-800/60 bg-[length:200%_100%]" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-xs text-amber-500/40 tracking-widest uppercase animate-pulse">กำลังสร้างฉาก...</span>
+    // ความสูง 260px + overlap -mb-16 ให้ chat content ซ้อนทับส่วนล่างของรูป
+    // สร้าง effect "นั่งอยู่ในโลก" แทนที่จะ "ดูรูปประกอบ"
+    <div className="relative shrink-0 overflow-visible" style={{ height: "260px", marginBottom: "-64px" }}>
+      <div className="absolute inset-0 overflow-hidden">
+        {showSkeleton && (
+          <div className="absolute inset-0 bg-stone-800/60">
+            <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-stone-800/60 via-stone-600/30 to-stone-800/60 bg-[length:200%_100%]" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xs text-amber-500/40 tracking-widest uppercase animate-pulse">กำลังสร้างฉาก...</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {currentSrc && (
-        <img
-          src={currentSrc}
-          alt=""
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isIncomingVisible ? "opacity-0" : "opacity-100"}`}
-        />
-      )}
+        {currentSrc && (
+          <img
+            src={currentSrc}
+            alt=""
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isIncomingVisible ? "opacity-0" : "opacity-100"}`}
+          />
+        )}
 
-      {incomingSrc && (
-        <img
-          src={incomingSrc}
-          alt=""
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isIncomingVisible ? "opacity-100" : "opacity-0"}`}
-          onLoad={handleLoad}
-        />
-      )}
+        {incomingSrc && (
+          <img
+            src={incomingSrc}
+            alt=""
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isIncomingVisible ? "opacity-100" : "opacity-0"}`}
+            onLoad={handleLoad}
+          />
+        )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/10 to-transparent" />
+        {/* Gradient ด้านบน: มืดลงเพื่อให้ header อ่านได้ */}
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-stone-950/80 to-transparent" />
+
+        {/* Gradient ด้านล่าง: fade เข้า chat content อย่างนุ่มนวล */}
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-stone-950 via-stone-950/70 to-transparent" />
+      </div>
     </div>
   );
 }

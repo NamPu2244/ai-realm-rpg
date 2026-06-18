@@ -52,15 +52,27 @@ export function extractAndParseJSON(rawAiResponse: string) {
 // API จับคู่ข้อความนี้แบบ exact เพื่อ narrate ผลของการยืนนิ่งเฉย)
 export const QTE_TIMEOUT_SIGNAL = "[TIME OUT: Player failed to react in time and stood completely still]";
 
-// สัญญาณ ambient event ที่ client ส่งโดยอัตโนมัติเมื่อผู้เล่นเงียบนานพอ
-// ให้ AI narrate เหตุการณ์สั้นๆ ในโลกโดยไม่ต้องรอ input จากผู้เล่น
+// ประเภทของ ambient event — client สุ่มเลือกก่อนส่ง AI ต้องทำตาม type นั้น
+// เพื่อป้องกัน AI generate "บรรยากาศรอบข้าง" ซ้ำๆ ตลอด
+export const WORLD_EVENT_TYPES = ["NPC", "OVERHEARD", "RUMOR", "DETAIL", "SHIFT", "DISTANT"] as const;
+export type WorldEventType = typeof WORLD_EVENT_TYPES[number];
+
+export function buildWorldEventSignal(type: WorldEventType): string {
+  return `[WORLD EVENT: ${type}]`;
+}
+
+export function isWorldEventSignal(msg: string): boolean {
+  return msg.startsWith("[WORLD EVENT");
+}
+
+// Legacy constant — ยังใช้ใน import เดิม แต่ตอนนี้ไม่ส่งตรงๆ แล้ว
 export const WORLD_EVENT_SIGNAL = "[WORLD EVENT]";
 
 // ข้อความที่แสดงในแชทแทนสัญญาณข้างบน ให้ตรงกับภาษาที่ผู้เล่นเลือก
 const QTE_TIMEOUT_DISPLAY: Record<string, string> = {
-  "ไทย": "⏱️ คุณยืนนิ่งเฉย ไม่ทันตอบสนอง...",
-  "English": "⏱️ You freeze up, failing to react in time...",
-  "日本語": "⏱️ あなたは反応できず、その場に立ち尽くした...",
+  "ไทย": "[หมดเวลา] คุณยืนนิ่งเฉย ไม่ทันตอบสนอง...",
+  "English": "[Timeout] You freeze up, failing to react in time...",
+  "日本語": "[タイムアウト] あなたは反応できず、その場に立ち尽くした...",
 };
 
 export function getQteTimeoutDisplay(language?: string): string {

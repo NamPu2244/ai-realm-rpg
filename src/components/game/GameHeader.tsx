@@ -1,4 +1,5 @@
 import { RefObject } from "react";
+import { Swords, BookOpen, AlertTriangle, LayoutDashboard, Save, Upload, ListRestart } from "lucide-react";
 import { AuthStatus, WorldConfig } from "@/store/useGameStore";
 
 interface GameHeaderProps {
@@ -30,14 +31,14 @@ export default function GameHeader({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-widest bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(217,119,6,0.25)]">
-            ⚔️ AI REALM
+          <h1 className="flex items-center gap-2 text-xl font-bold tracking-widest bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(217,119,6,0.25)]">
+            <Swords size={20} className="text-amber-400" /> AI REALM
           </h1>
           <p className="text-xs text-amber-100/40 uppercase tracking-wider mt-1">
             Language: {worldConfig?.language} | Tone: {worldConfig?.tone}{" "}
             {isLowHp && (
-              <span className="text-red-400 ml-2 font-bold animate-pulse">
-                ⚠️ LOW HP WARNING
+              <span className="inline-flex items-center gap-1 text-red-400 ml-2 font-bold animate-pulse">
+                <AlertTriangle size={11} /> LOW HP WARNING
               </span>
             )}
           </p>
@@ -47,25 +48,25 @@ export default function GameHeader({
             type="button"
             onClick={onOpenJournal}
             title="เปิดสมุดบันทึกนักเดินทาง"
-            className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
           >
-            📖 สมุดบันทึก
+            <BookOpen size={13} /> สมุดบันทึก
           </button>
           <button
             type="button"
             onClick={onExportSave}
             title="บันทึกเกมเป็นไฟล์"
-            className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
           >
-            บันทึกเกม
+            <Save size={13} /> บันทึกเกม
           </button>
           <button
             type="button"
             onClick={() => importInputRef.current?.click()}
             title="โหลดเกมจากไฟล์"
-            className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
           >
-            โหลดเกม
+            <Upload size={13} /> โหลดเกม
           </button>
           <input
             ref={importInputRef}
@@ -79,18 +80,18 @@ export default function GameHeader({
               type="button"
               onClick={onQuitToDashboard}
               title="ซิงค์ความคืบหน้าขึ้นคลาวด์แล้วกลับไปหน้าแดชบอร์ด"
-              className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
             >
-              🏠 กลับแดชบอร์ด
+              <LayoutDashboard size={13} /> กลับแดชบอร์ด
             </button>
           ) : (
             <button
               type="button"
               onClick={onNewGame}
               title="กลับไปหน้าสร้างโลกใหม่ (จะมีการถามยืนยัน เพราะความคืบหน้าปัจจุบันจะหายไป)"
-              className="px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
             >
-              เมนูหลัก
+              <ListRestart size={13} /> เมนูหลัก
             </button>
           )}
         </div>

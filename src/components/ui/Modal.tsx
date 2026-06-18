@@ -1,20 +1,21 @@
 import type { ReactNode } from "react";
+import { Info, AlertTriangle, OctagonX } from "lucide-react";
 
 export type ModalVariant = "info" | "warning" | "danger";
 
-const VARIANT_STYLES: Record<ModalVariant, { icon: string; accent: string; button: string }> = {
+const VARIANT_STYLES: Record<ModalVariant, { icon: ReactNode; accent: string; button: string }> = {
   info: {
-    icon: "ℹ️",
+    icon: <Info size={18} />,
     accent: "text-blue-300 border-blue-700/50",
     button: "bg-blue-900/80 hover:bg-blue-700 border-blue-600 text-blue-100",
   },
   warning: {
-    icon: "⚠️",
+    icon: <AlertTriangle size={18} />,
     accent: "text-amber-300 border-amber-700/50",
     button: "bg-amber-900/80 hover:bg-amber-700 border-amber-600 text-amber-100",
   },
   danger: {
-    icon: "🛑",
+    icon: <OctagonX size={18} />,
     accent: "text-red-300 border-red-700/50",
     button: "bg-red-900/80 hover:bg-red-700 border-red-600 text-red-100",
   },

@@ -1,3 +1,4 @@
+import { ScrollText, Crosshair, X } from "lucide-react";
 import { WorldConfig } from "@/store/useGameStore";
 
 interface JournalModalProps {
@@ -23,15 +24,15 @@ export default function JournalModal({
       />
       <div className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto bg-stone-950/95 border border-amber-900/30 rounded-2xl shadow-2xl p-6 space-y-6 animate-modal-pop">
         <div className="flex items-center justify-between border-b border-amber-900/20 pb-3">
-          <h2 className="text-lg font-bold bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent tracking-widest">
-            📜 สมุดบันทึกนักเดินทาง
+          <h2 className="flex items-center gap-2 text-lg font-bold bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent tracking-widest">
+            <ScrollText size={18} className="text-amber-400" /> สมุดบันทึกนักเดินทาง
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-amber-100/40 hover:text-amber-200 text-sm px-2 py-1 transition-colors"
+            className="flex items-center gap-1 text-amber-100/40 hover:text-amber-200 text-sm px-2 py-1 transition-colors"
           >
-            ✕ ปิด
+            <X size={14} /> ปิด
           </button>
         </div>
 
@@ -40,8 +41,8 @@ export default function JournalModal({
             <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
               เป้าหมายปัจจุบัน
             </h3>
-            <p className="text-sm text-amber-300/90 leading-relaxed">
-              🎯 {currentObjective}
+            <p className="flex items-start gap-2 text-sm text-amber-300/90 leading-relaxed">
+              <Crosshair size={14} className="mt-0.5 shrink-0" /> {currentObjective}
             </p>
           </div>
         )}

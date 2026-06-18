@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { AlertTriangle } from "lucide-react";
 
 interface QTEOverlayProps {
   qteTimeLeft: number;
@@ -31,9 +32,9 @@ export default function QTEOverlay({
       <div className="absolute top-0 left-0 right-0 flex flex-col items-center pt-4 px-6 pointer-events-auto">
         <p
           title="Quick Time Event: เลือกตัวเลือกด้านล่างให้ทันก่อนเวลาหมด ไม่เช่นนั้นจะถือว่าคุณยืนนิ่งเฉยและอาจได้รับผลเสีย"
-          className="text-red-400 font-bold tracking-[0.3em] uppercase text-sm mb-2 animate-pulse cursor-help"
+          className="flex items-center gap-2 text-red-400 font-bold tracking-[0.3em] uppercase text-sm mb-2 animate-pulse cursor-help"
         >
-          ⚠️ ปฏิกิริยาด่วน! ⚠️
+          <AlertTriangle size={16} /> ปฏิกิริยาด่วน! <AlertTriangle size={16} />
         </p>
         <div className="w-full max-w-md flex items-center gap-2 mb-3">
           <div className="flex-1 bg-neutral-900/80 border border-red-700 rounded-full h-3 overflow-hidden">

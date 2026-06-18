@@ -1,3 +1,6 @@
+import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 interface ActionBarProps {
   error: string | null;
   isLoading: boolean;
@@ -10,6 +13,69 @@ interface ActionBarProps {
   onSubmit: () => void;
   onRetry: () => void;
   onRestart: () => void;
+}
+
+type ActionType = "combat" | "explore" | "talk" | "magic" | "item" | "default";
+
+interface ActionStyle {
+  icon: LucideIcon;
+  card: string;
+  key: string;
+  label: string;
+}
+
+const ACTION_STYLES: Record<ActionType, ActionStyle> = {
+  combat: {
+    icon: Sword,
+    card: "border-red-800/50 hover:border-red-600/70 hover:bg-red-950/30 text-red-200/80 hover:text-red-100",
+    key: "text-red-700/60 group-hover:text-red-500/80",
+    label: "โจมตี",
+  },
+  explore: {
+    icon: Compass,
+    card: "border-emerald-800/40 hover:border-emerald-600/60 hover:bg-emerald-950/25 text-emerald-200/80 hover:text-emerald-100",
+    key: "text-emerald-700/60 group-hover:text-emerald-500/80",
+    label: "สำรวจ",
+  },
+  talk: {
+    icon: MessageCircle,
+    card: "border-sky-800/40 hover:border-sky-600/60 hover:bg-sky-950/25 text-sky-200/80 hover:text-sky-100",
+    key: "text-sky-700/60 group-hover:text-sky-500/80",
+    label: "พูดคุย",
+  },
+  magic: {
+    icon: Wand2,
+    card: "border-purple-800/40 hover:border-purple-600/60 hover:bg-purple-950/25 text-purple-200/80 hover:text-purple-100",
+    key: "text-purple-700/60 group-hover:text-purple-500/80",
+    label: "เวทมนตร์",
+  },
+  item: {
+    icon: Package,
+    card: "border-amber-800/40 hover:border-amber-600/60 hover:bg-amber-950/25 text-amber-200/80 hover:text-amber-100",
+    key: "text-amber-700/60 group-hover:text-amber-500/80",
+    label: "ไอเทม",
+  },
+  default: {
+    icon: ChevronRight,
+    card: "border-stone-700/50 hover:border-amber-800/50 hover:bg-amber-950/20 text-amber-200/65 hover:text-amber-100",
+    key: "text-amber-700/60 group-hover:text-amber-500/80",
+    label: "กระทำ",
+  },
+};
+
+const COMBAT_RE = /โจมตี|ต่อสู้|ฆ่า|ยิง|ตี|ฟัน|ป้องกัน|ระเบิด|attack|fight|kill|strike|slash|defend|shoot/i;
+const EXPLORE_RE = /เดิน|วิ่ง|มุ่งหน้า|สำรวจ|ค้นหา|ซ่อน|หลบ|หนี|ปีน|go|move|run|explore|search|hide|flee/i;
+const TALK_RE = /พูด|ถาม|เจรจา|ทักทาย|โน้มน้าว|talk|ask|speak|say|negotiate|greet|persuade/i;
+const MAGIC_RE = /ร่าย|เวทย์|สาป|เรียก|ปลุก|cast|spell|magic|enchant|summon|curse/i;
+const ITEM_RE = /ใช้|หยิบ|วาง|ดื่ม|ฉีด|เปิด|ปิด|use|take|drink|equip|apply|open|close/i;
+
+function detectActionType(text: string): ActionType {
+  if (COMBAT_RE.test(text)) return "combat";
+  if (MAGIC_RE.test(text)) return "magic";
+  if (ITEM_RE.test(text)) return "item";
+  if (EXPLORE_RE.test(text)) return "explore";
+  if (TALK_RE.test(text)) return "talk";
+  return "default";
 }
 
 export default function ActionBar({
@@ -33,36 +99,46 @@ export default function ActionBar({
           <button
             onClick={onRetry}
             disabled={isLoading}
-            className="px-3 py-1.5 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded-lg text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded-lg text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50"
           >
-            {isLoading ? "..." : "ลองอีกครั้ง"}
+            <RotateCcw size={12} /> {isLoading ? "..." : "ลองอีกครั้ง"}
           </button>
         </div>
       )}
       {isDead ? (
         <button
           onClick={onRestart}
-          className="w-full py-4 bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-700 font-bold rounded-xl tracking-widest transition-colors shadow-[0_0_30px_rgba(220,38,38,0.5)]"
+          className="flex items-center justify-center gap-2 w-full py-4 bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-700 font-bold rounded-xl tracking-widest transition-colors shadow-[0_0_30px_rgba(220,38,38,0.5)]"
         >
-          คุณเสียชีวิตแล้ว - จุติใหม่
+          <Skull size={18} /> คุณเสียชีวิตแล้ว — จุติใหม่
         </button>
       ) : (
         <>
           {suggestedActions.length > 0 && (
             <div className="space-y-1.5">
               <div className="text-[10px] text-amber-400/35 uppercase tracking-widest px-1">ตัวเลือก</div>
-              {suggestedActions.map((action, i) => (
-                <button
-                  key={`${i}-${action.slice(0, 12)}`}
-                  onClick={() => onSend(action)}
-                  disabled={isLoading}
-                  title={`ตัวเลือกที่ AI แนะนำ — กดปุ่ม [${i + 1}] หรือคลิกเพื่อทำทันที`}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-stone-900/50 hover:bg-amber-950/40 text-amber-200/65 hover:text-amber-100 border border-stone-800/60 hover:border-amber-800/50 rounded-lg transition-all disabled:opacity-40 group"
-                >
-                  <span className="text-amber-700/60 group-hover:text-amber-500/80 text-xs font-mono w-5 shrink-0 select-none">[{i + 1}]</span>
-                  <span className="leading-snug">{action}</span>
-                </button>
-              ))}
+              <div className="grid grid-cols-1 gap-1.5">
+                {suggestedActions.map((action, i) => {
+                  const type = detectActionType(action);
+                  const style = ACTION_STYLES[type];
+                  const Icon = style.icon;
+                  return (
+                    <button
+                      key={`${i}-${action.slice(0, 12)}`}
+                      onClick={() => onSend(action)}
+                      disabled={isLoading}
+                      title={`ตัวเลือกที่ AI แนะนำ — กดปุ่ม [${i + 1}] หรือคลิกเพื่อทำทันที`}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-stone-900/50 border rounded-lg transition-all disabled:opacity-40 group ${style.card}`}
+                    >
+                      <span className={`shrink-0 transition-colors ${style.key}`}>
+                        <Icon size={14} />
+                      </span>
+                      <span className="leading-snug flex-1">{action}</span>
+                      <span className={`text-[10px] font-mono shrink-0 transition-colors ${style.key}`}>[{i + 1}]</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -78,19 +154,15 @@ export default function ActionBar({
               value={input}
               onChange={(e) => onInputChange(e.target.value)}
               disabled={isLoading}
-              placeholder={
-                isLoading
-                  ? "GM กำลังประมวลผล..."
-                  : "พิมพ์สิ่งที่คุณต้องการทำ..."
-              }
+              placeholder={isLoading ? "GM กำลังประมวลผล..." : "พิมพ์สิ่งที่คุณต้องการทำ..."}
               className={`flex-1 bg-stone-900/60 border ${isLowHp ? "border-red-900/50 focus:border-red-500" : "border-amber-900/30 focus:border-amber-500/60"} rounded-xl px-4 py-3 focus:outline-none disabled:opacity-50 transition-colors placeholder:text-amber-100/30`}
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-bold rounded-xl hover:from-amber-400 hover:to-orange-400 disabled:opacity-40 transition-all shadow-[0_0_20px_rgba(217,119,6,0.25)] hover:shadow-[0_0_25px_rgba(217,119,6,0.4)]"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-bold rounded-xl hover:from-amber-400 hover:to-orange-400 disabled:opacity-40 transition-all shadow-[0_0_20px_rgba(217,119,6,0.25)] hover:shadow-[0_0_25px_rgba(217,119,6,0.4)]"
             >
-              {isLoading ? "..." : "ส่ง"}
+              {isLoading ? "..." : <><Send size={15} /> ส่ง</>}
             </button>
           </form>
         </>
