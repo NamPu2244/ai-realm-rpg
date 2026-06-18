@@ -16,19 +16,24 @@ const SUMMARY_INSTRUCTION = `You are a precise note-taker for an RPG game. Summa
 Recent events:
 `;
 
-async function getSummaryFromOllama(historyText: string): Promise<string> {
-  const res = await fetch("http://127.0.0.1:11434/api/generate", {
+async function getSummaryFromGroq(historyText: string): Promise<string> {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+    },
     body: JSON.stringify({
-      model: "qwen2.5:14b",
-      prompt: SUMMARY_INSTRUCTION + historyText + "\n\nSummary:",
-      stream: false,
-      options: { num_ctx: 4096, keep_alive: "30m" },
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "user", content: SUMMARY_INSTRUCTION + historyText + "\n\nSummary:" },
+      ],
+      max_tokens: 256,
+      temperature: 0.3,
     }),
   });
   const data = await res.json();
-  return data.response?.trim() ?? "";
+  return data.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
 export async function POST(req: Request) {
@@ -49,7 +54,7 @@ export async function POST(req: Request) {
 
     let memoryText = "";
     try {
-      memoryText = await getSummaryFromOllama(historyText);
+      memoryText = await getSummaryFromGroq(historyText);
     } catch (err) {
       console.error("[memories] summarization failed:", err);
       return NextResponse.json({ error: "Summarization failed" }, { status: 502 });
