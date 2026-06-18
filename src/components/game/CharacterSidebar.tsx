@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { UserRound, Crosshair, TrendingUp, Heart, Sparkles, Wand2, Backpack, ImageOff, RefreshCw } from "lucide-react";
+import { ImageOff, RefreshCw } from "lucide-react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
 import { buildCharacterPortraitUrl } from "@/lib/gameText";
 
@@ -9,7 +9,7 @@ function CharacterPortrait({ character, genre, tone }: Readonly<{ character: str
   const src = buildCharacterPortraitUrl(character, genre, tone);
 
   return (
-    <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-stone-800/60">
+    <div className="relative w-full aspect-[3/4] overflow-hidden bg-stone-900">
       {status !== "error" && (
         <img
           key={attempt}
@@ -22,48 +22,54 @@ function CharacterPortrait({ character, genre, tone }: Readonly<{ character: str
       )}
       {status === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-amber-700/40 border-t-amber-400/70 rounded-full animate-spin" />
+          <div className="w-5 h-5 border border-stone-600 border-t-stone-400 rounded-full animate-spin" />
         </div>
       )}
       {status === "error" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-          <ImageOff size={20} className="text-stone-600" />
+          <ImageOff size={16} className="text-stone-700" />
           <button
             onClick={() => { setStatus("loading"); setAttempt(a => a + 1); }}
-            className="flex items-center gap-1 text-[10px] text-stone-500 hover:text-amber-400 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-stone-600 hover:text-stone-400 transition-colors"
           >
-            <RefreshCw size={10} /> ลองอีกครั้ง
+            <RefreshCw size={9} /> retry
           </button>
         </div>
       )}
+      {/* Bottom gradient fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-stone-950 to-transparent" />
     </div>
   );
 }
 
-function LivesRow({ tone, livesLeft }: Readonly<{ tone?: string; livesLeft: number }>) {
+function StatBar({ value, max, color }: Readonly<{ value: number; max: number; color: string }>) {
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  return (
+    <div className="w-full h-1 bg-stone-800">
+      <div className={`h-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function SectionLabel({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-stone-600 mb-2">
+      {children}
+    </p>
+  );
+}
+
+function LivesDisplay({ tone, livesLeft }: Readonly<{ tone?: string; livesLeft: number }>) {
   if (tone === "hardcore") {
-    return (
-      <div
-        title="โหมด Permadeath — ตายครั้งเดียวจบเกม ไม่มีชีวิตสำรอง"
-        className="flex justify-between text-sm font-medium cursor-help"
-      >
-        <span className="text-red-700/80">Lives</span>
-        <span className="text-[10px] font-bold text-red-800/70 uppercase tracking-widest border border-red-900/40 px-2 py-0.5 rounded-full">Permadeath</span>
-      </div>
-    );
+    return <span className="text-[9px] tracking-widest uppercase text-red-900/80 border border-red-900/40 px-1.5 py-0.5">permadeath</span>;
   }
   return (
-    <div
-      title="จำนวนชีวิตที่เหลือ หากตัวละครตายและชีวิตหมด เกมจะจบลง"
-      className="flex justify-between text-sm font-medium cursor-help"
-    >
-      <span className="text-pink-400">Lives</span>
-      <span className="flex items-center gap-0.5">
-        {Array.from({ length: Math.max(0, livesLeft) }, (_, i) => (
-          <Heart key={`life-${i}`} size={12} className="text-pink-400 fill-pink-400" />
-        ))}
-      </span>
-    </div>
+    <span className="text-stone-300 tabular-nums">
+      {livesLeft > 0
+        ? Array.from({ length: livesLeft }, (_, i) => <span key={i} className="text-stone-500 mr-0.5">◆</span>)
+        : <span className="text-red-900/60">—</span>
+      }
+    </span>
   );
 }
 
@@ -107,184 +113,124 @@ export default function CharacterSidebar({
   }, [playerStatus.inventory]);
 
   return (
-    <div
-      className={`hidden lg:flex w-80 bg-stone-950/40 p-5 overflow-y-auto flex-col gap-4 border-l transition-colors duration-500 ${isLowHp ? "border-red-900/30" : "border-amber-900/20"}`}
-    >
-      <div className="space-y-3 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
-        <h2
-          title="ข้อมูลตัวละครและฉากหลังที่คุณสร้างไว้ตอนเริ่มเกม"
-          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
-        >
-          <UserRound size={12} /> Character
-        </h2>
-        {worldConfig?.character && worldConfig?.genre && (
-          <CharacterPortrait
-            character={worldConfig.character}
-            genre={worldConfig.genre}
-            tone={worldConfig.tone}
-          />
-        )}
-        <p className="text-xs text-amber-50/70 leading-relaxed">
-          {worldConfig?.character || "ไม่มีข้อมูลตัวละคร"}
-        </p>
-        <p className="text-xs text-amber-100/30 leading-relaxed">
-          {worldConfig?.genre}
-        </p>
-      </div>
+    <div className={`hidden lg:flex w-72 flex-col overflow-y-auto border-l transition-colors duration-500 ${isLowHp ? "border-red-950" : "border-stone-800"} bg-stone-950`}>
 
-      {currentObjective && (
-        <div className="space-y-3 bg-gradient-to-br from-amber-950/30 to-stone-900/40 border border-amber-700/30 rounded-xl p-4 shadow-sm">
-          <h2
-            title="เป้าหมายปัจจุบันที่ AI กำหนดให้ในเนื้อเรื่อง อาจเปลี่ยนไปตามสถานการณ์"
-            className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
-          >
-            <Crosshair size={12} /> Objective
-          </h2>
-          <p className="text-sm text-amber-200/90 leading-relaxed">
-            {currentObjective}
-          </p>
-        </div>
+      {/* Portrait */}
+      {worldConfig?.character && worldConfig?.genre && (
+        <CharacterPortrait character={worldConfig.character} genre={worldConfig.genre} tone={worldConfig.tone} />
       )}
 
-      <div className="space-y-5 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
-        <h2
-          title="Level และ EXP ของตัวละคร เมื่อ EXP สะสมครบ 100 จะเลื่อนเลเวล"
-          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
-        >
-          <TrendingUp size={12} /> Progression
-        </h2>
-        <div>
-          <div className="flex justify-between text-sm mb-1 font-medium">
-            <span className="text-amber-400">Level {playerStatus.level}</span>
-            <span className="text-amber-50/70">EXP: {playerStatus.exp}/100</span>
-          </div>
-          <div className="w-full bg-stone-950/60 rounded-full h-2.5 border border-amber-900/20 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(251,191,36,0.5)]"
-              style={{
-                width: `${Math.min(100, (playerStatus.exp / 100) * 100)}%`,
-              }}
-            ></div>
-          </div>
-        </div>
-        <LivesRow tone={worldConfig?.tone} livesLeft={livesLeft} />
-      </div>
+      <div className="flex flex-col gap-0 px-4 py-4 flex-1">
 
-      <div className="space-y-5 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
-        <h2
-          title="HP (พลังชีวิต) และ Mana (พลังเวทมนตร์) ของตัวละคร หาก HP เหลือ 0 ตัวละครจะเสียชีวิต"
-          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 cursor-help"
-        >
-          <Heart size={12} /> Vitals
-        </h2>
-        <div>
-          <div className="flex justify-between text-sm mb-1 font-medium">
-            <span className="text-rose-400">HP</span>
-            <span className="text-amber-50/70">
-              {playerStatus.hp} / {playerStatus.max_hp}
-            </span>
+        {/* Character name / description */}
+        <div className="mb-5">
+          <p className="text-xs text-stone-300 leading-relaxed line-clamp-3">
+            {worldConfig?.character || "—"}
+          </p>
+          <p className="text-[10px] text-stone-700 mt-1 leading-snug">
+            {worldConfig?.genre}
+          </p>
+        </div>
+
+        {/* Objective */}
+        {currentObjective && (
+          <div className="mb-5 border-l-2 border-amber-900/50 pl-3">
+            <SectionLabel>Objective</SectionLabel>
+            <p className="text-xs text-amber-200/70 leading-relaxed">{currentObjective}</p>
           </div>
-          <div
-            className={`w-full bg-stone-950/60 rounded-full h-2.5 border overflow-hidden ${isLowHp ? "border-red-800/50" : "border-amber-900/20"}`}
-          >
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${isLowHp ? "bg-red-600 animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.6)]" : "bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]"}`}
-              style={{ width: `${hpPercent}%` }}
-            ></div>
+        )}
+
+        {/* Vitals */}
+        <div className="mb-5">
+          <SectionLabel>Vitals</SectionLabel>
+          <div className="space-y-2.5">
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className={isLowHp ? "text-red-600" : "text-stone-500"}>HP</span>
+                <span className={`tabular-nums ${isLowHp ? "text-red-500" : "text-stone-300"}`}>
+                  {playerStatus.hp} / {playerStatus.max_hp}
+                </span>
+              </div>
+              <StatBar value={playerStatus.hp} max={playerStatus.max_hp} color={isLowHp ? "bg-red-700 animate-pulse" : "bg-red-900"} />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-stone-500">Mana</span>
+                <span className="text-stone-300 tabular-nums">{playerStatus.mana} / {playerStatus.max_mana}</span>
+              </div>
+              <StatBar value={playerStatus.mana} max={playerStatus.max_mana} color="bg-indigo-900" />
+            </div>
           </div>
         </div>
-        <div>
-          <div className="flex justify-between text-sm mb-1 font-medium">
-            <span className="text-sky-400">Mana</span>
-            <span className="text-amber-50/70">
-              {playerStatus.mana} / {playerStatus.max_mana}
-            </span>
+
+        {/* Progression */}
+        <div className="mb-5">
+          <SectionLabel>Progression</SectionLabel>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-stone-500">Lv {playerStatus.level}</span>
+            <span className="text-stone-400 tabular-nums">{playerStatus.exp} / 100 exp</span>
           </div>
-          <div className="w-full bg-stone-950/60 rounded-full h-2.5 border border-amber-900/20 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-sky-600 to-cyan-400 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(56,189,248,0.4)]"
-              style={{
-                width: `${playerStatus.max_mana > 0 ? (playerStatus.mana / playerStatus.max_mana) * 100 : 0}%`,
-              }}
-            ></div>
+          <StatBar value={playerStatus.exp} max={100} color="bg-amber-900" />
+          <div className="flex justify-between items-center text-xs mt-2.5">
+            <span className="text-stone-500">Lives</span>
+            <LivesDisplay tone={worldConfig?.tone} livesLeft={livesLeft} />
           </div>
         </div>
-      </div>
-      <div className="bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
-        <h2
-          title="สถานะและเอฟเฟกต์ที่ติดตัวละครอยู่ในขณะนี้ เช่น บาดเจ็บ, ถูกวางยาพิษ, ได้รับพร"
-          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
-        >
-          <Sparkles size={12} /> Conditions
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {playerStatus.status_effects.length > 0 ? (
-            playerStatus.status_effects.map((effect, i) => (
-              <span
-                key={i}
-                className={`px-2.5 py-1 text-xs bg-yellow-900/20 border rounded-full ${effect.includes("บาดแผล") || effect.includes("เลือด") || effect.includes("ไหม้") ? "text-red-400 border-red-700/40" : "text-yellow-400 border-yellow-700/40"}`}
-              >
-                {effect}
-              </span>
-            ))
-          ) : (
-            <span className="text-sm text-amber-100/30 italic">
-              ร่างกายปกติ
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
-        <h2
-          title="ทักษะพิเศษที่ตัวละครเรียนรู้หรือได้รับมาระหว่างการเดินทาง"
-          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
-        >
-          <Wand2 size={12} /> Skills
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {playerStatus.skills.length > 0 ? (
-            playerStatus.skills.map((skill, i) => (
-              <span
-                key={i}
-                className="px-2.5 py-1 text-xs bg-purple-900/20 border border-purple-700/40 text-purple-300 rounded-full"
-              >
-                {skill}
-              </span>
-            ))
-          ) : (
-            <span className="text-sm text-amber-100/30 italic">
-              ยังไม่มีทักษะพิเศษ
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex-1 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">
-        <h2
-          title="ไอเทมและอุปกรณ์ที่ตัวละครพกติดตัวอยู่ในขณะนี้"
-          className="flex items-center gap-1.5 text-xs font-bold text-amber-400/70 uppercase tracking-widest border-b border-amber-900/20 pb-2 mb-3 cursor-help"
-        >
-          <Backpack size={12} /> Inventory
-        </h2>
-        <ul className="space-y-2">
+
+        {/* Conditions */}
+        {playerStatus.status_effects.length > 0 && (
+          <div className="mb-5">
+            <SectionLabel>Conditions</SectionLabel>
+            <div className="flex flex-col gap-1">
+              {playerStatus.status_effects.map((effect, i) => (
+                <span
+                  key={i}
+                  className={`text-xs leading-snug ${
+                    effect.includes("บาดแผล") || effect.includes("เลือด") || effect.includes("ไหม้") || effect.includes("พิษ")
+                      ? "text-red-700"
+                      : "text-stone-500"
+                  }`}
+                >
+                  — {effect}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Skills */}
+        {playerStatus.skills.length > 0 && (
+          <div className="mb-5">
+            <SectionLabel>Skills</SectionLabel>
+            <div className="flex flex-col gap-1">
+              {playerStatus.skills.map((skill, i) => (
+                <span key={i} className="text-xs text-stone-500">— {skill}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Inventory */}
+        <div className="flex-1">
+          <SectionLabel>Inventory</SectionLabel>
           {playerStatus.inventory.length > 0 ? (
-            playerStatus.inventory.map((item, i) => (
-              <li
-                key={i}
-                className={`text-sm px-3 py-2 border rounded-lg transition-colors ${
-                  newItems.has(item)
-                    ? "animate-item-glow text-amber-200"
-                    : "bg-stone-950/40 border-amber-900/20 text-amber-50/80 hover:border-amber-700/40"
-                }`}
-              >
-                {item}
-              </li>
-            ))
+            <ul className="flex flex-col gap-1">
+              {playerStatus.inventory.map((item, i) => (
+                <li
+                  key={i}
+                  className={`text-xs transition-colors duration-500 ${
+                    newItems.has(item) ? "text-amber-400" : "text-stone-500"
+                  }`}
+                >
+                  — {item}
+                </li>
+              ))}
+            </ul>
           ) : (
-            <li className="text-sm text-amber-100/30 italic">
-              กระเป๋าว่างเปล่า
-            </li>
+            <p className="text-xs text-stone-700 italic">empty</p>
           )}
-        </ul>
+        </div>
+
       </div>
     </div>
   );
