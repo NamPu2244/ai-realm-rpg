@@ -172,8 +172,8 @@ function validateRequestBody(body: unknown): string | null {
 }
 
 // Fetches the top-N most relevant past memories for the player's current prompt.
-// Returns an empty array if the feature is unconfigured (no OPENAI_API_KEY /
-// no SUPABASE_SERVICE_ROLE_KEY) so the rest of the turn proceeds normally.
+// Returns an empty array if SUPABASE_SERVICE_ROLE_KEY is unconfigured or the DB
+// call fails, so the rest of the turn proceeds normally.
 async function fetchRelevantMemories(
   playerPrompt: string,
   saveSlotId: string,
@@ -209,9 +209,9 @@ export async function POST(req: Request) {
     const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId } = body;
 
     // Retrieve relevant past memories before building the prompt.
-    // This runs only when the player has a cloud save and OPENAI_API_KEY is set.
+    // Requires a cloud save slot and SUPABASE_SERVICE_ROLE_KEY; embeddings run locally.
     let memoriesSection = "";
-    if (saveSlotId && process.env.OPENAI_API_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (saveSlotId && process.env.SUPABASE_SERVICE_ROLE_KEY) {
       const memories = await fetchRelevantMemories(prompt || 'Begin the adventure.', saveSlotId);
       if (memories.length > 0) {
         const memoryLines = memories.map((m) => "- " + m).join("\n");

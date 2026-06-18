@@ -615,6 +615,47 @@ export default function GamePage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportStory = () => {
+    const state = useGameStore.getState();
+    const worldName = state.world_config?.worldName || state.world_config?.genre || "AI Realm";
+    const lines: string[] = [
+      `═══════════════════════════════════════`,
+      `  ${worldName.toUpperCase()}`,
+      `  AI REALM — บันทึกการเดินทาง`,
+      `═══════════════════════════════════════`,
+      `ตัวละคร : ${state.world_config?.character || "-"}`,
+      `แนวเกม  : ${state.world_config?.genre || "-"}`,
+      `โทน     : ${state.world_config?.tone || "-"}`,
+      `ส่งออก  : ${new Date().toLocaleString("th-TH")}`,
+      `═══════════════════════════════════════`,
+      "",
+    ];
+
+    for (const entry of state.history) {
+      if (entry.role === "player") {
+        lines.push(`▶ ผู้เล่น: ${entry.content}`);
+      } else {
+        if (entry.prologue) {
+          lines.push("", `[บทเปิดเรื่อง]`, entry.prologue, "");
+        }
+        lines.push(``, `📖 GM:`, entry.content, "");
+      }
+    }
+
+    if (state.story_summary) {
+      lines.push("═══════════════════════════════════════", "", "[สรุปเรื่องราว]", state.story_summary);
+    }
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    a.href = url;
+    a.download = `ai-realm-story-${timestamp}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleImportSave = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -781,6 +822,7 @@ export default function GamePage() {
               importInputRef={importInputRef}
               onOpenJournal={() => setShowJournal(true)}
               onExportSave={handleExportSave}
+              onExportStory={handleExportStory}
               onImportSave={handleImportSave}
               onQuitToDashboard={() => quitToMainMenu()}
               onNewGame={handleNewGame}
@@ -807,7 +849,7 @@ export default function GamePage() {
               input={input}
               isLowHp={isLowHp}
               worldTone={world_config?.tone}
-              onInputChange={setInput}
+              onInputChange={(value) => { setInput(value); if (value) cancelPrefetches(); }}
               onSend={(message) => handleSend(message)}
               onSubmit={() => handleSend(input)}
               onRetry={handleRetry}

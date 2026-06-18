@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { UserRound, Crosshair, TrendingUp, Heart, Sparkles, Wand2, Backpack } from "lucide-react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
+import { buildCharacterPortraitUrl } from "@/lib/gameText";
 
 function LivesRow({ tone, livesLeft }: Readonly<{ tone?: string; livesLeft: number }>) {
   if (tone === "hardcore") {
@@ -79,6 +80,17 @@ export default function CharacterSidebar({
         >
           <UserRound size={12} /> Character
         </h2>
+        {worldConfig?.character && worldConfig?.genre && (
+          <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-stone-800/60">
+            <img
+              src={buildCharacterPortraitUrl(worldConfig.character, worldConfig.genre, worldConfig.tone)}
+              alt="Character portrait"
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
+          </div>
+        )}
         <p className="text-xs text-amber-50/70 leading-relaxed">
           {worldConfig?.character || "ไม่มีข้อมูลตัวละคร"}
         </p>

@@ -1,6 +1,7 @@
-import { RefObject } from "react";
-import { Swords, BookOpen, AlertTriangle, LayoutDashboard, Save, Upload, ListRestart } from "lucide-react";
+import { RefObject, useState } from "react";
+import { Swords, BookOpen, AlertTriangle, LayoutDashboard, Save, Upload, ListRestart, Volume2, VolumeX, ScrollText } from "lucide-react";
 import { AuthStatus, WorldConfig } from "@/store/useGameStore";
+import { isSoundMuted, setSoundMuted } from "@/lib/sounds";
 
 interface GameHeaderProps {
   worldConfig: WorldConfig | null;
@@ -9,6 +10,7 @@ interface GameHeaderProps {
   importInputRef: RefObject<HTMLInputElement | null>;
   onOpenJournal: () => void;
   onExportSave: () => void;
+  onExportStory: () => void;
   onImportSave: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onQuitToDashboard: () => void;
   onNewGame: () => void;
@@ -21,10 +23,19 @@ export default function GameHeader({
   importInputRef,
   onOpenJournal,
   onExportSave,
+  onExportStory,
   onImportSave,
   onQuitToDashboard,
   onNewGame,
 }: Readonly<GameHeaderProps>) {
+  const [muted, setMuted] = useState(() => isSoundMuted());
+
+  const handleToggleMute = () => {
+    const next = !muted;
+    setSoundMuted(next);
+    setMuted(next);
+  };
+
   return (
     <header
       className={`p-4 border-b backdrop-blur transition-colors duration-500 ${isLowHp ? "bg-red-950/40 border-red-900/40" : "bg-stone-950/70 border-amber-900/20"}`}
@@ -46,6 +57,14 @@ export default function GameHeader({
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={handleToggleMute}
+            title={muted ? "เปิดเสียง" : "ปิดเสียง"}
+            className="flex items-center justify-center w-8 h-8 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg transition-all hover:-translate-y-0.5"
+          >
+            {muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+          </button>
+          <button
+            type="button"
             onClick={onOpenJournal}
             title="เปิดสมุดบันทึกนักเดินทาง"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
@@ -55,10 +74,18 @@ export default function GameHeader({
           <button
             type="button"
             onClick={onExportSave}
-            title="บันทึกเกมเป็นไฟล์"
+            title="บันทึกเกมเป็นไฟล์ JSON"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
           >
             <Save size={13} /> บันทึกเกม
+          </button>
+          <button
+            type="button"
+            onClick={onExportStory}
+            title="ส่งออกเนื้อเรื่องทั้งหมดเป็นไฟล์ .txt"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
+          >
+            <ScrollText size={13} /> ส่งออกเรื่อง
           </button>
           <button
             type="button"

@@ -115,6 +115,21 @@ export function buildSceneImageUrl(prompt: string, tone?: string): string {
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(full)}?width=1024&height=420&nologo=true&seed=${seed}&model=flux`;
 }
 
+const CHARACTER_PORTRAIT_STYLE: Record<string, string> = {
+  hardcore: ", gritty character portrait, battle-worn, dark fantasy, harsh dramatic lighting, detailed face, grimdark",
+  balanced: ", dark fantasy character portrait, cinematic lighting, detailed face, painterly, moody",
+  story:    ", storybook character portrait, warm soft lighting, painterly, detailed face, fantasy art",
+  sandbox:  ", vibrant fantasy character portrait, detailed face, colorful, digital painting, imaginative",
+};
+
+export function buildCharacterPortraitUrl(character: string, genre: string, tone?: string): string {
+  const style = CHARACTER_PORTRAIT_STYLE[tone ?? ""] ?? CHARACTER_PORTRAIT_STYLE.balanced;
+  const subject = character.slice(0, 300);
+  const prompt = `character portrait, ${subject}, ${genre} setting${style}`;
+  const seed = hashPrompt(prompt);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=300&height=380&nologo=true&seed=${seed}&model=flux`;
+}
+
 export function diceRollStyle(roll: number): string {
   if (roll === 20) return "bg-amber-500/20 border-amber-400 text-amber-300";
   if (roll === 1) return "bg-red-950/50 border-red-600 text-red-400";

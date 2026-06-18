@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Play, Trash2, LogOut, Clock, Swords, Skull } from "lucide-react";
 import { useGameStore } from "@/store/useGameStore";
+import { ConfirmModal } from "@/components/ui/Modal";
 
 const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
   id: i,
@@ -26,14 +27,14 @@ export default function MainMenuDashboard() {
     setGameState, fetchUserSaves, loadSaveSlot, deleteSaveSlot, signOut,
   } = useGameStore();
 
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+
   useEffect(() => {
     if (user) fetchUserSaves(user.id);
   }, [user, fetchUserSaves]);
 
   const handleDelete = (slotId: string, worldName: string) => {
-    if (globalThis.confirm(`ต้องการลบโลก "${worldName}" หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`)) {
-      deleteSaveSlot(slotId);
-    }
+    setConfirmDelete({ id: slotId, name: worldName });
   };
 
   return (
@@ -84,18 +85,24 @@ export default function MainMenuDashboard() {
       <main className="relative z-10 max-w-5xl mx-auto px-6 py-8 space-y-6">
 
         {/* Primary CTA */}
-        <button
-          type="button"
-          onClick={() => setGameState({ game_phase: "Menu" })}
-          className="relative w-full py-4 rounded-2xl font-bold overflow-hidden group transition-opacity duration-200"
-        >
-          <span className="absolute inset-0 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700" />
-          <span className="absolute inset-0 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <span className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.18)_50%,transparent_65%)] bg-[length:200%_100%] animate-[shimmer_1.6s_ease-in-out_infinite] transition-opacity duration-300" />
-          <span className="relative text-neutral-950 font-bold tracking-[0.2em] text-base flex items-center justify-center gap-2">
-            <Plus size={18} /> สร้างโลกใหม่
-          </span>
-        </button>
+        {save_slots.length >= 10 ? (
+          <div className="w-full py-4 rounded-2xl text-center text-sm text-neutral-500 border border-neutral-800/50 bg-neutral-900/30">
+            ถึงขีดจำกัด 10 โลกแล้ว — ลบโลกเก่าก่อนเพื่อสร้างใหม่
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setGameState({ game_phase: "Menu" })}
+            className="relative w-full py-4 rounded-2xl font-bold overflow-hidden group transition-opacity duration-200"
+          >
+            <span className="absolute inset-0 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700" />
+            <span className="absolute inset-0 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <span className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.18)_50%,transparent_65%)] bg-[length:200%_100%] animate-[shimmer_1.6s_ease-in-out_infinite] transition-opacity duration-300" />
+            <span className="relative text-neutral-950 font-bold tracking-[0.2em] text-base flex items-center justify-center gap-2">
+              <Plus size={18} /> สร้างโลกใหม่
+            </span>
+          </button>
+        )}
 
         {/* Save slots */}
         <div className="space-y-3">
@@ -192,6 +199,18 @@ export default function MainMenuDashboard() {
           )}
         </div>
       </main>
+
+      {confirmDelete && (
+        <ConfirmModal
+          variant="danger"
+          title="ลบโลกนี้?"
+          message={`ต้องการลบโลก "${confirmDelete.name}" หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`}
+          confirmText="ลบ"
+          cancelText="ยกเลิก"
+          onConfirm={() => { deleteSaveSlot(confirmDelete.id); setConfirmDelete(null); }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }

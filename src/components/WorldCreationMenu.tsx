@@ -182,6 +182,7 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
   const [characterConcept, setCharacterConcept] = useState("");
   const [customWorld, setCustomWorld]         = useState("");
   const [worldName, setWorldName]             = useState("");
+  const [worldNameError, setWorldNameError]   = useState(false);
 
   const toggleTrait = (trait: string) => {
     setTraits((prev) => {
@@ -192,6 +193,8 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
   };
 
   const handleStart = () => {
+    if (!worldName.trim()) { setWorldNameError(true); return; }
+    setWorldNameError(false);
     const resolvedLanguage = customLanguage.trim() || language;
     const resolvedGenre =
       customGenre.trim() || GENRES.find((g) => g.id === genreId)?.value || GENRES[0].value;
@@ -253,16 +256,18 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
         </div>
 
         {/* ── 0. Adventure name ── */}
-        <StepCard title="ชื่อการผจญภัย (ไม่บังคับ)">
+        <StepCard title="ชื่อการผจญภัย *">
           <input
             type="text"
             value={worldName}
-            onChange={(e) => setWorldName(e.target.value)}
+            onChange={(e) => { setWorldName(e.target.value); if (e.target.value.trim()) setWorldNameError(false); }}
             maxLength={60}
             placeholder="เช่น ตำนานแห่งดินแดนหิมะ, The Last Outpost..."
-            className={INPUT}
+            className={`${INPUT} ${worldNameError ? "border-red-600/60 focus:border-red-500" : ""}`}
           />
-          <p className="text-xs text-neutral-600">จะแสดงใน Dashboard — หากไม่กรอกจะใช้ชื่อแนวเรื่องแทน</p>
+          {worldNameError && (
+            <p className="text-xs text-red-400">กรุณากรอกชื่อการผจญภัยก่อนเริ่มเกม</p>
+          )}
         </StepCard>
 
         {/* ── 1. Language ── */}

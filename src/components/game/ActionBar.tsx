@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -120,6 +121,33 @@ export default function ActionBar({
   onRetry,
   onRestart,
 }: Readonly<ActionBarProps>) {
+  const inputHistoryRef = useRef<string[]>([]);
+  const historyIdxRef = useRef(-1);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const hist = inputHistoryRef.current;
+    if (e.key === "ArrowUp" && hist.length > 0) {
+      e.preventDefault();
+      const next = Math.min(historyIdxRef.current + 1, hist.length - 1);
+      historyIdxRef.current = next;
+      onInputChange(hist[hist.length - 1 - next]);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = Math.max(historyIdxRef.current - 1, -1);
+      historyIdxRef.current = next;
+      onInputChange(next === -1 ? "" : hist[hist.length - 1 - next]);
+    }
+  };
+
+  const handleSubmit = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      inputHistoryRef.current.push(input.trim());
+      historyIdxRef.current = -1;
+    }
+    onSubmit();
+  };
+
   return (
     <div className="p-4 md:p-6 border-t border-amber-900/20 bg-stone-950/70 flex flex-col gap-3">
       {error && (
@@ -167,18 +195,16 @@ export default function ActionBar({
           )}
 
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              onSubmit();
-            }}
+            onSubmit={handleSubmit}
             className="flex gap-3 mt-1"
           >
             <input
               type="text"
               value={input}
               onChange={(e) => onInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
               disabled={isLoading}
-              placeholder={isLoading ? "GM กำลังประมวลผล..." : "พิมพ์สิ่งที่คุณต้องการทำ..."}
+              placeholder={isLoading ? "GM กำลังประมวลผล..." : "พิมพ์สิ่งที่คุณต้องการทำ... (↑↓ ดูประวัติ)"}
               className={`flex-1 bg-stone-900/60 border ${isLowHp ? "border-red-900/50 focus:border-red-500" : "border-amber-900/30 focus:border-amber-500/60"} rounded-xl px-4 py-3 focus:outline-none disabled:opacity-50 transition-colors placeholder:text-amber-100/30`}
             />
             <button

@@ -2,10 +2,20 @@
 // All functions are fire-and-forget; call from event handlers or effects.
 // Silently no-ops in environments where AudioContext is unavailable (SSR, old browsers).
 
+const MUTE_KEY = "ai-realm-muted";
+
+let _muted = globalThis.localStorage?.getItem(MUTE_KEY) === "1";
+
+export function isSoundMuted(): boolean { return _muted; }
+export function setSoundMuted(value: boolean): void {
+  _muted = value;
+  if (globalThis.localStorage !== undefined) globalThis.localStorage.setItem(MUTE_KEY, value ? "1" : "0");
+}
+
 let ctx: AudioContext | null = null;
 
 function getCtx(): AudioContext | null {
-  if (typeof window === "undefined") return null;
+  if (_muted || globalThis.window === undefined) return null;
   if (!ctx) {
     try {
       ctx = new AudioContext();

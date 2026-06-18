@@ -193,6 +193,11 @@ export const useGameStore = create<GameState>()(
         const user = get().user;
         if (!user) return;
 
+        if (get().save_slots.length >= 10) {
+          console.warn('createNewSaveSlot: save slot limit reached (10)');
+          return;
+        }
+
         const supabase = getSupabaseClient();
         const { data, error } = await supabase
           .from('save_slots')
