@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState } from "react";
-import { ImageOff, RefreshCw } from "lucide-react";
+import { ImageOff, RefreshCw, Backpack } from "lucide-react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
 import { buildCharacterPortraitUrl } from "@/lib/gameText";
+import InventoryModal from "./InventoryModal";
 
 function CharacterPortrait({ character, genre, tone }: Readonly<{ character: string; genre: string; tone?: string }>) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
@@ -92,6 +93,7 @@ export default function CharacterSidebar({
 }: Readonly<CharacterSidebarProps>) {
   const prevInventoryRef = useRef<string[]>(playerStatus.inventory);
   const [newItems, setNewItems] = useState<Set<string>>(new Set());
+  const [inventoryOpen, setInventoryOpen] = useState(false);
 
   useEffect(() => {
     const prev = prevInventoryRef.current;
@@ -213,25 +215,31 @@ export default function CharacterSidebar({
         {/* Inventory */}
         <div className="flex-1">
           <SectionLabel>Inventory</SectionLabel>
-          {playerStatus.inventory.length > 0 ? (
-            <ul className="flex flex-col gap-1">
-              {playerStatus.inventory.map((item, i) => (
-                <li
-                  key={i}
-                  className={`text-xs transition-colors duration-500 ${
-                    newItems.has(item) ? "text-amber-400" : "text-stone-500"
-                  }`}
-                >
-                  — {item}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-stone-700 italic">empty</p>
-          )}
+          <button
+            type="button"
+            onClick={() => setInventoryOpen(true)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-stone-800 bg-stone-900/50 hover:border-amber-900/60 hover:bg-stone-900 transition-colors group"
+          >
+            <div className="flex items-center gap-2">
+              <Backpack size={12} className="text-stone-600 group-hover:text-amber-600 transition-colors" />
+              <span className="text-xs text-stone-500 group-hover:text-stone-300 transition-colors">
+                {playerStatus.inventory.length > 0 ? `${playerStatus.inventory.length} items` : "empty"}
+              </span>
+            </div>
+            {newItems.size > 0 && (
+              <span className="text-[9px] font-bold uppercase tracking-wider text-amber-500 animate-pulse">new</span>
+            )}
+          </button>
         </div>
 
       </div>
+
+      <InventoryModal
+        isOpen={inventoryOpen}
+        onClose={() => setInventoryOpen(false)}
+        inventory={playerStatus.inventory}
+        newItems={newItems}
+      />
     </div>
   );
 }

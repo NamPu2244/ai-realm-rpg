@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { X, UserRound, Crosshair, Heart, TrendingUp, Sparkles, Wand2, Backpack } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, UserRound, Crosshair, Heart, TrendingUp, Sparkles, Wand2, Backpack, ChevronRight } from "lucide-react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
+import InventoryModal from "./InventoryModal";
 
 interface MobileStatsDrawerProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export default function MobileStatsDrawer({
   worldConfig,
 }: Readonly<MobileStatsDrawerProps>) {
   const drawerRef = useRef<HTMLDivElement>(null);
+  const [inventoryOpen, setInventoryOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -163,22 +165,28 @@ export default function MobileStatsDrawer({
           )}
 
           {/* Inventory */}
-          <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 pb-5">
-            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Backpack size={11} /> Inventory</p>
-            {playerStatus.inventory.length > 0 ? (
-              <ul className="space-y-1.5">
-                {playerStatus.inventory.map((item, i) => (
-                  <li key={i} className="text-sm px-3 py-2 bg-stone-950/40 border border-amber-900/20 rounded-lg text-amber-50/80">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-amber-100/30 italic">กระเป๋าว่างเปล่า</p>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setInventoryOpen(true)}
+            className="w-full flex items-center justify-between bg-stone-900/60 border border-amber-900/20 hover:border-amber-700/40 hover:bg-stone-900/80 rounded-xl p-3 transition-colors group"
+          >
+            <div className="flex items-center gap-1.5">
+              <Backpack size={11} className="text-amber-400/60 group-hover:text-amber-400/90 transition-colors" />
+              <span className="text-xs text-amber-400/60 uppercase tracking-widest group-hover:text-amber-400/90 transition-colors">Inventory</span>
+              <span className="text-xs text-stone-600 ml-1">
+                {playerStatus.inventory.length > 0 ? `${playerStatus.inventory.length} items` : "ว่างเปล่า"}
+              </span>
+            </div>
+            <ChevronRight size={14} className="text-stone-600 group-hover:text-stone-400 transition-colors" />
+          </button>
         </div>
       </div>
+
+      <InventoryModal
+        isOpen={inventoryOpen}
+        onClose={() => setInventoryOpen(false)}
+        inventory={playerStatus.inventory}
+      />
     </>
   );
 }
