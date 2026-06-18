@@ -88,6 +88,9 @@ export default function GamePage() {
   // Tracks the last world event type fired — prevents the same type repeating back-to-back
   const lastWorldEventTypeRef = useRef<string | null>(null);
   const qteTriggeredRef = useRef(false);
+  // Tracks whether the QTE timer has ticked at least once — prevents the auto-fire
+  // effect from triggering immediately on activation when qteTimeLeft is still 0.
+  const qteTimerTickedRef = useRef(false);
   const [showMobileStats, setShowMobileStats] = useState(false);
   const [lastStatChange, setLastStatChange] = useState<{ hp: number; mana: number } | null>(null);
   const statChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -189,22 +192,21 @@ export default function GamePage() {
   // เริ่มจับเวลา QTE เมื่อ AI สั่งให้ active
   useEffect(() => {
     if (!is_qte_active) {
+      qteTimerTickedRef.current = false;
       const t = setTimeout(() => setQteTimeLeft(0), 0);
       return () => clearTimeout(t);
     }
     playQteAlert();
     qteTriggeredRef.current = false;
+    qteTimerTickedRef.current = false;
+    const effectiveLimit = Math.max(qte_time_limit, 5);
     const startTime = Date.now();
-    const tick = () => {
+    const interval = setInterval(() => {
+      qteTimerTickedRef.current = true;
       const elapsed = (Date.now() - startTime) / 1000;
-      setQteTimeLeft(Math.max(0, qte_time_limit - elapsed));
-    };
-    const interval = setInterval(tick, 100);
-    const initial = setTimeout(tick, 0);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(initial);
-    };
+      setQteTimeLeft(Math.max(0, effectiveLimit - elapsed));
+    }, 100);
+    return () => clearInterval(interval);
   }, [is_qte_active, qte_time_limit]);
 
   const cancelPrefetches = () => {
@@ -236,10 +238,19 @@ export default function GamePage() {
     }
 
     const suggestedActions: string[] = Array.isArray(data.suggested_actions) ? data.suggested_actions : [];
-    const newLives = typeof data.lives_left === "number" ? data.lives_left : freshState.lives_left;
+    const prevLives = freshState.lives_left;
+    const newLives = typeof data.lives_left === "number" ? data.lives_left : prevLives;
+    const respawned = newLives < prevLives && !data.is_dead;
+
+    // Model sometimes decreases lives_left but forgets to reset hp/inventory.
+    // Enforce the respawn contract client-side so the game state is always consistent.
+    let playerStatus = { level: 1, exp: 0, skills: [], ...data.player_status };
+    if (respawned) {
+      playerStatus = { ...playerStatus, hp: playerStatus.max_hp, inventory: [] };
+    }
 
     setGameState({
-      player_status: { level: 1, exp: 0, skills: [], ...data.player_status },
+      player_status: playerStatus,
       story_summary: data.story_summary,
       current_objective: data.current_objective || "",
       is_dead: !!data.is_dead,
@@ -513,7 +524,7 @@ export default function GamePage() {
 
   // หมดเวลา QTE -> ส่ง action "ยืนนิ่งไม่ทำอะไร" อัตโนมัติ
   useEffect(() => {
-    if (is_qte_active && qteTimeLeft <= 0 && qte_time_limit > 0 && !isLoading && !qteTriggeredRef.current) {
+    if (is_qte_active && qteTimeLeft <= 0 && qte_time_limit > 0 && !isLoading && !qteTriggeredRef.current && qteTimerTickedRef.current) {
       qteTriggeredRef.current = true;
       playQteTimeout();
       handleSendRef.current(QTE_TIMEOUT_SIGNAL);

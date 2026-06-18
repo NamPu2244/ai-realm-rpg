@@ -1,7 +1,44 @@
 import { useRef, useEffect, useState } from "react";
-import { UserRound, Crosshair, TrendingUp, Heart, Sparkles, Wand2, Backpack } from "lucide-react";
+import { UserRound, Crosshair, TrendingUp, Heart, Sparkles, Wand2, Backpack, ImageOff, RefreshCw } from "lucide-react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
 import { buildCharacterPortraitUrl } from "@/lib/gameText";
+
+function CharacterPortrait({ character, genre, tone }: Readonly<{ character: string; genre: string; tone?: string }>) {
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
+  const src = buildCharacterPortraitUrl(character, genre, tone);
+
+  return (
+    <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-stone-800/60">
+      {status !== "error" && (
+        <img
+          key={attempt}
+          src={src}
+          alt="Character portrait"
+          className={`w-full h-full object-cover transition-opacity duration-500 ${status === "loaded" ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => setStatus("loaded")}
+          onError={() => setStatus("error")}
+        />
+      )}
+      {status === "loading" && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-amber-700/40 border-t-amber-400/70 rounded-full animate-spin" />
+        </div>
+      )}
+      {status === "error" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+          <ImageOff size={20} className="text-stone-600" />
+          <button
+            onClick={() => { setStatus("loading"); setAttempt(a => a + 1); }}
+            className="flex items-center gap-1 text-[10px] text-stone-500 hover:text-amber-400 transition-colors"
+          >
+            <RefreshCw size={10} /> ลองอีกครั้ง
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function LivesRow({ tone, livesLeft }: Readonly<{ tone?: string; livesLeft: number }>) {
   if (tone === "hardcore") {
@@ -81,15 +118,11 @@ export default function CharacterSidebar({
           <UserRound size={12} /> Character
         </h2>
         {worldConfig?.character && worldConfig?.genre && (
-          <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-stone-800/60">
-            <img
-              src={buildCharacterPortraitUrl(worldConfig.character, worldConfig.genre, worldConfig.tone)}
-              alt="Character portrait"
-              className="w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => { e.currentTarget.style.display = "none"; }}
-            />
-          </div>
+          <CharacterPortrait
+            character={worldConfig.character}
+            genre={worldConfig.genre}
+            tone={worldConfig.tone}
+          />
         )}
         <p className="text-xs text-amber-50/70 leading-relaxed">
           {worldConfig?.character || "ไม่มีข้อมูลตัวละคร"}
