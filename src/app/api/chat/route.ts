@@ -83,6 +83,15 @@ GAMEPLAY RULES:
 - QTE RULE (Quick Time Event): If an enemy or hazard launches a sudden, fast, or potentially lethal attack that demands an immediate reaction, set "is_qte_active" to true, set "qte_time_limit" to a number of seconds (2-7) based on how fast the threat is, and provide 2-3 short "qte_options" (in ${language}) describing immediate reactions (e.g. "หลบซ้าย", "ป้องกัน", "反撃"). On all other turns, set "is_qte_active" to false, "qte_time_limit" to 0, and "qte_options" to an empty array. If the player's action was a "[TIME OUT...]" message, narrate the consequence of standing completely still and apply appropriate damage/effects.
 - LIVES & RESPAWN RULE: If "hp" drops to 0 or below: if "lives_left" > 0, decrease "lives_left" by 1, restore "hp" to "max_hp", clear "inventory" to an empty array, and narrate the character's soul/body being returned to the last safe zone or camp (keep "is_dead" false). If "lives_left" is already 0 when "hp" drops to 0 or below, set "is_dead" to true and keep "hp" at 0. Otherwise keep "lives_left" unchanged.
 
+DIALOGUE FORMATTING:
+- After writing the narrative, extract all direct speech from named characters (NPCs and named entities only — NOT the player character) and place it in "dialogue_lines" as an array of {speaker, text} objects. "speaker" is the character's name or title (e.g. "ยาม", "พ่อค้า Zara", "กษัตริย์ Aldric"). "text" is their spoken words verbatim (without quotation marks). If no NPC speaks in this turn, set "dialogue_lines" to an empty array.
+- The spoken text MUST still appear naturally in the "narrative" — "dialogue_lines" is a structured mirror of what is in the narrative, not a replacement.
+
+CHARACTER TRACKING:
+- Whenever a named NPC (or a distinct unnamed one with a title, e.g. "ยามประตูเมือง") speaks, acts, or is meaningfully described this turn, add or update their entry in "character_updates". Each entry: "name" (string), "description" (short physical/personality note in ${language}), "role" (occupation/function in ${language}), "relationship" (to the player, in ${language}), "status" (current state, e.g. alive/dead/injured/missing, in ${language}), "last_seen" (location/context, in ${language}).
+- Include characters already in [KNOWN CHARACTERS] if their status/relationship changed this turn.
+- If no characters were introduced or updated this turn, set "character_updates" to an empty array.
+
 NARRATIVE CRAFT:
 - Vary response length to fit the moment. Quick action-reaction beats: 50-120 words. Exploration, emotional turning points, or major reveals: 150-300 words. Never pad with filler, repetition, or restating what just happened.
 - NPCs have their own agenda — they are not obligated to help. A guard may ignore a bribe. A merchant may refuse to sell. A stranger may walk away mid-conversation. When they do comply, they want something in return or have a hidden motive. Compliance costs something.
@@ -127,7 +136,9 @@ EXPECTED JSON SCHEMA (respond with ONLY this JSON object, no extra text):
   "is_qte_active": Boolean (true ONLY when a sudden, dangerous attack occurs that demands an immediate reaction),
   "qte_time_limit": Number (seconds the player has to react, 2-7, depending on the enemy's speed; 0 if is_qte_active is false),
   "qte_options": ["String"] (2-3 short reaction choices in ${language}, e.g. "หลบซ้าย", "ป้องกัน"; empty array if is_qte_active is false),
-  "lives_left": Number (remaining respawns; decrease by 1 and respawn the player when hp reaches 0 while lives_left > 0)
+  "lives_left": Number (remaining respawns; decrease by 1 and respawn the player when hp reaches 0 while lives_left > 0),
+  "dialogue_lines": [{"speaker": "String (NPC name/title)", "text": "String (their spoken words verbatim, no surrounding quotes)"}],
+  "character_updates": [{"name": "String", "description": "String", "role": "String", "relationship": "String", "status": "String", "last_seen": "String"}]
 }`;
 }
 
@@ -207,7 +218,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId } = body;
+    const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId, knownCharacters } = body;
 
     // Retrieve relevant past memories before building the prompt.
     // Requires a cloud save slot and SUPABASE_SERVICE_ROLE_KEY; embeddings run locally.
@@ -233,7 +244,23 @@ export async function POST(req: Request) {
     const livesDisplay = typeof livesLeft === 'number' ? livesLeft : 3;
     const playerAction = prompt || 'Begin the adventure.';
 
-    const userPrompt = `[STORY SO FAR (Memory)]\n${storySoFar}${memoriesSection}
+    let knownCharsSection = "";
+    if (knownCharacters && typeof knownCharacters === 'object') {
+      const entries = Object.values(knownCharacters as Record<string, { name: string; description: string; role?: string; relationship?: string; status?: string; last_seen?: string }>);
+      if (entries.length > 0) {
+        const lines = entries.map((c) => {
+          const parts = [c.name + ": " + c.description];
+          if (c.role) parts.push("Role: " + c.role);
+          if (c.relationship) parts.push("Relationship: " + c.relationship);
+          if (c.status) parts.push("Status: " + c.status);
+          if (c.last_seen) parts.push("Last seen: " + c.last_seen);
+          return "- " + parts.join(" | ");
+        }).join("\n");
+        knownCharsSection = `\n\n[KNOWN CHARACTERS — Remember these NPCs and stay consistent with their established traits]\n${lines}`;
+      }
+    }
+
+    const userPrompt = `[STORY SO FAR (Memory)]\n${storySoFar}${memoriesSection}${knownCharsSection}
 ${historyContext}
 \n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}
 \n[LIVES LEFT]\n${livesDisplay}

@@ -15,11 +15,26 @@ export interface PlayerStatus {
   skills: string[];
 }
 
+export interface DialogueLine {
+  speaker: string;
+  text: string;
+}
+
 export interface ChatLog {
   role: 'player' | 'gm';
   content: string;
   prologue?: string;
   scene_image_prompt?: string;
+  dialogue_lines?: DialogueLine[];
+}
+
+export interface CharacterEntry {
+  name: string;
+  description: string;
+  role?: string;
+  relationship?: string;
+  status?: string;
+  last_seen?: string;
 }
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
@@ -68,6 +83,7 @@ interface GameState {
   qte_time_limit: number;
   qte_options: string[];
   lives_left: number;
+  known_characters: Record<string, CharacterEntry>;
 
   // Auth & cloud save state
   user: AuthUser | null;
@@ -107,6 +123,7 @@ const initialState = {
   qte_time_limit: 0,
   qte_options: [],
   lives_left: 3,
+  known_characters: {} as Record<string, CharacterEntry>,
   user: null,
   auth_status: 'unknown' as AuthStatus,
   save_slots: [],
@@ -184,6 +201,7 @@ export const useGameStore = create<GameState>()(
           is_dead: !!gameStateData.is_dead,
           current_image_prompt: gameStateData.current_image_prompt ?? '',
           suggested_actions: Array.isArray(gameStateData.suggested_actions) ? gameStateData.suggested_actions : [],
+          known_characters: (gameStateData.known_characters && typeof gameStateData.known_characters === 'object') ? gameStateData.known_characters : {},
           current_save_slot_id: slotId,
           game_phase: 'Playing',
         });
@@ -245,6 +263,7 @@ export const useGameStore = create<GameState>()(
               is_dead: state.is_dead,
               current_image_prompt: state.current_image_prompt,
               suggested_actions: state.suggested_actions,
+              known_characters: state.known_characters,
             },
           })
           .eq('id', state.current_save_slot_id);
@@ -297,7 +316,7 @@ export const useGameStore = create<GameState>()(
       name: 'ai-realm-save',
       // version ของ schema สำหรับ localStorage เพิ่มเลขนี้เมื่อมีการเปลี่ยนโครงสร้าง
       // GameState/PlayerStatus แบบ breaking change แล้วเขียน migration ใน `migrate` ด้านล่าง
-      version: 2,
+      version: 3,
       // เก็บไว้เฉพาะข้อมูลเกมของผู้เล่น guest (ไม่ persist ข้อมูลบัญชี/รายชื่อ save บนคลาวด์
       // เพราะดึงจาก Supabase ใหม่ทุกครั้งที่ login)
       partialize: (state) => {

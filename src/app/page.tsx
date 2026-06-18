@@ -9,6 +9,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { AlertModal, ConfirmModal } from "@/components/ui/Modal";
 import JournalModal from "@/components/game/JournalModal";
+import CharacterDossierModal from "@/components/game/CharacterDossierModal";
 import QTEOverlay from "@/components/game/QTEOverlay";
 import ChatHistory from "@/components/game/ChatHistory";
 import GameHeader from "@/components/game/GameHeader";
@@ -44,6 +45,7 @@ export default function GamePage() {
     qte_time_limit,
     qte_options,
     lives_left,
+    known_characters,
     auth_status,
     setGameState,
     resetGame,
@@ -73,6 +75,7 @@ export default function GamePage() {
   const prevLevelRef = useRef(player_status.level);
   const ambientTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showJournal, setShowJournal] = useState(false);
+  const [showDossier, setShowDossier] = useState(false);
   const [qteTimeLeft, setQteTimeLeft] = useState(0);
   const [worldLoading, setWorldLoading] = useState<{
     active: boolean;
@@ -249,6 +252,13 @@ export default function GamePage() {
       playerStatus = { ...playerStatus, hp: playerStatus.max_hp, inventory: [] };
     }
 
+    const updatedCharacters = { ...freshState.known_characters };
+    if (Array.isArray(data.character_updates)) {
+      for (const entry of data.character_updates) {
+        if (entry?.name) updatedCharacters[entry.name] = entry;
+      }
+    }
+
     setGameState({
       player_status: playerStatus,
       story_summary: data.story_summary,
@@ -260,6 +270,7 @@ export default function GamePage() {
       qte_time_limit: typeof data.qte_time_limit === "number" ? data.qte_time_limit : 0,
       qte_options: Array.isArray(data.qte_options) ? data.qte_options : [],
       lives_left: newLives,
+      known_characters: updatedCharacters,
       history: [
         ...newHistory,
         {
@@ -267,6 +278,7 @@ export default function GamePage() {
           content: data.narrative,
           ...(data.prologue ? { prologue: data.prologue } : {}),
           ...(data.scene_image_prompt ? { scene_image_prompt: data.scene_image_prompt } : {}),
+          ...(Array.isArray(data.dialogue_lines) && data.dialogue_lines.length > 0 ? { dialogue_lines: data.dialogue_lines } : {}),
         },
       ],
     });
@@ -335,6 +347,7 @@ export default function GamePage() {
                 worldConfig,
                 livesLeft: newLives,
                 saveSlotId: freshState.current_save_slot_id ?? undefined,
+                knownCharacters: updatedCharacters,
               }),
               signal: controller.signal,
             });
@@ -396,6 +409,7 @@ export default function GamePage() {
           worldConfig,
           livesLeft: freshState.lives_left,
           saveSlotId: freshState.current_save_slot_id ?? undefined,
+          knownCharacters: freshState.known_characters,
         }),
       });
 
@@ -823,6 +837,13 @@ export default function GamePage() {
           />
         )}
 
+        {showDossier && (
+          <CharacterDossierModal
+            characters={known_characters}
+            onClose={() => setShowDossier(false)}
+          />
+        )}
+
         {/* z-10 wrapper ensures content sits above the fixed z-0 atmospheric background */}
         <div className="relative z-10 flex flex-1 min-w-0">
           <div className="flex-1 flex flex-col min-w-0 max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/60 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
@@ -832,6 +853,7 @@ export default function GamePage() {
               authStatus={auth_status}
               importInputRef={importInputRef}
               onOpenJournal={() => setShowJournal(true)}
+              onOpenDossier={() => setShowDossier(true)}
               onExportSave={handleExportSave}
               onExportStory={handleExportStory}
               onImportSave={handleImportSave}

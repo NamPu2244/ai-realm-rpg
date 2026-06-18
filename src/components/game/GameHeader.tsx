@@ -1,5 +1,5 @@
 import { RefObject, useState } from "react";
-import { Swords, BookOpen, AlertTriangle, LayoutDashboard, Save, Upload, ListRestart, Volume2, VolumeX, ScrollText } from "lucide-react";
+import { Swords, BookOpen, AlertTriangle, LayoutDashboard, Save, Upload, ListRestart, Volume2, VolumeX, ScrollText, Users } from "lucide-react";
 import { AuthStatus, WorldConfig } from "@/store/useGameStore";
 import { isSoundMuted, setSoundMuted } from "@/lib/sounds";
 
@@ -9,6 +9,7 @@ interface GameHeaderProps {
   authStatus: AuthStatus;
   importInputRef: RefObject<HTMLInputElement | null>;
   onOpenJournal: () => void;
+  onOpenDossier: () => void;
   onExportSave: () => void;
   onExportStory: () => void;
   onImportSave: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -22,6 +23,7 @@ export default function GameHeader({
   authStatus,
   importInputRef,
   onOpenJournal,
+  onOpenDossier,
   onExportSave,
   onExportStory,
   onImportSave,
@@ -70,6 +72,14 @@ export default function GameHeader({
             className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
           >
             <BookOpen size={13} /> สมุดบันทึก
+          </button>
+          <button
+            type="button"
+            onClick={onOpenDossier}
+            title="เปิดทะเบียนตัวละคร"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg text-xs whitespace-nowrap transition-all hover:-translate-y-0.5"
+          >
+            <Users size={13} /> ตัวละคร
           </button>
           <button
             type="button"

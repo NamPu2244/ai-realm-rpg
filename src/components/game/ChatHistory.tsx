@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, RefObject } from "react";
-import { Dices, TrendingDown, TrendingUp, Droplets } from "lucide-react";
-import { ChatLog } from "@/store/useGameStore";
+import { Dices, TrendingDown, TrendingUp, Droplets, MessageSquare } from "lucide-react";
+import { ChatLog, DialogueLine } from "@/store/useGameStore";
 import { parseDiceRoll } from "@/lib/gameText";
 import DiceRollBadge from "./DiceRollBadge";
 
@@ -60,7 +60,24 @@ function StatChangeBadges({ delta }: Readonly<{ delta: StatChange }>) {
   return <div className="flex flex-wrap gap-2 pl-5 pt-1">{badges}</div>;
 }
 
-function GMMessage({ chat, isStreaming = false }: Readonly<{ chat: Pick<ChatLog, "content" | "scene_image_prompt">; isStreaming?: boolean }>) {
+function DialogueBlock({ lines }: Readonly<{ lines: DialogueLine[] }>) {
+  if (lines.length === 0) return null;
+  return (
+    <div className="space-y-2 pl-5">
+      {lines.map((line) => (
+        <div key={line.speaker + ":" + line.text.slice(0, 32)} className="flex gap-2.5 items-start">
+          <MessageSquare size={13} className="text-amber-600/50 mt-1 shrink-0" />
+          <div>
+            <span className="text-[11px] font-bold tracking-wide text-amber-500/80 mr-2">{line.speaker}</span>
+            <span className="text-[0.9rem] italic text-amber-100/75 leading-relaxed">&#8220;{line.text}&#8221;</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GMMessage({ chat, isStreaming = false }: Readonly<{ chat: Pick<ChatLog, "content" | "scene_image_prompt" | "dialogue_lines">; isStreaming?: boolean }>) {
   const { roll, text } = parseDiceRoll(chat.content);
   return (
     <div className={`space-y-4 ${isStreaming ? "" : "animate-narrative-in"}`}>
@@ -71,6 +88,9 @@ function GMMessage({ chat, isStreaming = false }: Readonly<{ chat: Pick<ChatLog,
           <span className="inline-block w-0.5 h-[1em] bg-amber-400/80 ml-0.5 align-middle animate-cursor-blink" />
         )}
       </p>
+      {chat.dialogue_lines && chat.dialogue_lines.length > 0 && (
+        <DialogueBlock lines={chat.dialogue_lines} />
+      )}
     </div>
   );
 }
