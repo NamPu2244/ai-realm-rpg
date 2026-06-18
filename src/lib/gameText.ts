@@ -100,9 +100,19 @@ const SCENE_IMAGE_STYLE: Record<string, string> = {
   sandbox:  ", vibrant fantasy concept art, colorful, creative, imaginative, high detail, whimsical yet epic, digital painting",
 };
 
+function hashPrompt(str: string): number {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+  }
+  return Math.abs(h);
+}
+
 export function buildSceneImageUrl(prompt: string, tone?: string): string {
   const style = SCENE_IMAGE_STYLE[tone ?? ""] ?? SCENE_IMAGE_STYLE.balanced;
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + style)}?width=1024&height=420&nologo=true`;
+  const full = prompt + style;
+  const seed = hashPrompt(full);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(full)}?width=1024&height=420&nologo=true&seed=${seed}&model=flux`;
 }
 
 export function diceRollStyle(roll: number): string {
