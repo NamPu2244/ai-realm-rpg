@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Plus, Play, Trash2, LogOut, Clock, Swords } from "lucide-react";
+import { Plus, Play, Trash2, LogOut, Clock, Swords, Skull } from "lucide-react";
 import { useGameStore } from "@/store/useGameStore";
 
 const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
@@ -122,13 +122,23 @@ export default function MainMenuDashboard() {
               {save_slots.map((slot) => (
                 <div
                   key={slot.id}
-                  className="group relative bg-neutral-900/35 border border-neutral-800/50 hover:border-amber-900/35 rounded-2xl p-5 space-y-3 flex flex-col transition-all duration-300"
+                  className={`group relative border rounded-2xl p-5 space-y-3 flex flex-col transition-all duration-300 ${slot.is_dead ? "bg-neutral-950/60 border-red-950/50 hover:border-red-900/50" : "bg-neutral-900/35 border-neutral-800/50 hover:border-amber-900/35"}`}
                 >
                   {/* Left accent bar */}
-                  <div className="absolute left-0 top-5 bottom-5 w-0.5 rounded-full bg-gradient-to-b from-transparent via-amber-700/30 to-transparent" />
+                  <div className={`absolute left-0 top-5 bottom-5 w-0.5 rounded-full bg-gradient-to-b from-transparent to-transparent ${slot.is_dead ? "via-red-900/40" : "via-amber-700/30"}`} />
+
+                  {/* Death banner */}
+                  {slot.is_dead && (
+                    <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 bg-red-950/70 border border-red-900/50 rounded-full">
+                      <Skull size={10} className="text-red-700" />
+                      <span className="text-[10px] font-bold text-red-700 uppercase tracking-widest">
+                        {slot.tone === "hardcore" ? "Permadeath" : "ตายแล้ว"}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="pl-3">
-                    <h3 className="font-bold text-white leading-tight">
+                    <h3 className={`font-bold leading-tight ${slot.is_dead ? "text-neutral-500" : "text-white"}`}>
                       {slot.world_name || "โลกที่ไม่มีชื่อ"}
                     </h3>
                     {slot.character && (
@@ -143,16 +153,27 @@ export default function MainMenuDashboard() {
                   </div>
 
                   <div className="flex gap-2 mt-auto pl-3">
-                    {/* Play button */}
+                    {/* Play / View history button */}
                     <button
                       type="button"
                       onClick={() => loadSaveSlot(slot.id)}
                       className="relative flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl overflow-hidden group/play"
                     >
-                      <span className="absolute inset-0 bg-amber-900/30 border border-amber-800/40 rounded-xl" />
-                      <span className="absolute inset-0 bg-amber-900/50 border border-amber-700/50 rounded-xl opacity-0 group-hover/play:opacity-100 transition-opacity duration-200" />
-                      <Play size={12} className="relative text-amber-400" />
-                      <span className="relative text-sm font-bold text-amber-300">เล่นต่อ</span>
+                      {slot.is_dead ? (
+                        <>
+                          <span className="absolute inset-0 bg-neutral-900/50 border border-neutral-800/50 rounded-xl" />
+                          <span className="absolute inset-0 bg-neutral-800/50 border border-neutral-700/50 rounded-xl opacity-0 group-hover/play:opacity-100 transition-opacity duration-200" />
+                          <Skull size={12} className="relative text-neutral-600" />
+                          <span className="relative text-sm font-bold text-neutral-500">ดูบันทึก</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="absolute inset-0 bg-amber-900/30 border border-amber-800/40 rounded-xl" />
+                          <span className="absolute inset-0 bg-amber-900/50 border border-amber-700/50 rounded-xl opacity-0 group-hover/play:opacity-100 transition-opacity duration-200" />
+                          <Play size={12} className="relative text-amber-400" />
+                          <span className="relative text-sm font-bold text-amber-300">เล่นต่อ</span>
+                        </>
+                      )}
                     </button>
 
                     {/* Delete button */}

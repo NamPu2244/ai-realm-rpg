@@ -47,6 +47,8 @@ export interface SaveSlotSummary {
   world_name: string;
   genre: string;
   character: string;
+  tone: WorldTone;
+  is_dead: boolean;
   updated_at: string;
 }
 
@@ -129,7 +131,7 @@ export const useGameStore = create<GameState>()(
         const supabase = getSupabaseClient();
         const { data, error } = await supabase
           .from('save_slots')
-          .select('id, world_name, world_config, updated_at')
+          .select('id, world_name, world_config, game_state, updated_at')
           .eq('user_id', userId)
           .order('updated_at', { ascending: false });
 
@@ -140,11 +142,13 @@ export const useGameStore = create<GameState>()(
         }
 
         set({
-          save_slots: (data ?? []).map((row: { id: string; world_name: string; world_config: WorldConfig; updated_at: string }) => ({
+          save_slots: (data ?? []).map((row: { id: string; world_name: string; world_config: WorldConfig; game_state: { is_dead?: boolean } | null; updated_at: string }) => ({
             id: row.id,
             world_name: row.world_name,
             genre: row.world_config?.genre ?? '',
             character: row.world_config?.character ?? '',
+            tone: row.world_config?.tone ?? 'balanced',
+            is_dead: !!row.game_state?.is_dead,
             updated_at: row.updated_at,
           })),
           is_loading_saves: false,

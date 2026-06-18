@@ -2,6 +2,33 @@ import { useRef, useEffect, useState } from "react";
 import { UserRound, Crosshair, TrendingUp, Heart, Sparkles, Wand2, Backpack } from "lucide-react";
 import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
 
+function LivesRow({ tone, livesLeft }: Readonly<{ tone?: string; livesLeft: number }>) {
+  if (tone === "hardcore") {
+    return (
+      <div
+        title="โหมด Permadeath — ตายครั้งเดียวจบเกม ไม่มีชีวิตสำรอง"
+        className="flex justify-between text-sm font-medium cursor-help"
+      >
+        <span className="text-red-700/80">Lives</span>
+        <span className="text-[10px] font-bold text-red-800/70 uppercase tracking-widest border border-red-900/40 px-2 py-0.5 rounded-full">Permadeath</span>
+      </div>
+    );
+  }
+  return (
+    <div
+      title="จำนวนชีวิตที่เหลือ หากตัวละครตายและชีวิตหมด เกมจะจบลง"
+      className="flex justify-between text-sm font-medium cursor-help"
+    >
+      <span className="text-pink-400">Lives</span>
+      <span className="flex items-center gap-0.5">
+        {Array.from({ length: Math.max(0, livesLeft) }, (_, i) => (
+          <Heart key={`life-${i}`} size={12} className="text-pink-400 fill-pink-400" />
+        ))}
+      </span>
+    </div>
+  );
+}
+
 interface CharacterSidebarProps {
   worldConfig: WorldConfig | null;
   currentObjective: string;
@@ -95,17 +122,7 @@ export default function CharacterSidebar({
             ></div>
           </div>
         </div>
-        <div
-          title="จำนวนชีวิตที่เหลือ หากตัวละครตายและชีวิตหมด เกมจะจบลง"
-          className="flex justify-between text-sm font-medium cursor-help"
-        >
-          <span className="text-pink-400">Lives</span>
-          <span className="flex items-center gap-0.5">
-            {Array.from({ length: Math.max(0, livesLeft) }, (_, i) => (
-              <Heart key={`life-${i}`} size={12} className="text-pink-400 fill-pink-400" />
-            ))}
-          </span>
-        </div>
+        <LivesRow tone={worldConfig?.tone} livesLeft={livesLeft} />
       </div>
 
       <div className="space-y-5 bg-stone-900/40 border border-amber-900/20 rounded-xl p-4 shadow-sm">

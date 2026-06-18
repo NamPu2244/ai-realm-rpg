@@ -552,7 +552,12 @@ export default function GamePage() {
 
   const handleStartGame = async (config: WorldConfig) => {
     // Show loading screen immediately while AI generates the opening
-    setGameState({ world_config: config, game_phase: "Playing", history: [] });
+    setGameState({
+      world_config: config,
+      game_phase: "Playing",
+      history: [],
+      lives_left: config.tone === "hardcore" ? 0 : 3,
+    });
     setWorldLoading({ active: true, config, prologue: null });
 
     if (auth_status === "authenticated") {
@@ -801,6 +806,7 @@ export default function GamePage() {
               suggestedActions={suggested_actions}
               input={input}
               isLowHp={isLowHp}
+              worldTone={world_config?.tone}
               onInputChange={setInput}
               onSend={(message) => handleSend(message)}
               onSubmit={() => handleSend(input)}

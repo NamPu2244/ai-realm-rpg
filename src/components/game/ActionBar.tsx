@@ -8,6 +8,7 @@ interface ActionBarProps {
   suggestedActions: string[];
   input: string;
   isLowHp: boolean;
+  worldTone?: string;
   onInputChange: (value: string) => void;
   onSend: (message: string) => void;
   onSubmit: () => void;
@@ -78,6 +79,33 @@ function detectActionType(text: string): ActionType {
   return "default";
 }
 
+function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRestart: () => void }>) {
+  if (worldTone === "hardcore") {
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex items-center justify-center gap-2 w-full py-3 bg-neutral-950/80 border border-red-900/60 rounded-xl text-center">
+          <Skull size={16} className="text-red-700" />
+          <span className="text-red-600/90 font-bold tracking-widest text-sm uppercase">Permadeath — การเดินทางสิ้นสุดแล้ว</span>
+        </div>
+        <button
+          onClick={onRestart}
+          className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900/80 hover:bg-stone-800 text-stone-300 border border-stone-700 font-bold rounded-xl tracking-widest transition-colors text-sm"
+        >
+          เริ่มการเดินทางใหม่
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      onClick={onRestart}
+      className="flex items-center justify-center gap-2 w-full py-4 bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-700 font-bold rounded-xl tracking-widest transition-colors shadow-[0_0_30px_rgba(220,38,38,0.5)]"
+    >
+      <Skull size={18} /> คุณเสียชีวิตแล้ว — จุติใหม่
+    </button>
+  );
+}
+
 export default function ActionBar({
   error,
   isLoading,
@@ -85,6 +113,7 @@ export default function ActionBar({
   suggestedActions,
   input,
   isLowHp,
+  worldTone,
   onInputChange,
   onSend,
   onSubmit,
@@ -106,12 +135,7 @@ export default function ActionBar({
         </div>
       )}
       {isDead ? (
-        <button
-          onClick={onRestart}
-          className="flex items-center justify-center gap-2 w-full py-4 bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-700 font-bold rounded-xl tracking-widest transition-colors shadow-[0_0_30px_rgba(220,38,38,0.5)]"
-        >
-          <Skull size={18} /> คุณเสียชีวิตแล้ว — จุติใหม่
-        </button>
+        <DeadPanel worldTone={worldTone} onRestart={onRestart} />
       ) : (
         <>
           {suggestedActions.length > 0 && (

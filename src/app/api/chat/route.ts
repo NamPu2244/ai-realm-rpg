@@ -7,7 +7,8 @@ const TONE_RULES: Record<string, string> = {
   hardcore: `TONE - HARDCORE REALISM:
 - The world reacts realistically and consequences can be severe. Reckless or foolish actions can lead to serious injury or death.
 - Track resources (food, health, items, mana) strictly and let scarcity matter.
-- Do not artificially protect the player from the consequences of the dice and their own choices.`,
+- Do not artificially protect the player from the consequences of the dice and their own choices.
+- PERMADEATH: This is a permadeath world. "lives_left" is always 0 and there are NO respawns. When HP drops to 0 or below, immediately set "is_dead": true and keep "hp" at 0 — do NOT restore HP, do NOT narrate a respawn, do NOT decrease "lives_left" (it is already 0 and must stay 0). Death is permanent and final.`,
   balanced: `TONE - BALANCED ADVENTURE:
 - The world is challenging but fair. Mistakes have real consequences, but character death should generally only result from major failures or sustained reckless behavior, not a single unlucky roll.
 - Give the player reasonable opportunities to recover, retreat, or adapt before things become fatal.`,

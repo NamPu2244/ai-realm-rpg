@@ -114,14 +114,21 @@ export default function MobileStatsDrawer({
                 style={{ width: `${Math.min(100, (playerStatus.exp / 100) * 100)}%` }}
               />
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-pink-400">Lives</span>
-              <span className="flex items-center gap-0.5">
-                {Array.from({ length: Math.max(0, livesLeft) }, (_, i) => (
-                  <Heart key={`life-${i}`} size={11} className="text-pink-400 fill-pink-400" />
-                ))}
-              </span>
-            </div>
+            {worldConfig?.tone === "hardcore" ? (
+              <div className="flex justify-between text-sm">
+                <span className="text-red-700/80">Lives</span>
+                <span className="text-[10px] font-bold text-red-800/70 uppercase tracking-widest border border-red-900/40 px-2 py-0.5 rounded-full">Permadeath</span>
+              </div>
+            ) : (
+              <div className="flex justify-between text-sm">
+                <span className="text-pink-400">Lives</span>
+                <span className="flex items-center gap-0.5">
+                  {Array.from({ length: Math.max(0, livesLeft) }, (_, i) => (
+                    <Heart key={`life-${i}`} size={11} className="text-pink-400 fill-pink-400" />
+                  ))}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Status Effects */}
