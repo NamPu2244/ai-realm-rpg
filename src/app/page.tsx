@@ -17,7 +17,7 @@ import SceneBanner from "@/components/game/SceneBanner";
 import ActionBar from "@/components/game/ActionBar";
 import CharacterSidebar from "@/components/game/CharacterSidebar";
 import MobileStatsDrawer from "@/components/game/MobileStatsDrawer";
-import { Heart } from "lucide-react";
+import { Heart, MessageSquare } from "lucide-react";
 import WorldLoadingScreen from "@/components/WorldLoadingScreen";
 import {
   extractAndParseJSON,
@@ -47,6 +47,7 @@ export default function GamePage() {
     lives_left,
     known_characters,
     auth_status,
+    groq_api_key,
     setGameState,
     resetGame,
     fetchUserSaves,
@@ -100,6 +101,8 @@ export default function GamePage() {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKeyDraft, setApiKeyDraft] = useState(groq_api_key);
   const statChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Page transition state
@@ -414,6 +417,7 @@ export default function GamePage() {
           livesLeft: freshState.lives_left,
           saveSlotId: freshState.current_save_slot_id ?? undefined,
           knownCharacters: freshState.known_characters,
+          userGroqKey: freshState.groq_api_key || undefined,
         }),
       });
 
@@ -881,6 +885,7 @@ export default function GamePage() {
               onImportSave={handleImportSave}
               onQuitToDashboard={() => quitToMainMenu()}
               onNewGame={handleNewGame}
+              onOpenSettings={() => { setApiKeyDraft(groq_api_key); setShowSettings(true); }}
             />
 
             {/* Persistent scene image — shows current location/scene, updates every time scene changes */}
@@ -950,10 +955,52 @@ export default function GamePage() {
         <button
           type="button"
           onClick={() => setShowFeedback(true)}
-          className="fixed bottom-6 left-6 z-30 px-3 py-1.5 bg-neutral-900/80 hover:bg-neutral-800 text-neutral-500 hover:text-neutral-300 border border-neutral-700/50 rounded text-xs transition-colors shadow-lg backdrop-blur"
+          className="fixed bottom-6 left-6 z-30 flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/80 hover:bg-stone-800/90 text-neutral-500 hover:text-amber-300 border border-neutral-700/40 hover:border-amber-800/50 rounded-full text-xs transition-all shadow-lg backdrop-blur hover:-translate-y-0.5"
         >
-          ส่ง Feedback
+          <MessageSquare size={12} /> Feedback
         </button>
+
+        {/* Settings modal */}
+        {showSettings && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-4">
+              <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">ตั้งค่า</h2>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="groq-key-input" className="text-xs text-neutral-400">Groq API Key (ของคุณเอง)</label>
+                <input
+                  id="groq-key-input"
+                  type="password"
+                  className="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-amber-700/60 font-mono"
+                  placeholder="gsk_..."
+                  value={apiKeyDraft}
+                  onChange={(e) => setApiKeyDraft(e.target.value)}
+                  autoFocus
+                />
+                <p className="text-xs text-neutral-600">
+                  เก็บไว้ใน browser เท่านั้น — ไม่ได้บันทึกลงเซิร์ฟเวอร์
+                  {" "}สร้าง key ฟรีได้ที่{" "}
+                  <span className="text-amber-700">console.groq.com</span>
+                </p>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(false)}
+                  className="px-4 py-2 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setGameState({ groq_api_key: apiKeyDraft.trim() }); setShowSettings(false); }}
+                  className="px-4 py-2 text-xs bg-amber-800/70 hover:bg-amber-700/70 text-amber-200 rounded-lg transition-colors"
+                >
+                  บันทึก
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Feedback modal */}
         {showFeedback && (

@@ -1,5 +1,5 @@
 import { RefObject, useState } from "react";
-import { Swords, BookOpen, AlertTriangle, LayoutDashboard, Save, Upload, ListRestart, Volume2, VolumeX, ScrollText, Users } from "lucide-react";
+import { Swords, BookOpen, AlertTriangle, LayoutDashboard, Save, Upload, ListRestart, Volume2, VolumeX, ScrollText, Users, Settings } from "lucide-react";
 import { AuthStatus, WorldConfig } from "@/store/useGameStore";
 import { isSoundMuted, setSoundMuted } from "@/lib/sounds";
 
@@ -15,6 +15,7 @@ interface GameHeaderProps {
   onImportSave: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onQuitToDashboard: () => void;
   onNewGame: () => void;
+  onOpenSettings: () => void;
 }
 
 export default function GameHeader({
@@ -29,6 +30,7 @@ export default function GameHeader({
   onImportSave,
   onQuitToDashboard,
   onNewGame,
+  onOpenSettings,
 }: Readonly<GameHeaderProps>) {
   const [muted, setMuted] = useState(() => isSoundMuted());
 
@@ -57,6 +59,14 @@ export default function GameHeader({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            title="ตั้งค่า API Key"
+            className="flex items-center justify-center w-8 h-8 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg transition-all hover:-translate-y-0.5"
+          >
+            <Settings size={13} />
+          </button>
           <button
             type="button"
             onClick={handleToggleMute}

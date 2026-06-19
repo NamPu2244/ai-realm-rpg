@@ -256,7 +256,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId, knownCharacters } = body;
+    const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId, knownCharacters, userGroqKey } = body;
+
+    const groqKey = (typeof userGroqKey === 'string' && userGroqKey.startsWith('gsk_'))
+      ? userGroqKey
+      : process.env.GROQ_API_KEY;
 
     // Retrieve relevant past memories before building the prompt.
     // Requires a cloud save slot and SUPABASE_SERVICE_ROLE_KEY; embeddings run locally.
@@ -309,7 +313,7 @@ ${historyContext}
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Authorization': `Bearer ${groqKey}`,
       },
       body: JSON.stringify({
         model: 'meta-llama/llama-4-scout-17b-16e-instruct',

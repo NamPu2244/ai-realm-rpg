@@ -85,6 +85,9 @@ interface GameState {
   lives_left: number;
   known_characters: Record<string, CharacterEntry>;
 
+  // User-supplied Groq API key (stored locally, never sent to our DB)
+  groq_api_key: string;
+
   // Auth & cloud save state
   user: AuthUser | null;
   auth_status: AuthStatus;
@@ -124,6 +127,7 @@ const initialState = {
   qte_options: [],
   lives_left: 3,
   known_characters: {} as Record<string, CharacterEntry>,
+  groq_api_key: '',
   user: null,
   auth_status: 'unknown' as AuthStatus,
   save_slots: [],
