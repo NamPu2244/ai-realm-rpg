@@ -12,6 +12,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 //   saveSlotId:     string               — UUID of the current save slot
 //   recentHistory:  { role, content }[]  — last ~20 messages (player + gm)
 // }
+// Headers: Authorization: Bearer <supabase-access-token>
 
 const SUMMARY_INSTRUCTION = `You are a precise note-taker for an RPG game. Summarize the following recent game events into 2-4 concise factual sentences in English. Focus only on: key plot events, items acquired or lost, named NPCs encountered, locations visited, and active quest progress. Omit blow-by-blow combat details. Be specific — use proper names, not vague pronouns.
 
@@ -40,6 +41,19 @@ async function getSummaryFromGroq(historyText: string): Promise<string> {
 
 export async function POST(req: Request) {
   try {
+    // Authenticate: require a valid Supabase access token
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const supabase = getSupabaseServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { saveSlotId, recentHistory } = body as {
       saveSlotId: string;
@@ -48,6 +62,22 @@ export async function POST(req: Request) {
 
     if (!saveSlotId || !Array.isArray(recentHistory) || recentHistory.length === 0) {
       return NextResponse.json({ error: "Missing saveSlotId or recentHistory" }, { status: 400 });
+    }
+
+    if (recentHistory.length > 30) {
+      return NextResponse.json({ error: "recentHistory too long (max 30 entries)" }, { status: 400 });
+    }
+
+    // Verify the save slot belongs to the authenticated user
+    const { data: slot, error: slotError } = await supabase
+      .from("save_slots")
+      .select("id")
+      .eq("id", saveSlotId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (slotError || !slot) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const historyText = recentHistory
@@ -74,7 +104,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Embedding generation failed" }, { status: 502 });
     }
 
-    const supabase = getSupabaseServerClient();
     const { error: dbError } = await supabase.from("game_memories").insert({
       save_slot_id: saveSlotId,
       memory_text: memoryText,

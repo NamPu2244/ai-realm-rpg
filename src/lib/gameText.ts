@@ -109,8 +109,10 @@ function hashPrompt(str: string): number {
 }
 
 export function buildSceneImageUrl(prompt: string, tone?: string): string {
+  // Strip control characters and null bytes; cap length to prevent abuse
+  const sanitized = prompt.replace(/[\x00-\x1F\x7F]/g, " ").trim().slice(0, 500);
   const style = SCENE_IMAGE_STYLE[tone ?? ""] ?? SCENE_IMAGE_STYLE.balanced;
-  const full = prompt + style;
+  const full = sanitized + style;
   const seed = hashPrompt(full);
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(full)}?width=1024&height=420&nologo=true&seed=${seed}&model=flux`;
 }

@@ -12,8 +12,9 @@ async function checkRateLimit(req: Request): Promise<{ allowed: boolean; remaini
     return { allowed: true, remaining: MAX_DAILY_TURNS };
   }
   try {
-    const forwarded = req.headers.get('x-forwarded-for');
-    const ip = (forwarded ? forwarded.split(',')[0].trim() : req.headers.get('x-real-ip')) || 'unknown';
+    // x-vercel-forwarded-for is set by Vercel's edge and cannot be spoofed by callers.
+    // x-forwarded-for is caller-controllable and intentionally excluded.
+    const ip = req.headers.get('x-vercel-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip));
     const ipHash = Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, '0'))
@@ -289,7 +290,7 @@ export async function POST(req: Request) {
 
     const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId, knownCharacters, userGroqKey } = body;
 
-    const groqKey = (typeof userGroqKey === 'string' && userGroqKey.startsWith('gsk_'))
+    const groqKey = (typeof userGroqKey === 'string' && /^gsk_[a-zA-Z0-9]{40,80}$/.test(userGroqKey))
       ? userGroqKey
       : process.env.GROQ_API_KEY;
 

@@ -371,11 +371,21 @@ export default function GamePage() {
       const fullHistory = [...newHistory, { role: "gm" as const, content: data.narrative }];
       const gmCount = fullHistory.filter((h) => h.role === "gm").length;
       if (slotId && gmCount > 0 && gmCount % 10 === 0) {
-        fetch("/api/memories", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ saveSlotId: slotId, recentHistory: fullHistory.slice(-20) }),
-        }).catch((err) => console.warn("[memories] background trigger failed:", err));
+        (async () => {
+          try {
+            const { data: { session } } = await getSupabaseClient().auth.getSession();
+            await fetch("/api/memories", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(session?.access_token ? { "Authorization": `Bearer ${session.access_token}` } : {}),
+              },
+              body: JSON.stringify({ saveSlotId: slotId, recentHistory: fullHistory.slice(-20) }),
+            });
+          } catch (err) {
+            console.warn("[memories] background trigger failed:", err);
+          }
+        })();
       }
     }
 
@@ -1076,7 +1086,7 @@ export default function GamePage() {
                   <span className="text-emerald-500 mt-0.5 shrink-0">✓</span>
                   <div>
                     <p className="text-neutral-300 font-medium mb-1">Key ส่วนตัว — ไม่มีจำกัดจากเรา</p>
-                    <p>ถ้ามี Groq API Key ของตัวเอง จะไม่มีการจำกัดเทิร์นจากฝั่งเรา ขึ้นอยู่กับโควต้า Groq ของคุณเอง (Groq มีระดับฟรีให้ใช้งาน) Key ของคุณ<span className="text-neutral-200"> เก็บไว้ใน Browser เท่านั้น</span> — ไม่ถูกส่งหรือบันทึกที่เซิร์ฟเวอร์ของเรา</p>
+                    <p>ถ้ามี Groq API Key ของตัวเอง จะไม่มีการจำกัดเทิร์นจากฝั่งเรา ขึ้นอยู่กับโควต้า Groq ของคุณเอง (Groq มีระดับฟรีให้ใช้งาน) Key ของคุณ<span className="text-neutral-200"> ถูกส่งไปยัง Server เฉพาะตอนเล่นเกม</span> — ไม่ถูกบันทึกหรือเก็บไว้ที่เซิร์ฟเวอร์ของเรา และจะหายไปเมื่อปิด Tab</p>
                   </div>
                 </div>
               </div>

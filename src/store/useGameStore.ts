@@ -194,7 +194,7 @@ const initialState = {
   is_loading_saves: false,
 };
 
-type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id'>;
+type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id' | 'groq_api_key'>;
 
 export const useGameStore = create<GameState>()(
   persist<GameState, [], [], PersistedState>(
@@ -393,7 +393,7 @@ export const useGameStore = create<GameState>()(
       version: 4,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { user, save_slots, is_loading_saves, current_save_slot_id, ...rest } = state;
+        const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, ...rest } = state;
         return {
           ...rest,
           game_phase: state.auth_status === 'authenticated' ? 'Dashboard' : rest.game_phase,
