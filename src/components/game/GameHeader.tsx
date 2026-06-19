@@ -8,6 +8,8 @@ interface GameHeaderProps {
   isLowHp: boolean;
   authStatus: AuthStatus;
   hasPersonalKey: boolean;
+  timeOfDay: string;
+  inWorldDate: string;
   importInputRef: RefObject<HTMLInputElement | null>;
   onOpenJournal: () => void;
   onOpenDossier: () => void;
@@ -24,6 +26,8 @@ export default function GameHeader({
   isLowHp,
   authStatus,
   hasPersonalKey,
+  timeOfDay,
+  inWorldDate,
   importInputRef,
   onOpenJournal,
   onOpenDossier,
@@ -52,7 +56,12 @@ export default function GameHeader({
             <Swords size={20} className="text-amber-400" /> AI REALM
           </h1>
           <p className="text-xs text-amber-100/40 uppercase tracking-wider mt-1">
-            Language: {worldConfig?.language} | Tone: {worldConfig?.tone}{" "}
+            {worldConfig?.language} · {worldConfig?.tone}
+            {(timeOfDay || inWorldDate) && (
+              <span className="text-amber-100/30 ml-2 normal-case tracking-normal">
+                {[timeOfDay, inWorldDate].filter(Boolean).join(" · ")}
+              </span>
+            )}
             {isLowHp && (
               <span className="inline-flex items-center gap-1 text-red-400 ml-2 font-bold animate-pulse">
                 <AlertTriangle size={11} /> LOW HP WARNING

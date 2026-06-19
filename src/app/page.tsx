@@ -46,6 +46,12 @@ export default function GamePage() {
     qte_options,
     lives_left,
     known_characters,
+    time_of_day,
+    in_world_date,
+    quest_log,
+    faction_standings,
+    companions,
+    visited_locations,
     auth_status,
     groq_api_key,
     setGameState,
@@ -266,6 +272,43 @@ export default function GamePage() {
       }
     }
 
+    // Merge faction updates
+    const updatedFactions = [...freshState.faction_standings];
+    if (Array.isArray(data.faction_updates)) {
+      for (const fu of data.faction_updates) {
+        if (!fu?.name) continue;
+        const idx = updatedFactions.findIndex((f) => f.name === fu.name);
+        if (idx >= 0) updatedFactions[idx] = fu;
+        else updatedFactions.push(fu);
+      }
+    }
+
+    // Merge quest updates
+    const updatedQuests = [...freshState.quest_log];
+    if (Array.isArray(data.quest_updates)) {
+      for (const qu of data.quest_updates) {
+        if (!qu?.id) continue;
+        const idx = updatedQuests.findIndex((q) => q.id === qu.id);
+        if (idx >= 0) updatedQuests[idx] = qu;
+        else updatedQuests.push(qu);
+      }
+    }
+
+    // Merge companion updates
+    const updatedCompanions = { ...freshState.companions };
+    if (Array.isArray(data.companion_updates)) {
+      for (const cu of data.companion_updates) {
+        if (cu?.name) updatedCompanions[cu.name] = cu;
+      }
+    }
+
+    // Append new locations (dedup by name)
+    const existingNames = new Set(freshState.visited_locations.map((l) => l.name));
+    const newLocs = Array.isArray(data.new_locations)
+      ? data.new_locations.filter((l: { name: string }) => l?.name && !existingNames.has(l.name))
+      : [];
+    const updatedLocations = [...freshState.visited_locations, ...newLocs];
+
     setGameState({
       player_status: playerStatus,
       story_summary: data.story_summary,
@@ -278,6 +321,12 @@ export default function GamePage() {
       qte_options: Array.isArray(data.qte_options) ? data.qte_options : [],
       lives_left: newLives,
       known_characters: updatedCharacters,
+      time_of_day: typeof data.time_of_day === "string" ? data.time_of_day : freshState.time_of_day,
+      in_world_date: typeof data.in_world_date === "string" ? data.in_world_date : freshState.in_world_date,
+      faction_standings: updatedFactions,
+      quest_log: updatedQuests,
+      companions: updatedCompanions,
+      visited_locations: updatedLocations,
       history: [
         ...newHistory,
         {
@@ -662,6 +711,13 @@ export default function GamePage() {
       current_objective: state.current_objective,
       world_config: state.world_config,
       lives_left: state.lives_left,
+      known_characters: state.known_characters,
+      time_of_day: state.time_of_day,
+      in_world_date: state.in_world_date,
+      quest_log: state.quest_log,
+      faction_standings: state.faction_standings,
+      companions: state.companions,
+      visited_locations: state.visited_locations,
     };
 
     const blob = new Blob([JSON.stringify(saveData, null, 2)], {
@@ -737,6 +793,8 @@ export default function GamePage() {
             level: 1,
             exp: 0,
             skills: [],
+            gold: 0,
+            attributes: { str: 10, dex: 10, int: 10, con: 10, wis: 10, cha: 10 },
             ...data.player_status,
           },
           is_dead: !!data.is_dead,
@@ -751,6 +809,13 @@ export default function GamePage() {
           is_qte_active: false,
           qte_time_limit: 0,
           qte_options: [],
+          known_characters: (data.known_characters && typeof data.known_characters === "object") ? data.known_characters : {},
+          time_of_day: data.time_of_day || "",
+          in_world_date: data.in_world_date || "",
+          quest_log: Array.isArray(data.quest_log) ? data.quest_log : [],
+          faction_standings: Array.isArray(data.faction_standings) ? data.faction_standings : [],
+          companions: (data.companions && typeof data.companions === "object") ? data.companions : {},
+          visited_locations: Array.isArray(data.visited_locations) ? data.visited_locations : [],
         });
         setError(null);
       } catch (err) {
@@ -870,6 +935,8 @@ export default function GamePage() {
             currentObjective={current_objective}
             storySummary={story_summary}
             worldConfig={world_config}
+            questLog={quest_log}
+            visitedLocations={visited_locations}
             onClose={() => setShowJournal(false)}
           />
         )}
@@ -889,6 +956,8 @@ export default function GamePage() {
               isLowHp={isLowHp}
               authStatus={auth_status}
               hasPersonalKey={!!groq_api_key}
+              timeOfDay={time_of_day}
+              inWorldDate={in_world_date}
               importInputRef={importInputRef}
               onOpenJournal={() => setShowJournal(true)}
               onOpenDossier={() => setShowDossier(true)}
@@ -936,6 +1005,8 @@ export default function GamePage() {
             hpPercent={hpPercent}
             isLowHp={isLowHp}
             livesLeft={lives_left}
+            companions={companions}
+            factionStandings={faction_standings}
           />
         </div>
 
@@ -961,6 +1032,8 @@ export default function GamePage() {
           livesLeft={lives_left}
           currentObjective={current_objective}
           worldConfig={world_config}
+          companions={companions}
+          factionStandings={faction_standings}
         />
 
         {/* Feedback button */}

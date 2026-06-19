@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
-import { ImageOff, RefreshCw, Backpack } from "lucide-react";
-import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
+import { ImageOff, RefreshCw, Backpack, Coins, Shield, Swords, Brain, Eye, MessageCircle } from "lucide-react";
+import { PlayerStatus, WorldConfig, Companion, FactionStanding } from "@/store/useGameStore";
 import { buildCharacterPortraitUrl } from "@/lib/gameText";
 import InventoryModal from "./InventoryModal";
 
@@ -37,7 +37,6 @@ function CharacterPortrait({ character, genre, tone }: Readonly<{ character: str
           </button>
         </div>
       )}
-      {/* Bottom gradient fade */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-stone-950 to-transparent" />
     </div>
   );
@@ -74,6 +73,47 @@ function LivesDisplay({ tone, livesLeft }: Readonly<{ tone?: string; livesLeft: 
   );
 }
 
+const ATTR_META: { key: keyof PlayerStatus["attributes"]; label: string; icon: typeof Swords; color: string }[] = [
+  { key: "str", label: "STR", icon: Swords,       color: "text-red-400" },
+  { key: "dex", label: "DEX", icon: Eye,           color: "text-emerald-400" },
+  { key: "int", label: "INT", icon: Brain,         color: "text-sky-400" },
+  { key: "con", label: "CON", icon: Shield,        color: "text-orange-400" },
+  { key: "wis", label: "WIS", icon: Eye,           color: "text-purple-400" },
+  { key: "cha", label: "CHA", icon: MessageCircle, color: "text-pink-400" },
+];
+
+function attrMod(val: number) {
+  const mod = Math.floor((val - 10) / 2);
+  return mod >= 0 ? `+${mod}` : `${mod}`;
+}
+
+function factionBarColor(standing: number): string {
+  if (standing >= 60)  return "bg-emerald-600";
+  if (standing >= 20)  return "bg-sky-700";
+  if (standing > -20)  return "bg-stone-600";
+  if (standing > -60)  return "bg-orange-700";
+  return "bg-red-700";
+}
+
+function factionLabelColor(standing: number): string {
+  if (standing >= 20)  return "text-emerald-600";
+  if (standing <= -20) return "text-red-700";
+  return "text-stone-600";
+}
+
+function FactionBar({ standing }: Readonly<{ standing: number }>) {
+  const pct = ((standing + 100) / 200) * 100;
+  return (
+    <div className="w-full h-1 bg-stone-800 rounded-full overflow-hidden">
+      <div className={`h-full transition-all duration-500 ${factionBarColor(standing)}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function companionHpColor(hp: number, maxHp: number): string {
+  return maxHp > 0 && hp / maxHp <= 0.3 ? "bg-red-800 animate-pulse" : "bg-emerald-900";
+}
+
 interface CharacterSidebarProps {
   worldConfig: WorldConfig | null;
   currentObjective: string;
@@ -81,6 +121,8 @@ interface CharacterSidebarProps {
   hpPercent: number;
   isLowHp: boolean;
   livesLeft: number;
+  companions: Record<string, Companion>;
+  factionStandings: FactionStanding[];
 }
 
 export default function CharacterSidebar({
@@ -90,6 +132,8 @@ export default function CharacterSidebar({
   hpPercent,
   isLowHp,
   livesLeft,
+  companions,
+  factionStandings,
 }: Readonly<CharacterSidebarProps>) {
   const prevInventoryRef = useRef<string[]>(playerStatus.inventory);
   const [newItems, setNewItems] = useState<Set<string>>(new Set());
@@ -101,40 +145,36 @@ export default function CharacterSidebar({
     const added = curr.filter((item) => !prev.includes(item));
     if (added.length > 0) {
       setNewItems((s) => new Set([...s, ...added]));
-      const timer = setTimeout(() => {
-        setNewItems((s) => {
-          const next = new Set(s);
-          added.forEach((item) => next.delete(item));
-          return next;
-        });
-      }, 2000);
+      const clearAdded = () => setNewItems((s) => {
+        const next = new Set(s);
+        for (const item of added) next.delete(item);
+        return next;
+      });
+      const timer = setTimeout(clearAdded, 2000);
       prevInventoryRef.current = curr;
       return () => clearTimeout(timer);
     }
     prevInventoryRef.current = curr;
   }, [playerStatus.inventory]);
 
+  const activeCompanions = Object.values(companions).filter((c) => c.status === "active");
+  const attrs = playerStatus.attributes;
+  const hasAttrs = attrs && Object.values(attrs).some((v) => v !== 10);
+
   return (
     <div className={`hidden lg:flex w-72 flex-col overflow-y-auto border-l transition-colors duration-500 ${isLowHp ? "border-red-950" : "border-stone-800"} bg-stone-950`}>
 
-      {/* Portrait */}
       {worldConfig?.character && worldConfig?.genre && (
         <CharacterPortrait character={worldConfig.character} genre={worldConfig.genre} tone={worldConfig.tone} />
       )}
 
       <div className="flex flex-col gap-0 px-4 py-4 flex-1">
 
-        {/* Character name / description */}
         <div className="mb-5">
-          <p className="text-xs text-stone-300 leading-relaxed line-clamp-3">
-            {worldConfig?.character || "—"}
-          </p>
-          <p className="text-[10px] text-stone-700 mt-1 leading-snug">
-            {worldConfig?.genre}
-          </p>
+          <p className="text-xs text-stone-300 leading-relaxed line-clamp-3">{worldConfig?.character || "—"}</p>
+          <p className="text-[10px] text-stone-700 mt-1 leading-snug">{worldConfig?.genre}</p>
         </div>
 
-        {/* Objective */}
         {currentObjective && (
           <div className="mb-5 border-l-2 border-amber-900/50 pl-3">
             <SectionLabel>Objective</SectionLabel>
@@ -142,7 +182,6 @@ export default function CharacterSidebar({
           </div>
         )}
 
-        {/* Vitals */}
         <div className="mb-5">
           <SectionLabel>Vitals</SectionLabel>
           <div className="space-y-2.5">
@@ -165,7 +204,31 @@ export default function CharacterSidebar({
           </div>
         </div>
 
-        {/* Progression */}
+        {playerStatus.gold > 0 && (
+          <div className="mb-5">
+            <SectionLabel>Gold</SectionLabel>
+            <div className="flex items-center gap-1.5">
+              <Coins size={12} className="text-amber-600" />
+              <span className="text-sm text-amber-300 font-bold tabular-nums">{playerStatus.gold.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
+        {attrs && hasAttrs && (
+          <div className="mb-5">
+            <SectionLabel>Attributes</SectionLabel>
+            <div className="grid grid-cols-3 gap-1.5">
+              {ATTR_META.map(({ key, label, color }) => (
+                <div key={key} className="flex flex-col items-center py-1.5 bg-stone-900/60 rounded border border-stone-800/60">
+                  <span className={`text-[9px] font-bold tracking-widest ${color}`}>{label}</span>
+                  <span className="text-xs text-stone-200 font-bold tabular-nums leading-none mt-0.5">{attrs[key]}</span>
+                  <span className="text-[9px] text-stone-600 tabular-nums">{attrMod(attrs[key])}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mb-5">
           <SectionLabel>Progression</SectionLabel>
           <div className="flex justify-between text-xs mb-1">
@@ -179,14 +242,52 @@ export default function CharacterSidebar({
           </div>
         </div>
 
-        {/* Conditions */}
+        {activeCompanions.length > 0 && (
+          <div className="mb-5">
+            <SectionLabel>Companions</SectionLabel>
+            <div className="space-y-2">
+              {activeCompanions.map((c) => (
+                <div key={c.name} className="space-y-1">
+                  <div className="flex justify-between items-baseline text-xs">
+                    <span className="text-stone-300 font-medium truncate">{c.name}</span>
+                    <span className="text-stone-500 tabular-nums shrink-0 ml-1">{c.hp}/{c.max_hp}</span>
+                  </div>
+                  <StatBar value={c.hp} max={c.max_hp} color={companionHpColor(c.hp, c.max_hp)} />
+                  {c.status_effects.length > 0 && (
+                    <p className="text-[9px] text-red-700/80 truncate">{c.status_effects.join(", ")}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {factionStandings.length > 0 && (
+          <div className="mb-5">
+            <SectionLabel>Factions</SectionLabel>
+            <div className="space-y-2">
+              {factionStandings.map((f) => (
+                <div key={f.name} className="space-y-1">
+                  <div className="flex justify-between items-baseline text-xs">
+                    <span className="text-stone-400 truncate">{f.name}</span>
+                    <span className={`text-[9px] shrink-0 ml-1 ${factionLabelColor(f.standing)}`}>
+                      {f.label}
+                    </span>
+                  </div>
+                  <FactionBar standing={f.standing} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {playerStatus.status_effects.length > 0 && (
           <div className="mb-5">
             <SectionLabel>Conditions</SectionLabel>
             <div className="flex flex-col gap-1">
-              {playerStatus.status_effects.map((effect, i) => (
+              {playerStatus.status_effects.map((effect) => (
                 <span
-                  key={i}
+                  key={effect}
                   className={`text-xs leading-snug ${
                     effect.includes("บาดแผล") || effect.includes("เลือด") || effect.includes("ไหม้") || effect.includes("พิษ")
                       ? "text-red-700"
@@ -200,19 +301,17 @@ export default function CharacterSidebar({
           </div>
         )}
 
-        {/* Skills */}
         {playerStatus.skills.length > 0 && (
           <div className="mb-5">
             <SectionLabel>Skills</SectionLabel>
             <div className="flex flex-col gap-1">
-              {playerStatus.skills.map((skill, i) => (
-                <span key={i} className="text-xs text-stone-500">— {skill}</span>
+              {playerStatus.skills.map((skill) => (
+                <span key={skill} className="text-xs text-stone-500">— {skill}</span>
               ))}
             </div>
           </div>
         )}
 
-        {/* Inventory */}
         <div className="flex-1">
           <SectionLabel>Inventory</SectionLabel>
           <button

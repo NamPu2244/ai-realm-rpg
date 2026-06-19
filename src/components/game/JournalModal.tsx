@@ -1,19 +1,32 @@
-import { ScrollText, Crosshair, X } from "lucide-react";
-import { WorldConfig } from "@/store/useGameStore";
+import { ScrollText, Crosshair, X, CheckCircle2, XCircle, Clock, MapPin } from "lucide-react";
+import { Quest, VisitedLocation, WorldConfig } from "@/store/useGameStore";
 
 interface JournalModalProps {
   currentObjective: string;
   storySummary: string;
   worldConfig: WorldConfig | null;
+  questLog: Quest[];
+  visitedLocations: VisitedLocation[];
   onClose: () => void;
 }
+
+const QUEST_STATUS_STYLE: Record<Quest["status"], { icon: typeof CheckCircle2; label: string; cls: string }> = {
+  active:    { icon: Clock,         label: "กำลังดำเนินการ", cls: "text-amber-400 border-amber-700/40 bg-amber-950/30" },
+  completed: { icon: CheckCircle2,  label: "สำเร็จแล้ว",     cls: "text-emerald-400 border-emerald-700/40 bg-emerald-950/20" },
+  failed:    { icon: XCircle,       label: "ล้มเหลว",         cls: "text-red-400/70 border-red-800/40 bg-red-950/20" },
+};
 
 export default function JournalModal({
   currentObjective,
   storySummary,
   worldConfig,
+  questLog,
+  visitedLocations,
   onClose,
 }: Readonly<JournalModalProps>) {
+  const activeQuests = questLog.filter((q) => q.status === "active");
+  const doneQuests = questLog.filter((q) => q.status !== "active");
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <button
@@ -22,7 +35,7 @@ export default function JournalModal({
         aria-label="ปิดสมุดบันทึก"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto bg-stone-950/95 border border-amber-900/30 rounded-2xl shadow-2xl p-6 space-y-6 animate-modal-pop">
+      <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-stone-950/95 border border-amber-900/30 rounded-2xl shadow-2xl p-6 space-y-6 animate-modal-pop">
         <div className="flex items-center justify-between border-b border-amber-900/20 pb-3">
           <h2 className="flex items-center gap-2 text-lg font-bold bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent tracking-widest">
             <ScrollText size={18} className="text-amber-400" /> สมุดบันทึกนักเดินทาง
@@ -36,30 +49,88 @@ export default function JournalModal({
           </button>
         </div>
 
+        {/* Immediate objective */}
         {currentObjective && (
           <div className="space-y-2">
-            <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
-              เป้าหมายปัจจุบัน
-            </h3>
+            <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">เป้าหมายปัจจุบัน</h3>
             <p className="flex items-start gap-2 text-sm text-amber-300/90 leading-relaxed">
               <Crosshair size={14} className="mt-0.5 shrink-0" /> {currentObjective}
             </p>
           </div>
         )}
 
+        {/* Quest log */}
+        {questLog.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">ภารกิจ</h3>
+
+            {activeQuests.length > 0 && (
+              <div className="space-y-2">
+                {activeQuests.map((q) => {
+                  const s = QUEST_STATUS_STYLE[q.status];
+                  const Icon = s.icon;
+                  return (
+                    <div key={q.id} className={`flex gap-3 px-3 py-2.5 rounded-lg border ${s.cls}`}>
+                      <Icon size={14} className="shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold leading-snug">{q.title}</p>
+                        {q.description && <p className="text-xs opacity-70 mt-0.5 leading-relaxed">{q.description}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {doneQuests.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-stone-600 uppercase tracking-widest">เสร็จแล้ว / ล้มเหลว</p>
+                {doneQuests.map((q) => {
+                  const s = QUEST_STATUS_STYLE[q.status];
+                  const Icon = s.icon;
+                  return (
+                    <div key={q.id} className={`flex gap-2.5 px-3 py-2 rounded-lg border opacity-50 ${s.cls}`}>
+                      <Icon size={13} className="shrink-0 mt-0.5" />
+                      <p className="text-xs leading-snug line-through">{q.title}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Story summary */}
         <div className="space-y-2">
-          <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
-            สรุปเรื่องราวที่ผ่านมา
-          </h3>
+          <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">สรุปเรื่องราวที่ผ่านมา</h3>
           <p className="text-sm text-amber-50/80 leading-relaxed whitespace-pre-wrap">
             {storySummary || "ยังไม่มีบันทึกเรื่องราว..."}
           </p>
         </div>
 
+        {/* Visited locations */}
+        {visitedLocations.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">สถานที่ที่เคยไป</h3>
+            <div className="space-y-1.5">
+              {visitedLocations.map((loc, i) => (
+                <div key={`${loc.name}-${i}`} className="flex gap-2.5 items-start">
+                  <MapPin size={12} className="text-amber-700/60 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-xs font-semibold text-amber-200/70">{loc.name}</span>
+                    {loc.description && (
+                      <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">{loc.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* World info */}
         <div className="space-y-2">
-          <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">
-            ข้อมูลโลกและตัวละคร
-          </h3>
+          <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">ข้อมูลโลกและตัวละคร</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-amber-400/60">ภาษา: </span>
@@ -77,29 +148,22 @@ export default function JournalModal({
           {worldConfig?.character && (
             <div className="pt-2">
               <span className="text-amber-400/60 text-sm">ตัวละคร: </span>
-              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">
-                {worldConfig.character}
-              </p>
+              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">{worldConfig.character}</p>
             </div>
           )}
           {worldConfig?.customWorld && (
             <div className="pt-2">
               <span className="text-amber-400/60 text-sm">ฉากหลังโลก: </span>
-              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">
-                {worldConfig.customWorld}
-              </p>
+              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">{worldConfig.customWorld}</p>
             </div>
           )}
           {worldConfig?.openingSeed && (
             <div className="pt-2">
               <span className="text-amber-400/60 text-sm">จุดเริ่มต้น: </span>
-              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">
-                {worldConfig.openingSeed}
-              </p>
+              <p className="text-sm text-amber-50/80 leading-relaxed mt-1 whitespace-pre-wrap">{worldConfig.openingSeed}</p>
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

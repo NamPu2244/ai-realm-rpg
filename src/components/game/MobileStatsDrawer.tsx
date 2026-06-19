@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, UserRound, Crosshair, Heart, TrendingUp, Sparkles, Wand2, Backpack, ChevronRight } from "lucide-react";
-import { PlayerStatus, WorldConfig } from "@/store/useGameStore";
+import { X, UserRound, Crosshair, Heart, TrendingUp, Sparkles, Wand2, Backpack, ChevronRight, Coins, Shield, Swords, Brain, Eye, MessageCircle, Users, Flag } from "lucide-react";
+import { PlayerStatus, WorldConfig, Companion, FactionStanding } from "@/store/useGameStore";
 import InventoryModal from "./InventoryModal";
 
 interface MobileStatsDrawerProps {
@@ -14,6 +14,36 @@ interface MobileStatsDrawerProps {
   livesLeft: number;
   currentObjective: string;
   worldConfig: WorldConfig | null;
+  companions: Record<string, Companion>;
+  factionStandings: FactionStanding[];
+}
+
+const ATTR_META: { key: keyof PlayerStatus["attributes"]; label: string; icon: typeof Swords; color: string }[] = [
+  { key: "str", label: "STR", icon: Swords,       color: "text-red-400" },
+  { key: "dex", label: "DEX", icon: Eye,           color: "text-emerald-400" },
+  { key: "int", label: "INT", icon: Brain,         color: "text-sky-400" },
+  { key: "con", label: "CON", icon: Shield,        color: "text-orange-400" },
+  { key: "wis", label: "WIS", icon: Eye,           color: "text-purple-400" },
+  { key: "cha", label: "CHA", icon: MessageCircle, color: "text-pink-400" },
+];
+
+function attrMod(val: number) {
+  const mod = Math.floor((val - 10) / 2);
+  return mod >= 0 ? `+${mod}` : `${mod}`;
+}
+
+function factionBarColor(standing: number): string {
+  if (standing >= 60)  return "bg-emerald-600";
+  if (standing >= 20)  return "bg-sky-700";
+  if (standing > -20)  return "bg-stone-600";
+  if (standing > -60)  return "bg-orange-700";
+  return "bg-red-700";
+}
+
+function factionLabelColor(standing: number): string {
+  if (standing >= 20)  return "text-emerald-400";
+  if (standing <= -20) return "text-red-400";
+  return "text-stone-500";
 }
 
 export default function MobileStatsDrawer({
@@ -25,6 +55,8 @@ export default function MobileStatsDrawer({
   livesLeft,
   currentObjective,
   worldConfig,
+  companions,
+  factionStandings,
 }: Readonly<MobileStatsDrawerProps>) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -35,6 +67,10 @@ export default function MobileStatsDrawer({
     globalThis.addEventListener("keydown", handleKey);
     return () => globalThis.removeEventListener("keydown", handleKey);
   }, [isOpen, onClose]);
+
+  const activeCompanions = Object.values(companions).filter((c) => c.status === "active");
+  const attrs = playerStatus.attributes;
+  const hasAttrs = attrs && Object.values(attrs).some((v) => v !== 10);
 
   return (
     <>
@@ -49,17 +85,14 @@ export default function MobileStatsDrawer({
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-amber-900/20 sticky top-0 bg-stone-950/98">
           <h2 className="text-sm font-bold text-amber-400/80 uppercase tracking-widest">สถานะตัวละคร</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-amber-100/40 hover:text-amber-200 text-sm px-2 py-1 transition-colors"
-          >
+          <button type="button" onClick={onClose} className="text-amber-100/40 hover:text-amber-200 text-sm px-2 py-1 transition-colors">
             <X size={16} />
           </button>
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Character Info */}
+
+          {/* Character info */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
             <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><UserRound size={11} /> ตัวละคร</p>
             <p className="text-xs text-amber-50/70 leading-relaxed">{worldConfig?.character || "ไม่มีข้อมูล"}</p>
@@ -103,6 +136,30 @@ export default function MobileStatsDrawer({
             </div>
           </div>
 
+          {/* Gold */}
+          {playerStatus.gold > 0 && (
+            <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><Coins size={11} /> Gold</p>
+              <p className="text-lg font-bold text-amber-300 tabular-nums">{playerStatus.gold.toLocaleString()}</p>
+            </div>
+          )}
+
+          {/* Attributes */}
+          {attrs && hasAttrs && (
+            <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-3"><Shield size={11} /> Attributes</p>
+              <div className="grid grid-cols-3 gap-2">
+                {ATTR_META.map(({ key, label, color }) => (
+                  <div key={key} className="flex flex-col items-center py-1.5 bg-stone-950/60 rounded border border-stone-800/60">
+                    <span className={`text-[9px] font-bold tracking-widest ${color}`}>{label}</span>
+                    <span className="text-sm font-bold text-stone-200 tabular-nums leading-none mt-0.5">{attrs[key]}</span>
+                    <span className="text-[10px] text-stone-600 tabular-nums">{attrMod(attrs[key])}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Progression */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-2">
             <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><TrendingUp size={11} /> Progression</p>
@@ -132,6 +189,51 @@ export default function MobileStatsDrawer({
               </div>
             )}
           </div>
+
+          {/* Companions */}
+          {activeCompanions.length > 0 && (
+            <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-3">
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Users size={11} /> Companions</p>
+              {activeCompanions.map((c) => (
+                <div key={c.name} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-stone-300 font-medium">{c.name}</span>
+                    <span className="text-stone-500 tabular-nums">{c.hp}/{c.max_hp}</span>
+                  </div>
+                  <div className="w-full bg-stone-950/60 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${c.max_hp > 0 && c.hp / c.max_hp <= 0.3 ? "bg-red-600 animate-pulse" : "bg-emerald-700"}`}
+                      style={{ width: `${c.max_hp > 0 ? (c.hp / c.max_hp) * 100 : 0}%` }}
+                    />
+                  </div>
+                  {c.status_effects.length > 0 && (
+                    <p className="text-[10px] text-red-500/70">{c.status_effects.join(", ")}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Factions */}
+          {factionStandings.length > 0 && (
+            <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-2">
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Flag size={11} /> Factions</p>
+              {factionStandings.map((f) => (
+                <div key={f.name} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-stone-400">{f.name}</span>
+                    <span className={`${factionLabelColor(f.standing)}`}>{f.label}</span>
+                  </div>
+                  <div className="w-full bg-stone-950/60 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${factionBarColor(f.standing)}`}
+                      style={{ width: `${((f.standing + 100) / 200) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Status Effects */}
           {playerStatus.status_effects.length > 0 && (

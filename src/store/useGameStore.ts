@@ -2,17 +2,29 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
-// 1. กำหนด Type ตาม JSON Schema ของเรา
+// ---- Types ----
+
+export interface Attributes {
+  str: number;
+  dex: number;
+  int: number;
+  con: number;
+  wis: number;
+  cha: number;
+}
+
 export interface PlayerStatus {
   hp: number;
   max_hp: number;
   mana: number;
   max_mana: number;
+  gold: number;
   inventory: string[];
   status_effects: string[];
   level: number;
   exp: number;
   skills: string[];
+  attributes: Attributes;
 }
 
 export interface DialogueLine {
@@ -37,6 +49,36 @@ export interface CharacterEntry {
   last_seen?: string;
 }
 
+export interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  status: 'active' | 'completed' | 'failed';
+}
+
+export interface FactionStanding {
+  name: string;
+  standing: number;  // -100 to 100
+  label: string;     // e.g. 'ศัตรู', 'เป็นกลาง', 'พันธมิตร'
+}
+
+export interface Companion {
+  name: string;
+  description: string;
+  role: string;
+  hp: number;
+  max_hp: number;
+  status_effects: string[];
+  skills: string[];
+  status: 'active' | 'dead' | 'missing';
+  relationship: string;
+}
+
+export interface VisitedLocation {
+  name: string;
+  description: string;
+}
+
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
 
 export interface WorldConfig {
@@ -56,7 +98,6 @@ export interface AuthUser {
 
 export type AuthStatus = 'unknown' | 'guest' | 'authenticated';
 
-// ข้อมูลสรุปของแต่ละ save slot สำหรับแสดงใน Dashboard (ไม่ต้องโหลดทั้งเกม)
 export interface SaveSlotSummary {
   id: string;
   world_name: string;
@@ -85,6 +126,14 @@ interface GameState {
   lives_left: number;
   known_characters: Record<string, CharacterEntry>;
 
+  // New gameplay systems
+  time_of_day: string;
+  in_world_date: string;
+  quest_log: Quest[];
+  faction_standings: FactionStanding[];
+  companions: Record<string, Companion>;
+  visited_locations: VisitedLocation[];
+
   // User-supplied Groq API key (stored locally, never sent to our DB)
   groq_api_key: string;
 
@@ -107,12 +156,16 @@ interface GameState {
   quitToMainMenu: () => Promise<void>;
 }
 
+const DEFAULT_ATTRIBUTES: Attributes = { str: 10, dex: 10, int: 10, con: 10, wis: 10, cha: 10 };
+
 const initialState = {
   narrative: '',
   story_summary: '',
   player_status: {
-    hp: 0, max_hp: 0, mana: 0, max_mana: 0, inventory: [], status_effects: [],
-    level: 1, exp: 0, skills: []
+    hp: 0, max_hp: 0, mana: 0, max_mana: 0, gold: 0,
+    inventory: [], status_effects: [],
+    level: 1, exp: 0, skills: [],
+    attributes: DEFAULT_ATTRIBUTES,
   },
   is_dead: false,
   game_phase: 'Auth' as const,
@@ -127,6 +180,12 @@ const initialState = {
   qte_options: [],
   lives_left: 3,
   known_characters: {} as Record<string, CharacterEntry>,
+  time_of_day: '',
+  in_world_date: '',
+  quest_log: [] as Quest[],
+  faction_standings: [] as FactionStanding[],
+  companions: {} as Record<string, Companion>,
+  visited_locations: [] as VisitedLocation[],
   groq_api_key: '',
   user: null,
   auth_status: 'unknown' as AuthStatus,
@@ -135,11 +194,8 @@ const initialState = {
   is_loading_saves: false,
 };
 
-// ข้อมูลที่ persist ลง localStorage (ไม่รวมข้อมูลบัญชี/รายชื่อ save บนคลาวด์
-// เพราะดึงจาก Supabase ใหม่ทุกครั้งที่ login)
 type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id'>;
 
-// 2. สร้าง Store พร้อมระบบเซฟลง LocalStorage (สำหรับผู้เล่นที่ไม่ได้ login)
 export const useGameStore = create<GameState>()(
   persist<GameState, [], [], PersistedState>(
     (set, get) => ({
@@ -189,7 +245,7 @@ export const useGameStore = create<GameState>()(
           return;
         }
 
-        const gameStateData = data.game_state ?? {};
+        const gs = data.game_state ?? {};
 
         set({
           ...initialState,
@@ -197,15 +253,25 @@ export const useGameStore = create<GameState>()(
           auth_status: get().auth_status,
           save_slots: get().save_slots,
           world_config: data.world_config,
-          player_status: { ...initialState.player_status, ...data.player_status },
+          player_status: {
+            ...initialState.player_status,
+            ...data.player_status,
+            attributes: { ...DEFAULT_ATTRIBUTES, ...data.player_status?.attributes },
+          },
           history: Array.isArray(data.history) ? data.history : [],
-          story_summary: gameStateData.story_summary ?? '',
-          current_objective: gameStateData.current_objective ?? '',
-          lives_left: typeof gameStateData.lives_left === 'number' ? gameStateData.lives_left : 3,
-          is_dead: !!gameStateData.is_dead,
-          current_image_prompt: gameStateData.current_image_prompt ?? '',
-          suggested_actions: Array.isArray(gameStateData.suggested_actions) ? gameStateData.suggested_actions : [],
-          known_characters: (gameStateData.known_characters && typeof gameStateData.known_characters === 'object') ? gameStateData.known_characters : {},
+          story_summary: gs.story_summary ?? '',
+          current_objective: gs.current_objective ?? '',
+          lives_left: typeof gs.lives_left === 'number' ? gs.lives_left : 3,
+          is_dead: !!gs.is_dead,
+          current_image_prompt: gs.current_image_prompt ?? '',
+          suggested_actions: Array.isArray(gs.suggested_actions) ? gs.suggested_actions : [],
+          known_characters: (gs.known_characters && typeof gs.known_characters === 'object') ? gs.known_characters : initialState.known_characters,
+          time_of_day: gs.time_of_day ?? '',
+          in_world_date: gs.in_world_date ?? '',
+          quest_log: Array.isArray(gs.quest_log) ? gs.quest_log : [],
+          faction_standings: Array.isArray(gs.faction_standings) ? gs.faction_standings : [],
+          companions: (gs.companions && typeof gs.companions === 'object') ? gs.companions : initialState.companions,
+          visited_locations: Array.isArray(gs.visited_locations) ? gs.visited_locations : [],
           current_save_slot_id: slotId,
           game_phase: 'Playing',
         });
@@ -268,6 +334,12 @@ export const useGameStore = create<GameState>()(
               current_image_prompt: state.current_image_prompt,
               suggested_actions: state.suggested_actions,
               known_characters: state.known_characters,
+              time_of_day: state.time_of_day,
+              in_world_date: state.in_world_date,
+              quest_log: state.quest_log,
+              faction_standings: state.faction_standings,
+              companions: state.companions,
+              visited_locations: state.visited_locations,
             },
           })
           .eq('id', state.current_save_slot_id);
@@ -318,23 +390,15 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'ai-realm-save',
-      // version ของ schema สำหรับ localStorage เพิ่มเลขนี้เมื่อมีการเปลี่ยนโครงสร้าง
-      // GameState/PlayerStatus แบบ breaking change แล้วเขียน migration ใน `migrate` ด้านล่าง
-      version: 3,
-      // เก็บไว้เฉพาะข้อมูลเกมของผู้เล่น guest (ไม่ persist ข้อมูลบัญชี/รายชื่อ save บนคลาวด์
-      // เพราะดึงจาก Supabase ใหม่ทุกครั้งที่ login)
+      version: 4,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { user, save_slots, is_loading_saves, current_save_slot_id, ...rest } = state;
-        // ผู้เล่นที่ login แล้วให้กลับมาที่ Dashboard เสมอหลังโหลดหน้าใหม่
-        // (ความคืบหน้าจริงถูกซิงค์ขึ้นคลาวด์แล้ว ไม่ต้องพึ่ง localStorage)
         return {
           ...rest,
           game_phase: state.auth_status === 'authenticated' ? 'Dashboard' : rest.game_phase,
         };
       },
-      // กัน save เก่าที่ field ใน player_status (หรือ field บนสุด) ขาดหายไปหลังแก้ schema
-      // โดย merge กับ initialState ก่อนเสมอ
       migrate: (persistedState) => {
         const state = (persistedState ?? initialState) as Partial<PersistedState>;
         return {
@@ -342,8 +406,20 @@ export const useGameStore = create<GameState>()(
           ...state,
           player_status: {
             ...initialState.player_status,
-            ...(state.player_status ?? {}),
+            ...state.player_status,
+            attributes: {
+              ...DEFAULT_ATTRIBUTES,
+              ...state.player_status?.attributes,
+            },
           },
+          // Migrate new fields that old saves won't have
+          time_of_day: state.time_of_day ?? '',
+          in_world_date: state.in_world_date ?? '',
+          quest_log: state.quest_log ?? [],
+          faction_standings: state.faction_standings ?? [],
+          companions: state.companions ?? initialState.companions,
+          visited_locations: state.visited_locations ?? [],
+          // NOSONAR: cast required because spreading Partial<PersistedState> makes action fields optional
         } as PersistedState;
       },
     }
