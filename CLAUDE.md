@@ -13,13 +13,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 There is no test suite configured.
 
-### Local AI dependency
+### AI dependency
 
-The game's AI features require [Ollama](https://ollama.com/) running locally on `http://127.0.0.1:11434` with the model `gemma4:e2b` pulled (`ollama pull gemma4:e2b`). Without it, `/api/chat` requests will fail.
+The game's AI features require a `GROQ_API_KEY` in `.env.local`. Requests go to `https://api.groq.com/openai/v1/chat/completions` using the `meta-llama/llama-4-scout-17b-16e-instruct` model. Without a valid key, `/api/chat` requests will fail.
 
 ## Architecture
 
-This is a text-based AI-driven RPG ("AI Realm") built with Next.js App Router, React 19, TypeScript, Tailwind CSS 4, and Zustand. The entire game runs as a single-page client app talking to one API route that proxies to a local Ollama LLM.
+This is a text-based AI-driven RPG ("AI Realm") built with Next.js App Router, React 19, TypeScript, Tailwind CSS 4, and Zustand. The entire game runs as a single-page client app talking to one API route that proxies to the Groq LLM API.
 
 ### State management (`src/store/useGameStore.ts`)
 
@@ -34,14 +34,14 @@ A single Zustand store (persisted to localStorage as `ai-realm-save`) holds all 
 
 1. `WorldCreationMenu` collects `WorldConfig` and calls `handleStartGame`, which sets `game_phase: 'Playing'` and sends an initial "Begin the adventure." turn.
 2. Every player action goes through `runTurn`, which POSTs to `/api/chat` with: the new prompt, last 10 history entries, current `player_status`, `story_summary`, and `world_config`.
-3. The response is a streamed NDJSON (Ollama-style) stream; the client incrementally extracts the `narrative` field via regex for live "typing" display, then on stream completion parses the full JSON object (`extractAndParseJSON`) and writes `player_status`, `story_summary`, `current_objective`, `is_dead`, `current_image_prompt`, `suggested_actions`, and the new history entry back into the store.
+3. The response is a streamed NDJSON stream (Groq SSE converted server-side to Ollama-compatible format); the client incrementally extracts the `narrative` field via regex for live "typing" display, then on stream completion parses the full JSON object (`extractAndParseJSON`) and writes `player_status`, `story_summary`, `current_objective`, `is_dead`, `current_image_prompt`, `suggested_actions`, and the new history entry back into the store.
 4. On parse/network failure, the UI shows an error with a "retry" action that replays the same `runTurn` call.
 5. Save/load is supported via JSON export/import of the relevant store fields, in addition to automatic localStorage persistence.
 
 ### AI integration (`src/app/api/chat/route.ts`)
 
 - `buildSystemPrompt(worldConfig)` constructs a large system prompt that encodes: world setting/genre, tone-specific rules (`TONE_RULES` for hardcore/balanced/story/sandbox), language requirements, a D20 mechanic, and strict rules for keeping `player_status`, `story_summary`, and `current_objective` consistent with the narrative each turn.
-- The full prompt (system prompt + story summary + recent history + current player status + new player action) is sent to Ollama's `/api/generate` endpoint with `format: "json"` and `stream: true`, and the raw streamed response body is piped straight back to the client.
+- The full prompt (system prompt + story summary + recent history + current player status + new player action) is sent to Groq's `/openai/v1/chat/completions` endpoint with `stream: true`. The server-side handler transforms Groq's SSE format into Ollama-compatible NDJSON before piping to the client.
 - **The AI must respond with a single JSON object matching a fixed schema** (`narrative`, `player_status`, `story_summary`, `current_objective`, `scene_image_prompt`, `is_dead`, `suggested_actions`). When modifying game mechanics, update this schema/prompt in `route.ts` and the corresponding types in `useGameStore.ts` and parsing logic in `page.tsx` together.
 
 ### Scene images
