@@ -96,6 +96,10 @@ export default function GamePage() {
   const qteTimerTickedRef = useRef(false);
   const [showMobileStats, setShowMobileStats] = useState(false);
   const [lastStatChange, setLastStatChange] = useState<{ hp: number; mana: number } | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
   const statChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Page transition state
@@ -470,7 +474,7 @@ export default function GamePage() {
       setError(
         detail
           ? `เชื่อมต่อกับ AI ไม่สำเร็จ: ${detail}`
-          : "เชื่อมต่อกับ AI ไม่สำเร็จ ตรวจสอบว่า Ollama กำลังทำงานอยู่ แล้วลองอีกครั้ง",
+          : "เชื่อมต่อกับ AI ไม่สำเร็จ กรุณาลองอีกครั้ง",
       );
       setRetryAction({ newHistory, message, worldConfig });
       setStreamingNarrative("");
@@ -595,6 +599,24 @@ export default function GamePage() {
     };
 
     handleSend("Begin the adventure.", true, config);
+  };
+
+  const submitFeedback = async () => {
+    if (!feedbackText.trim() || feedbackSubmitting) return;
+    setFeedbackSubmitting(true);
+    try {
+      const saveSlotId = useGameStore.getState().current_save_slot_id;
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: feedbackText.trim(), saveSlotId }),
+      });
+      setFeedbackSent(true);
+      setFeedbackText("");
+      setTimeout(() => { setShowFeedback(false); setFeedbackSent(false); }, 2000);
+    } finally {
+      setFeedbackSubmitting(false);
+    }
   };
 
   const handleRestart = () => {
@@ -923,6 +945,56 @@ export default function GamePage() {
           currentObjective={current_objective}
           worldConfig={world_config}
         />
+
+        {/* Feedback button */}
+        <button
+          type="button"
+          onClick={() => setShowFeedback(true)}
+          className="fixed bottom-6 left-6 z-30 px-3 py-1.5 bg-neutral-900/80 hover:bg-neutral-800 text-neutral-500 hover:text-neutral-300 border border-neutral-700/50 rounded text-xs transition-colors shadow-lg backdrop-blur"
+        >
+          ส่ง Feedback
+        </button>
+
+        {/* Feedback modal */}
+        {showFeedback && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-4">
+              <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">ส่ง Feedback</h2>
+              {feedbackSent ? (
+                <p className="text-emerald-400 text-sm text-center py-4">ขอบคุณสำหรับ feedback ครับ!</p>
+              ) : (
+                <>
+                  <textarea
+                    className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-sm text-neutral-200 placeholder-neutral-500 resize-none focus:outline-none focus:border-amber-700/60"
+                    rows={5}
+                    placeholder="แจ้งปัญหา, เสนอแนะ, หรือบอกว่าชอบอะไร..."
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    maxLength={2000}
+                    autoFocus
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => { setShowFeedback(false); setFeedbackText(""); }}
+                      className="px-4 py-2 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      type="button"
+                      onClick={submitFeedback}
+                      disabled={feedbackSubmitting || feedbackText.trim().length < 5}
+                      className="px-4 py-2 text-xs bg-amber-800/70 hover:bg-amber-700/70 disabled:opacity-40 text-amber-200 rounded-lg transition-colors"
+                    >
+                      {feedbackSubmitting ? "กำลังส่ง..." : "ส่ง"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };

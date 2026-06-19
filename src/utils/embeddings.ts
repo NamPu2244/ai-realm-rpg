@@ -1,11 +1,5 @@
-const OLLAMA_BASE = "http://127.0.0.1:11434";
-
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const res = await fetch(`${OLLAMA_BASE}/api/embed`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "all-minilm", input: text.slice(0, 2000) }),
-  });
-  const data = await res.json();
-  return data.embeddings[0] as number[];
+// Embedding generation is not available in production (requires a local model server).
+// All callers wrap this in try/catch and degrade gracefully when it throws.
+export async function generateEmbedding(_text: string): Promise<number[]> {
+  throw new Error("Embedding service not available");
 }

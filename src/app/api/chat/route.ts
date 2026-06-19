@@ -3,6 +3,36 @@ import { WorldConfig } from '@/store/useGameStore';
 import { generateEmbedding } from '@/utils/embeddings';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
+export const maxDuration = 60;
+
+const MAX_DAILY_TURNS = 50;
+
+async function checkRateLimit(req: Request): Promise<{ allowed: boolean; remaining: number }> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    return { allowed: true, remaining: MAX_DAILY_TURNS };
+  }
+  try {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const ip = (forwarded ? forwarded.split(',')[0].trim() : req.headers.get('x-real-ip')) || 'unknown';
+    const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip));
+    const ipHash = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+      .substring(0, 24);
+    const today = new Date().toISOString().split('T')[0];
+    const supabase = getSupabaseServerClient();
+    const { data: count, error } = await supabase.rpc('increment_turn_count', {
+      p_ip_hash: ipHash,
+      p_date_utc: today,
+    });
+    if (error) return { allowed: true, remaining: MAX_DAILY_TURNS };
+    const n = count as number;
+    return { allowed: n <= MAX_DAILY_TURNS, remaining: Math.max(0, MAX_DAILY_TURNS - n) };
+  } catch {
+    return { allowed: true, remaining: MAX_DAILY_TURNS };
+  }
+}
+
 const TONE_RULES: Record<string, string> = {
   hardcore: `TONE - HARDCORE REALISM:
 - The world reacts realistically and consequences can be severe. Reckless or foolish actions can lead to serious injury or death.
@@ -211,6 +241,14 @@ async function fetchRelevantMemories(
 
 export async function POST(req: Request) {
   try {
+    const { allowed } = await checkRateLimit(req);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `คุณใช้ครบ ${MAX_DAILY_TURNS} เทิร์นต่อวันแล้ว กรุณากลับมาใหม่พรุ่งนี้ (เพื่อป้องกัน API key ถูกใช้เกินโควต้า)` },
+        { status: 429, headers: { 'X-RateLimit-Remaining': '0' } }
+      );
+    }
+
     const body = await req.json();
 
     const validationError = validateRequestBody(body);

@@ -78,3 +78,37 @@ drop trigger if exists save_slots_set_updated_at on public.save_slots;
 create trigger save_slots_set_updated_at
   before update on public.save_slots
   for each row execute procedure public.set_updated_at();
+
+-- 3. Rate limiting (turn quotas per IP per day) ----------------------------
+create table if not exists public.turn_limits (
+  ip_hash text not null,
+  date_utc text not null,
+  count int not null default 0,
+  primary key (ip_hash, date_utc)
+);
+
+-- Atomically increment and return new count
+create or replace function public.increment_turn_count(p_ip_hash text, p_date_utc text)
+returns int
+language plpgsql
+security definer
+as $$
+declare
+  v_count int;
+begin
+  insert into public.turn_limits (ip_hash, date_utc, count)
+  values (p_ip_hash, p_date_utc, 1)
+  on conflict (ip_hash, date_utc)
+  do update set count = turn_limits.count + 1
+  returning count into v_count;
+  return v_count;
+end;
+$$;
+
+-- 4. Feedback ---------------------------------------------------------------
+create table if not exists public.feedback (
+  id bigserial primary key,
+  message text not null,
+  save_slot_id text,
+  created_at timestamptz not null default now()
+);

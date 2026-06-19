@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+export const maxDuration = 30;
 import { generateEmbedding } from "@/utils/embeddings";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
