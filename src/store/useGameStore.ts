@@ -144,10 +144,14 @@ interface GameState {
   current_save_slot_id: string | null;
   is_loading_saves: boolean;
 
+  // Subscription
+  is_pro: boolean;
+
   // Actions
   setGameState: (newState: Partial<GameState>) => void;
   resetGame: () => void;
   fetchUserSaves: (userId: string) => Promise<void>;
+  fetchSubscriptionStatus: () => Promise<void>;
   loadSaveSlot: (slotId: string) => Promise<void>;
   createNewSaveSlot: (worldConfig: WorldConfig) => Promise<void>;
   syncCurrentGameToCloud: () => Promise<void>;
@@ -192,9 +196,10 @@ const initialState = {
   save_slots: [],
   current_save_slot_id: null,
   is_loading_saves: false,
+  is_pro: false,
 };
 
-type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id' | 'groq_api_key'>;
+type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id' | 'groq_api_key' | 'is_pro'>;
 
 export const useGameStore = create<GameState>()(
   persist<GameState, [], [], PersistedState>(
@@ -230,6 +235,19 @@ export const useGameStore = create<GameState>()(
           })),
           is_loading_saves: false,
         });
+      },
+
+      fetchSubscriptionStatus: async () => {
+        const { user } = get();
+        if (!user) { set({ is_pro: false }); return; }
+        const supabase = getSupabaseClient();
+        const { data } = await supabase
+          .from('user_subscriptions')
+          .select('status')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle();
+        set({ is_pro: !!data });
       },
 
       loadSaveSlot: async (slotId) => {
@@ -393,7 +411,7 @@ export const useGameStore = create<GameState>()(
       version: 4,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, ...rest } = state;
+        const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, is_pro, ...rest } = state;
         return {
           ...rest,
           game_phase: state.auth_status === 'authenticated' ? 'Dashboard' : rest.game_phase,

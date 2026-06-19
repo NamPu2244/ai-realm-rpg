@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   Sword, Rocket, Bot, Biohazard, Ghost, Building2, Swords,
-  Skull, Scale, BookOpen, Palette, ChevronLeft,
+  Skull, Scale, BookOpen, Palette, ChevronLeft, Lock, Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { WorldConfig, WorldTone } from "@/store/useGameStore";
@@ -162,13 +162,32 @@ function StepCard({
   );
 }
 
+// ── Pro gate wrapper ───────────────────────────────────────────────────────────
+function ProGate({ locked, onLock, children }: Readonly<{ locked: boolean; onLock: () => void; children: React.ReactNode }>) {
+  if (!locked) return <>{children}</>;
+  return (
+    <div className="relative">
+      <div className="pointer-events-none opacity-35 select-none">{children}</div>
+      <button
+        type="button"
+        onClick={onLock}
+        className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-amber-950/30 border border-amber-700/30 hover:bg-amber-950/50 transition-colors w-full"
+      >
+        <Lock size={13} className="text-amber-400" />
+        <span className="text-xs font-semibold text-amber-300">Pro เท่านั้น</span>
+      </button>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 interface WorldCreationMenuProps {
   onStart: (config: WorldConfig) => void;
   onCancel?: () => void;
+  isPro?: boolean;
 }
 
-export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldCreationMenuProps>) {
+export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: Readonly<WorldCreationMenuProps>) {
   const [language, setLanguage]               = useState(LANGUAGES[0]);
   const [customLanguage, setCustomLanguage]   = useState("");
   const [genreId, setGenreId]                 = useState(GENRES[0].id);
@@ -183,6 +202,7 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
   const [customWorld, setCustomWorld]         = useState("");
   const [worldName, setWorldName]             = useState("");
   const [worldNameError, setWorldNameError]   = useState(false);
+  const [showUpsell, setShowUpsell]           = useState(false);
 
   const toggleTrait = (trait: string) => {
     setTraits((prev) => {
@@ -222,6 +242,43 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
 
   return (
     <div className="relative h-screen overflow-y-auto bg-neutral-950 text-neutral-200 font-sans">
+
+      {/* ── Upsell modal ── */}
+      {showUpsell && (
+        <dialog
+          open
+          aria-label="Pro subscription"
+          className="fixed inset-0 z-50 m-0 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 w-full h-full max-w-none border-0"
+        >
+          <div className="relative bg-neutral-900 border border-amber-700/40 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={18} className="text-amber-400" />
+              <h2 className="text-base font-bold text-amber-300">ปลดล็อก Pro</h2>
+            </div>
+            <p className="text-sm text-neutral-300 mb-4 leading-relaxed">
+              สร้างโลกและตัวละครในแบบที่คุณจินตนาการได้อย่างไร้ขีดจำกัด
+            </p>
+            <ul className="space-y-2 text-sm text-neutral-400 mb-5">
+              <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">✦</span>Custom Genre — บรรยายแนวโลกได้อย่างอิสระ</li>
+              <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">✦</span>Custom World — ใส่กฎ ระบบ และแฟกชันของโลกเอง</li>
+              <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">✦</span>Character Concept — เขียนที่มาตัวละครได้ละเอียด</li>
+              <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">✦</span>Save Slots เพิ่มขึ้น</li>
+            </ul>
+            <button
+              onClick={() => setShowUpsell(false)}
+              className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-neutral-950 font-bold text-sm transition-colors"
+            >
+              เร็วๆ นี้ — ติดตามความคืบหน้า
+            </button>
+            <button
+              onClick={() => setShowUpsell(false)}
+              className="mt-2 w-full py-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+            >
+              ปิด
+            </button>
+          </div>
+        </dialog>
+      )}
 
       {/* ── Fixed background ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -315,13 +372,15 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
               );
             })}
           </div>
-          <textarea
-            value={customGenre}
-            onChange={(e) => setCustomGenre(e.target.value)}
-            placeholder="หรือบรรยายแนวโลกแบบ Custom เอง..."
-            rows={2}
-            className={TEXTAREA}
-          />
+          <ProGate locked={!isPro} onLock={() => setShowUpsell(true)}>
+            <textarea
+              value={customGenre}
+              onChange={(e) => setCustomGenre(e.target.value)}
+              placeholder="หรือบรรยายแนวโลกแบบ Custom เอง..."
+              rows={2}
+              className={TEXTAREA}
+            />
+          </ProGate>
         </StepCard>
 
         {/* ── 3. Tone ── */}
@@ -435,24 +494,32 @@ export default function WorldCreationMenu({ onStart, onCancel }: Readonly<WorldC
             </div>
           </div>
 
-          <textarea
-            value={characterConcept}
-            onChange={(e) => setCharacterConcept(e.target.value)}
-            placeholder="อธิบายตัวละครเพิ่มเติม (ไม่บังคับ): เผ่าพันธุ์, อาชีพ, รูปลักษณ์, ที่มา..."
-            rows={2}
-            className={TEXTAREA}
-          />
+          <ProGate locked={!isPro} onLock={() => setShowUpsell(true)}>
+            <textarea
+              value={characterConcept}
+              onChange={(e) => setCharacterConcept(e.target.value)}
+              placeholder="อธิบายตัวละครเพิ่มเติม (ไม่บังคับ): เผ่าพันธุ์, อาชีพ, รูปลักษณ์, ที่มา..."
+              rows={2}
+              className={TEXTAREA}
+            />
+          </ProGate>
         </StepCard>
 
         {/* ── 5. Custom world ── */}
-        <StepCard num={5} title="รายละเอียดโลกเพิ่มเติม (ไม่บังคับ)" tooltip="ใส่กฎพิเศษ ระบบเวทมนตร์ แฟกชัน หรือสิ่งที่อยากให้/ไม่อยากให้เกิดขึ้น เพื่อให้ AI รู้ไว้ล่วงหน้า">
-          <textarea
-            value={customWorld}
-            onChange={(e) => setCustomWorld(e.target.value)}
-            placeholder="เช่น กฎพิเศษของโลก, ระบบเวทมนตร์, แฟกชัน/อาณาจักรที่อยากให้มี, สิ่งที่ไม่อยากให้เกิดขึ้น..."
-            rows={3}
-            className={TEXTAREA}
-          />
+        <StepCard
+          num={5}
+          title={`รายละเอียดโลกเพิ่มเติม${isPro ? "" : " 🔒 Pro"}`}
+          tooltip="ใส่กฎพิเศษ ระบบเวทมนตร์ แฟกชัน หรือสิ่งที่อยากให้/ไม่อยากให้เกิดขึ้น เพื่อให้ AI รู้ไว้ล่วงหน้า"
+        >
+          <ProGate locked={!isPro} onLock={() => setShowUpsell(true)}>
+            <textarea
+              value={customWorld}
+              onChange={(e) => setCustomWorld(e.target.value)}
+              placeholder="เช่น กฎพิเศษของโลก, ระบบเวทมนตร์, แฟกชัน/อาณาจักรที่อยากให้มี, สิ่งที่ไม่อยากให้เกิดขึ้น..."
+              rows={3}
+              className={TEXTAREA}
+            />
+          </ProGate>
         </StepCard>
 
         {/* ── Start button ── */}

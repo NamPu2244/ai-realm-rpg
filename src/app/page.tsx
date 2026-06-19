@@ -54,9 +54,11 @@ export default function GamePage() {
     visited_locations,
     auth_status,
     groq_api_key,
+    is_pro,
     setGameState,
     resetGame,
     fetchUserSaves,
+    fetchSubscriptionStatus,
     createNewSaveSlot,
     syncCurrentGameToCloud,
     quitToMainMenu,
@@ -178,6 +180,7 @@ export default function GamePage() {
           auth_status: "authenticated",
         });
         fetchUserSaves(sessionUser.id);
+        fetchSubscriptionStatus();
         if (useGameStore.getState().game_phase !== "Playing") {
           setGameState({ game_phase: "Dashboard" });
         }
@@ -871,6 +874,7 @@ export default function GamePage() {
           <WorldCreationMenu
             onStart={handleStartGame}
             onCancel={auth_status === "authenticated" ? () => setGameState({ game_phase: "Dashboard" }) : undefined}
+            isPro={is_pro}
           />
           {auth_status !== "authenticated" && (
             <>
