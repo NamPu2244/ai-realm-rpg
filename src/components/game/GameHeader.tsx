@@ -7,6 +7,7 @@ interface GameHeaderProps {
   worldConfig: WorldConfig | null;
   isLowHp: boolean;
   authStatus: AuthStatus;
+  hasPersonalKey: boolean;
   importInputRef: RefObject<HTMLInputElement | null>;
   onOpenJournal: () => void;
   onOpenDossier: () => void;
@@ -22,6 +23,7 @@ export default function GameHeader({
   worldConfig,
   isLowHp,
   authStatus,
+  hasPersonalKey,
   importInputRef,
   onOpenJournal,
   onOpenDossier,
@@ -62,10 +64,17 @@ export default function GameHeader({
           <button
             type="button"
             onClick={onOpenSettings}
-            title="ตั้งค่า API Key"
-            className="flex items-center justify-center w-8 h-8 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg transition-all hover:-translate-y-0.5"
+            title={hasPersonalKey ? "API Key ส่วนตัว — คลิกเพื่อจัดการ" : "ใช้ Key ส่วนกลาง (จำกัด 50 เทิร์น/วัน) — คลิกเพื่อใส่ Key ของคุณเอง"}
+            className={`relative flex items-center justify-center w-8 h-8 rounded-lg border transition-all hover:-translate-y-0.5 ${
+              hasPersonalKey
+                ? "bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border-amber-900/30 hover:border-amber-700/50"
+                : "bg-amber-950/40 hover:bg-amber-900/50 text-amber-400/80 hover:text-amber-200 border-amber-700/50 hover:border-amber-500/70"
+            }`}
           >
             <Settings size={13} />
+            {!hasPersonalKey && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
           </button>
           <button
             type="button"

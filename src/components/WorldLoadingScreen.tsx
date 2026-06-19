@@ -7,6 +7,7 @@ interface Props {
   config: WorldConfig;
   prologue: string | null; // null = AI still working
   onEnter: () => void;
+  onRetry?: () => void;
 }
 
 const TONE_STYLES: Record<string, { line: string; accent: string; glow: string; dot: string }> = {
@@ -28,12 +29,14 @@ function toGenreLabel(genre: string): string {
   return "RPG";
 }
 
-export default function WorldLoadingScreen({ config, prologue, onEnter }: Readonly<Props>) {
+export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry }: Readonly<Props>) {
   const s = TONE_STYLES[config.tone] ?? TONE_STYLES.balanced;
   const [typed, setTyped] = useState("");
   const [done, setDone] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [showRetry, setShowRetry] = useState(false);
   const autoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasEnteredRef = useRef(false);
 
   const handleEnter = () => {
@@ -73,7 +76,23 @@ export default function WorldLoadingScreen({ config, prologue, onEnter }: Readon
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prologue]);
 
-  useEffect(() => () => { if (autoRef.current) clearTimeout(autoRef.current); }, []);
+  // Show retry button after 25 s if prologue never arrives (AI stalled)
+  useEffect(() => {
+    if (prologue !== null) {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      setShowRetry(false);
+      return;
+    }
+    retryTimerRef.current = setTimeout(() => setShowRetry(true), 25000);
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, [prologue]);
+
+  useEffect(() => () => {
+    if (autoRef.current) clearTimeout(autoRef.current);
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+  }, []);
 
   const genreLabel = toGenreLabel(config.genre);
   const title = config.worldName || genreLabel;
@@ -121,6 +140,15 @@ export default function WorldLoadingScreen({ config, prologue, onEnter }: Readon
                 <p className="text-sm text-neutral-500 italic leading-relaxed mt-3 max-w-sm">
                   {config.openingSeed}
                 </p>
+              )}
+              {showRetry && onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="mt-2 text-xs text-amber-700/70 hover:text-amber-400 border border-amber-900/40 hover:border-amber-700/50 px-4 py-2 rounded-lg transition-all"
+                >
+                  ใช้เวลานานเกินไป? ลองสร้างโลกใหม่
+                </button>
               )}
             </div>
           ) : (

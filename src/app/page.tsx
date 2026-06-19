@@ -623,6 +623,16 @@ export default function GamePage() {
     }
   };
 
+  const handleRetryWorldCreation = () => {
+    if (!worldLoading.config) return;
+    setGameState({ history: [] });
+    setWorldLoading((prev) => ({ ...prev, prologue: null }));
+    onFirstTurnCompleteRef.current = (prologueText) => {
+      setWorldLoading((prev) => ({ ...prev, prologue: prologueText ?? "" }));
+    };
+    handleSend("Begin the adventure.", true, worldLoading.config);
+  };
+
   const handleRestart = () => {
     resetGame();
     useGameStore.persist.clearStorage();
@@ -759,6 +769,7 @@ export default function GamePage() {
           config={worldLoading.config}
           prologue={worldLoading.prologue}
           onEnter={() => setWorldLoading({ active: false, config: null, prologue: null })}
+          onRetry={handleRetryWorldCreation}
         />
       );
     }
@@ -877,6 +888,7 @@ export default function GamePage() {
               worldConfig={world_config}
               isLowHp={isLowHp}
               authStatus={auth_status}
+              hasPersonalKey={!!groq_api_key}
               importInputRef={importInputRef}
               onOpenJournal={() => setShowJournal(true)}
               onOpenDossier={() => setShowDossier(true)}
@@ -963,40 +975,93 @@ export default function GamePage() {
         {/* Settings modal */}
         {showSettings && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-4">
-              <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">ตั้งค่า</h2>
+            <div className="w-full max-w-lg bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">API Key ของคุณ</h2>
+                {groq_api_key ? (
+                  <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 rounded-full px-2.5 py-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> ใช้ Key ส่วนตัว
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-950/50 border border-amber-800/40 rounded-full px-2.5 py-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> ใช้ Key ส่วนกลาง
+                  </span>
+                )}
+              </div>
+
+              {/* Policy explanation */}
+              <div className="bg-neutral-800/60 border border-neutral-700/60 rounded-lg p-4 flex flex-col gap-3 text-xs text-neutral-400 leading-relaxed">
+                <div className="flex gap-3">
+                  <span className="text-amber-500 mt-0.5 shrink-0">⚠</span>
+                  <div>
+                    <p className="text-neutral-300 font-medium mb-1">Key ส่วนกลาง — จำกัด 50 เทิร์น/วัน ต่อ IP</p>
+                    <p>เราแชร์ API Key ของเราให้ทุกคนใช้ร่วมกัน แต่มีโควต้าจำกัด 50 เทิร์น/วันต่อ IP Address เพื่อป้องกันไม่ให้ค่าใช้จ่ายบานปลาย โควต้ารีเซตทุกเที่ยงคืน UTC (07:00 น. ตามเวลาไทย)</p>
+                  </div>
+                </div>
+                <div className="border-t border-neutral-700/50" />
+                <div className="flex gap-3">
+                  <span className="text-emerald-500 mt-0.5 shrink-0">✓</span>
+                  <div>
+                    <p className="text-neutral-300 font-medium mb-1">Key ส่วนตัว — ไม่มีจำกัดจากเรา</p>
+                    <p>ถ้ามี Groq API Key ของตัวเอง จะไม่มีการจำกัดเทิร์นจากฝั่งเรา ขึ้นอยู่กับโควต้า Groq ของคุณเอง (Groq มีระดับฟรีให้ใช้งาน) Key ของคุณ<span className="text-neutral-200"> เก็บไว้ใน Browser เท่านั้น</span> — ไม่ถูกส่งหรือบันทึกที่เซิร์ฟเวอร์ของเรา</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key input */}
               <div className="flex flex-col gap-2">
-                <label htmlFor="groq-key-input" className="text-xs text-neutral-400">Groq API Key (ของคุณเอง)</label>
+                <label htmlFor="groq-key-input" className="text-xs text-neutral-400 font-medium">
+                  ใส่ Groq API Key ของคุณ
+                </label>
                 <input
                   id="groq-key-input"
                   type="password"
-                  className="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-amber-700/60 font-mono"
+                  className="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-3 py-2.5 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-amber-700/60 font-mono"
                   placeholder="gsk_..."
                   value={apiKeyDraft}
                   onChange={(e) => setApiKeyDraft(e.target.value)}
                   autoFocus
                 />
                 <p className="text-xs text-neutral-600">
-                  เก็บไว้ใน browser เท่านั้น — ไม่ได้บันทึกลงเซิร์ฟเวอร์
-                  {" "}สร้าง key ฟรีได้ที่{" "}
-                  <span className="text-amber-700">console.groq.com</span>
+                  สร้าง Key ฟรีได้ที่{" "}
+                  <a
+                    href="https://console.groq.com/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-600 hover:text-amber-400 underline underline-offset-2 transition-colors"
+                  >
+                    console.groq.com/keys
+                  </a>
+                  {" "}— สมัครฟรี ไม่ต้องใส่บัตรเครดิต
                 </p>
               </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowSettings(false)}
-                  className="px-4 py-2 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setGameState({ groq_api_key: apiKeyDraft.trim() }); setShowSettings(false); }}
-                  className="px-4 py-2 text-xs bg-amber-800/70 hover:bg-amber-700/70 text-amber-200 rounded-lg transition-colors"
-                >
-                  บันทึก
-                </button>
+
+              <div className="flex gap-2 justify-between items-center">
+                {groq_api_key && (
+                  <button
+                    type="button"
+                    onClick={() => { setApiKeyDraft(""); setGameState({ groq_api_key: "" }); setShowSettings(false); }}
+                    className="px-3 py-2 text-xs text-red-400/70 hover:text-red-300 transition-colors"
+                  >
+                    ลบ Key ออก
+                  </button>
+                )}
+                <div className="flex gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShowSettings(false)}
+                    className="px-4 py-2 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setGameState({ groq_api_key: apiKeyDraft.trim() }); setShowSettings(false); }}
+                    className="px-4 py-2 text-xs bg-amber-800/70 hover:bg-amber-700/70 text-amber-200 rounded-lg transition-colors"
+                  >
+                    บันทึก
+                  </button>
+                </div>
               </div>
             </div>
           </div>
