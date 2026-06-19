@@ -144,6 +144,19 @@ function ChatHistory({
         </div>
       )}
 
+      {!streamingNarrative && !isLoading && history.length === 1 && history[0].role === "gm" && (
+        <div className="flex items-start gap-3 px-5 py-4 bg-amber-950/20 border border-amber-800/25 rounded-xl">
+          <span className="text-amber-500/50 text-base shrink-0 leading-none mt-0.5">💡</span>
+          <p className="text-xs text-amber-100/45 leading-relaxed">
+            <span className="text-amber-400/70 font-semibold">คุณคือตัวละครในเรื่องนี้</span>
+            {" "}— เลือกตัวเลือกด้านล่าง หรือพิมพ์สิ่งที่ตัวละครคุณจะทำ เช่น{" "}
+            <span className="italic text-amber-300/55">&ldquo;มองรอบๆ ห้อง&rdquo;</span>
+            {" "}หรือ{" "}
+            <span className="italic text-amber-300/55">&ldquo;เดินไปทางประตู&rdquo;</span>
+          </p>
+        </div>
+      )}
+
       {streamingNarrative && (
         <div className="space-y-3">
           <div className="text-[10px] text-amber-400/40 uppercase tracking-widest animate-pulse">กำลังเขียน...</div>

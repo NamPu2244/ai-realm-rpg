@@ -168,7 +168,7 @@ export default function ActionBar({
         <>
           {suggestedActions.length > 0 && (
             <div className="space-y-1.5">
-              <div className="text-[10px] text-amber-400/35 uppercase tracking-widest px-1">ตัวเลือก</div>
+              <div className="text-xs text-amber-400/60 font-medium px-1">เลือกสิ่งที่ตัวละครคุณจะทำ</div>
               <div className="grid grid-cols-1 gap-1.5">
                 {suggestedActions.map((action, i) => {
                   const type = detectActionType(action);
@@ -204,7 +204,7 @@ export default function ActionBar({
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isLoading}
-              placeholder={isLoading ? "GM กำลังประมวลผล..." : "พิมพ์สิ่งที่คุณต้องการทำ... (↑↓ ดูประวัติ)"}
+              placeholder={isLoading ? "GM กำลังประมวลผล..." : "ตัวละครคุณทำอะไร? เช่น 'ดูรอบๆ' 'คุยกับเขา' 'เดินไปทางเหนือ'"}
               className={`flex-1 bg-stone-900/60 border ${isLowHp ? "border-red-900/50 focus:border-red-500" : "border-amber-900/30 focus:border-amber-500/60"} rounded-xl px-4 py-3 focus:outline-none disabled:opacity-50 transition-colors placeholder:text-amber-100/30`}
             />
             <button
