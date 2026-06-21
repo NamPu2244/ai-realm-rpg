@@ -1,10 +1,11 @@
 "use client";
 
 import { memo, RefObject } from "react";
-import { Dices, TrendingDown, TrendingUp, Droplets, MessageSquare } from "lucide-react";
-import { ChatLog, DialogueLine } from "@/store/useGameStore";
+import { Dices, TrendingDown, TrendingUp, Droplets } from "lucide-react";
+import { ChatLog } from "@/store/useGameStore";
 import { parseDiceRoll } from "@/lib/gameText";
 import DiceRollBadge from "./DiceRollBadge";
+import NarrativeRenderer from "./NarrativeRenderer";
 
 export interface StatChange {
   hp: number;
@@ -18,6 +19,24 @@ interface ChatHistoryProps {
   chatEndRef: RefObject<HTMLDivElement | null>;
   lastStatChange: StatChange | null;
 }
+
+// ---- Action type metadata (mirrors ActionBar definitions) ----
+const ACTION_TYPE_META: Record<string, { label: string; colorClass: string }> = {
+  พูด: { label: "💬 พูดตอบ", colorClass: "text-sky-300 bg-sky-950/50 border-sky-700/50" },
+  คิด: { label: "💭 คิดในใจ", colorClass: "text-purple-300 bg-purple-950/50 border-purple-700/50" },
+  กระทำ: { label: "⚔️ กระทำ", colorClass: "text-amber-300 bg-amber-950/50 border-amber-700/50" },
+  ตรวจสอบ: { label: "🔍 ตรวจสอบ", colorClass: "text-emerald-300 bg-emerald-950/50 border-emerald-700/50" },
+  ไม่ตอบสนอง: { label: "🚫 ไม่ตอบสนอง", colorClass: "text-neutral-400 bg-neutral-900/60 border-neutral-700/40" },
+};
+
+function parsePlayerContent(content: string): { actionType: string | null; text: string } {
+  const m = /^\[(พูด|คิด|กระทำ|ตรวจสอบ)\]:\s*([\s\S]*)/.exec(content);
+  if (m) return { actionType: m[1], text: m[2] };
+  if (content === "[ไม่ตอบสนอง]") return { actionType: "ไม่ตอบสนอง", text: "" };
+  return { actionType: null, text: content };
+}
+
+// ---- Sub-components ----
 
 function StatChangeBadges({ delta }: Readonly<{ delta: StatChange }>) {
   const badges: React.ReactNode[] = [];
@@ -60,19 +79,25 @@ function StatChangeBadges({ delta }: Readonly<{ delta: StatChange }>) {
   return <div className="flex flex-wrap gap-2 pl-5 pt-1">{badges}</div>;
 }
 
-function DialogueBlock({ lines }: Readonly<{ lines: DialogueLine[] }>) {
-  if (lines.length === 0) return null;
+
+function PlayerBubble({ content }: Readonly<{ content: string }>) {
+  const { actionType, text } = parsePlayerContent(content);
+  const meta = actionType ? ACTION_TYPE_META[actionType] : null;
+
   return (
-    <div className="space-y-2 pl-5">
-      {lines.map((line) => (
-        <div key={line.speaker + ":" + line.text.slice(0, 32)} className="flex gap-2.5 items-start">
-          <MessageSquare size={13} className="text-amber-600/50 mt-1 shrink-0" />
-          <div>
-            <span className="text-[11px] font-bold tracking-wide text-amber-500/80 mr-2">{line.speaker}</span>
-            <span className="text-[0.9rem] italic text-amber-100/75 leading-relaxed">&#8220;{line.text}&#8221;</span>
-          </div>
+    <div className="flex justify-end">
+      <div className="max-w-[75%] px-4 py-3 bg-stone-800/60 border border-amber-900/25 rounded-2xl rounded-br-sm text-amber-50/90 text-sm shadow-md">
+        <div className="flex items-center gap-2 mb-1.5">
+          {meta ? (
+            <span className={`text-[9px] px-2 py-0.5 rounded-full border font-semibold tracking-widest uppercase ${meta.colorClass}`}>
+              {meta.label}
+            </span>
+          ) : (
+            <span className="text-[10px] text-amber-400/40 uppercase tracking-widest font-semibold">คุณ</span>
+          )}
         </div>
-      ))}
+        {text && <div className="whitespace-pre-wrap leading-relaxed">{text}</div>}
+      </div>
     </div>
   );
 }
@@ -82,15 +107,11 @@ function GMMessage({ chat, isStreaming = false }: Readonly<{ chat: Pick<ChatLog,
   return (
     <div className={`space-y-4 ${isStreaming ? "" : "animate-narrative-in"}`}>
       {roll !== null && <DiceRollBadge roll={roll} />}
-      <p className="text-amber-50/85 leading-[2] text-[0.95rem] whitespace-pre-wrap tracking-wide border-l-2 border-amber-800/40 pl-5">
-        {text}
-        {isStreaming && (
-          <span className="inline-block w-0.5 h-[1em] bg-amber-400/80 ml-0.5 align-middle animate-cursor-blink" />
-        )}
-      </p>
-      {chat.dialogue_lines && chat.dialogue_lines.length > 0 && (
-        <DialogueBlock lines={chat.dialogue_lines} />
-      )}
+      <NarrativeRenderer
+        text={text}
+        dialogueLines={isStreaming ? [] : (chat.dialogue_lines ?? [])}
+        isStreaming={isStreaming}
+      />
     </div>
   );
 }
@@ -125,12 +146,7 @@ function ChatHistory({
                 )}
               </div>
             ) : (
-              <div className="flex justify-end">
-                <div className="max-w-[75%] px-4 py-3 bg-stone-800/60 border border-amber-900/25 rounded-2xl rounded-br-sm text-amber-50/90 text-sm shadow-md">
-                  <div className="text-[10px] text-amber-400/40 mb-1.5 uppercase tracking-widest font-semibold">คุณ</div>
-                  <div className="whitespace-pre-wrap leading-relaxed">{chat.content}</div>
-                </div>
-              </div>
+              <PlayerBubble content={chat.content} />
             )}
 
             {index < history.length - 1 && chat.role === "gm" && history[index + 1]?.role === "gm" && (

@@ -495,12 +495,21 @@ export default function GamePage() {
       const decoder = new TextDecoder();
       let rawAiResponse = "";
       let lineBuffer = "";
+      let streamError: string | null = null;
 
       const processLine = (line: string) => {
         if (line.trim() === "") return;
         try {
           const parsed = JSON.parse(line);
-          rawAiResponse += parsed.response;
+          // Error จาก Groq ที่ซ่อนอยู่ใน stream body (rate limit, content filter ฯลฯ)
+          if (typeof parsed.stream_error === "string") {
+            streamError = parsed.stream_error;
+            return;
+          }
+          // ป้องกัน "undefined" ติด string เมื่อ response field ไม่มีหรือไม่ใช่ string
+          if (typeof parsed.response === "string") {
+            rawAiResponse += parsed.response;
+          }
           const narrativeMatch = /"narrative":\s*"([^"\\]*(?:\\.[^"\\]*)*)/.exec(rawAiResponse);
           if (narrativeMatch) {
             setStreamingNarrative(
@@ -522,6 +531,8 @@ export default function GamePage() {
         for (const line of lines) processLine(line);
       }
       processLine(lineBuffer);
+
+      if (streamError) throw new Error(`Groq: ${streamError}`);
 
       const result = extractAndParseJSON(rawAiResponse);
 
@@ -565,8 +576,14 @@ export default function GamePage() {
     const worldConfig = worldConfigOverride || world_config;
     setInput("");
 
+    const isNoResponse = message === "[ไม่ตอบสนอง]";
     const displayContent =
       message === QTE_TIMEOUT_SIGNAL ? getQteTimeoutDisplay(worldConfig?.language) : message;
+
+    // ส่ง prompt ที่ descriptive กว่าให้ AI เพื่อไม่ให้สับสนและตอบ plain text แทน JSON
+    const apiMessage = isNoResponse
+      ? "[ไม่ตอบสนอง]: ผู้เล่นยืนนิ่งเงียบและไม่กระทำสิ่งใด เวลาผ่านไปเล็กน้อย กรุณาดำเนินเรื่องต่อโดยไม่มีการกระทำจากผู้เล่น"
+      : message;
 
     const newHistory = isSystemInit
       ? useGameStore.getState().history
@@ -574,7 +591,7 @@ export default function GamePage() {
     if (!isSystemInit) setGameState({ history: newHistory });
 
     // Check prefetch cache for instant response on suggested actions
-    const canUsePrefetch = !isSystemInit && message !== QTE_TIMEOUT_SIGNAL && !isWorldEventSignal(message);
+    const canUsePrefetch = !isSystemInit && !isNoResponse && message !== QTE_TIMEOUT_SIGNAL && !isWorldEventSignal(message);
     const cached = canUsePrefetch ? prefetchCacheRef.current.get(message) : null;
     cancelPrefetches();
     prefetchCacheRef.current.clear();
@@ -584,7 +601,7 @@ export default function GamePage() {
       return;
     }
 
-    await runTurn(newHistory, message, worldConfig, isSystemInit);
+    await runTurn(newHistory, apiMessage, worldConfig, isSystemInit);
   };
 
   const handleRetry = () => {
@@ -1006,7 +1023,6 @@ export default function GamePage() {
               worldTone={world_config?.tone}
               onInputChange={(value) => { setInput(value); if (value) cancelPrefetches(); }}
               onSend={(message) => handleSend(message)}
-              onSubmit={() => handleSend(input)}
               onRetry={handleRetry}
               onRestart={handleRestart}
             />

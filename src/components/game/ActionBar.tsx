@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -12,10 +12,11 @@ interface ActionBarProps {
   worldTone?: string;
   onInputChange: (value: string) => void;
   onSend: (message: string) => void;
-  onSubmit: () => void;
   onRetry: () => void;
   onRestart: () => void;
 }
+
+// ---- Suggested action type detection (unchanged) ----
 
 type ActionType = "combat" | "explore" | "talk" | "magic" | "item" | "default";
 
@@ -80,6 +81,56 @@ function detectActionType(text: string): ActionType {
   return "default";
 }
 
+// ---- Player action type selector ----
+
+type PlayerActionTypeId = "พูด" | "คิด" | "กระทำ" | "ตรวจสอบ";
+
+interface PlayerActionType {
+  id: PlayerActionTypeId;
+  emoji: string;
+  label: string;
+  placeholder: string;
+  activeClass: string;
+  inactiveClass: string;
+}
+
+const PLAYER_ACTION_TYPES: PlayerActionType[] = [
+  {
+    id: "พูด",
+    emoji: "💬",
+    label: "พูดตอบ",
+    placeholder: "ตัวละครคุณพูดอะไร?",
+    activeClass: "bg-sky-950/60 border-sky-500/70 text-sky-200",
+    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-sky-800/50 hover:text-sky-400/70",
+  },
+  {
+    id: "คิด",
+    emoji: "💭",
+    label: "คิดในใจ",
+    placeholder: "ตัวละครคุณคิดอะไร? (NPC ไม่รับรู้)",
+    activeClass: "bg-purple-950/60 border-purple-500/70 text-purple-200",
+    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-purple-800/50 hover:text-purple-400/70",
+  },
+  {
+    id: "กระทำ",
+    emoji: "⚔️",
+    label: "กระทำ",
+    placeholder: "ตัวละครคุณทำอะไร?",
+    activeClass: "bg-amber-950/60 border-amber-500/70 text-amber-200",
+    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-amber-800/50 hover:text-amber-400/70",
+  },
+  {
+    id: "ตรวจสอบ",
+    emoji: "🔍",
+    label: "ตรวจสอบ",
+    placeholder: "ตรวจสอบอะไร?",
+    activeClass: "bg-emerald-950/60 border-emerald-500/70 text-emerald-200",
+    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-emerald-800/50 hover:text-emerald-400/70",
+  },
+];
+
+// ---- Dead panel ----
+
 function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRestart: () => void }>) {
   if (worldTone === "hardcore") {
     return (
@@ -107,6 +158,8 @@ function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRe
   );
 }
 
+// ---- Main component ----
+
 export default function ActionBar({
   error,
   isLoading,
@@ -117,12 +170,15 @@ export default function ActionBar({
   worldTone,
   onInputChange,
   onSend,
-  onSubmit,
   onRetry,
   onRestart,
 }: Readonly<ActionBarProps>) {
   const inputHistoryRef = useRef<string[]>([]);
   const historyIdxRef = useRef(-1);
+  const [selectedType, setSelectedType] = useState<PlayerActionTypeId | null>(null);
+
+  const activeMeta = selectedType ? PLAYER_ACTION_TYPES.find((t) => t.id === selectedType) : null;
+  const placeholder = activeMeta?.placeholder ?? "ตัวละครคุณทำอะไร? เช่น 'ดูรอบๆ' 'คุยกับเขา' 'เดินไปทางเหนือ'";
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const hist = inputHistoryRef.current;
@@ -141,11 +197,20 @@ export default function ActionBar({
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (input.trim()) {
-      inputHistoryRef.current.push(input.trim());
-      historyIdxRef.current = -1;
-    }
-    onSubmit();
+    const text = input.trim();
+    if (!text) return;
+    inputHistoryRef.current.push(text);
+    historyIdxRef.current = -1;
+    const msg = selectedType ? `[${selectedType}]: ${text}` : text;
+    onSend(msg);
+  };
+
+  const handleTypeSelect = (id: PlayerActionTypeId) => {
+    setSelectedType((prev) => (prev === id ? null : id));
+  };
+
+  const handleNoResponse = () => {
+    onSend("[ไม่ตอบสนอง]");
   };
 
   return (
@@ -194,18 +259,45 @@ export default function ActionBar({
             </div>
           )}
 
-          <form
-            onSubmit={handleSubmit}
-            className="flex gap-3 mt-1"
-          >
+          {/* Action type selector */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] text-stone-600 uppercase tracking-widest shrink-0 mr-0.5">วิธีตอบ</span>
+            {PLAYER_ACTION_TYPES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => handleTypeSelect(t.id)}
+                disabled={isLoading}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all disabled:opacity-40 ${
+                  selectedType === t.id ? t.activeClass : t.inactiveClass
+                }`}
+              >
+                <span>{t.emoji}</span>
+                <span>{t.label}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={handleNoResponse}
+              disabled={isLoading}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all disabled:opacity-40 border-stone-700/40 text-stone-500 hover:border-stone-500/60 hover:text-stone-300"
+            >
+              <span>🚫</span>
+              <span>ไม่ตอบสนอง</span>
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex gap-3">
             <input
               type="text"
               value={input}
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isLoading}
-              placeholder={isLoading ? "GM กำลังประมวลผล..." : "ตัวละครคุณทำอะไร? เช่น 'ดูรอบๆ' 'คุยกับเขา' 'เดินไปทางเหนือ'"}
-              className={`flex-1 bg-stone-900/60 border ${isLowHp ? "border-red-900/50 focus:border-red-500" : "border-amber-900/30 focus:border-amber-500/60"} rounded-xl px-4 py-3 focus:outline-none disabled:opacity-50 transition-colors placeholder:text-amber-100/30`}
+              placeholder={isLoading ? "GM กำลังประมวลผล..." : placeholder}
+              className={`flex-1 bg-stone-900/60 border ${
+                isLowHp ? "border-red-900/50 focus:border-red-500" : "border-amber-900/30 focus:border-amber-500/60"
+              } rounded-xl px-4 py-3 focus:outline-none disabled:opacity-50 transition-colors placeholder:text-amber-100/30`}
             />
             <button
               type="submit"
