@@ -151,10 +151,10 @@ export default function MainMenuDashboard() {
             </div>
             <h1 className="leading-none font-black uppercase">
               <span className="block text-[54px] sm:text-[64px] md:text-[70px] lg:text-[82px] tracking-[0.18em] text-white">
-                AI
+                STORY
               </span>
               <span className="block text-[54px] sm:text-[64px] md:text-[70px] lg:text-[82px] tracking-[0.18em] text-amber-100/85 -mt-3 md:-mt-4">
-                REALM
+                WEAVE
               </span>
             </h1>
             <div className="flex items-center gap-3 mt-4">
@@ -422,7 +422,7 @@ export default function MainMenuDashboard() {
 
           {/* Bottom bar */}
           <div className="mt-8 pt-4 border-t border-neutral-900/60 flex items-center justify-between animate-[pageFadeIn_0.5s_ease-out_0.24s_both]">
-            <span className="text-neutral-800 text-[10px] tracking-[0.4em] uppercase">AI Realm</span>
+            <span className="text-neutral-800 text-[10px] tracking-[0.4em] uppercase">Storyweave</span>
             <span className="text-neutral-800 text-[10px]">Alpha</span>
           </div>
         </div>
@@ -443,13 +443,13 @@ export default function MainMenuDashboard() {
                 className="font-black tracking-[0.2em] uppercase leading-none"
                 style={{ fontSize: "clamp(88px, 13vw, 172px)", color: "transparent", WebkitTextStroke: "1px rgba(217,119,6,0.13)" }}
               >
-                AI
+                STORY
               </div>
               <div
                 className="font-black tracking-[0.2em] uppercase leading-none -mt-4"
                 style={{ fontSize: "clamp(88px, 13vw, 172px)", color: "transparent", WebkitTextStroke: "1px rgba(217,119,6,0.10)" }}
               >
-                REALM
+                WEAVE
               </div>
             </div>
             <div className="mt-10 flex items-center gap-5 opacity-20">

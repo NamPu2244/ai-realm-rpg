@@ -306,7 +306,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
         {/* Header */}
         <div className="text-center space-y-2 pb-4">
           <h1 className="text-[1.85rem] font-extrabold tracking-[0.35em] bg-gradient-to-r from-amber-300 via-amber-100 to-amber-400 bg-clip-text text-transparent">
-            AI REALM
+            STORYWEAVE
           </h1>
           <p className="text-sm text-neutral-500">รังสรรค์โลกของคุณเอง แล้วเริ่มการผจญภัย</p>
           <div className="h-px w-24 mx-auto bg-gradient-to-r from-transparent via-amber-700/50 to-transparent mt-3" />

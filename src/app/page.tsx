@@ -740,18 +740,18 @@ export default function GamePage() {
     const a = document.createElement("a");
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     a.href = url;
-    a.download = `ai-realm-save-${timestamp}.json`;
+    a.download = `storyweave-save-${timestamp}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const handleExportStory = () => {
     const state = useGameStore.getState();
-    const worldName = state.world_config?.worldName || state.world_config?.genre || "AI Realm";
+    const worldName = state.world_config?.worldName || state.world_config?.genre || "Storyweave";
     const lines: string[] = [
       `═══════════════════════════════════════`,
       `  ${worldName.toUpperCase()}`,
-      `  AI REALM — บันทึกการเดินทาง`,
+      `  STORYWEAVE — บันทึกการเดินทาง`,
       `═══════════════════════════════════════`,
       `ตัวละคร : ${state.world_config?.character || "-"}`,
       `แนวเกม  : ${state.world_config?.genre || "-"}`,
@@ -781,7 +781,7 @@ export default function GamePage() {
     const a = document.createElement("a");
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     a.href = url;
-    a.download = `ai-realm-story-${timestamp}.txt`;
+    a.download = `storyweave-story-${timestamp}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };

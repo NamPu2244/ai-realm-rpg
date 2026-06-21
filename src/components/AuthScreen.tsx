@@ -136,7 +136,7 @@ export default function AuthScreen() {
 
               <div className="text-center">
                 <h1 className="text-[1.7rem] font-extrabold tracking-[0.35em] bg-gradient-to-r from-amber-300 via-amber-100 to-amber-400 bg-clip-text text-transparent leading-none">
-                  AI REALM
+                  STORYWEAVE
                 </h1>
                 <p className="text-[10px] text-neutral-600 mt-1.5 uppercase tracking-[0.25em]">
                   Fantasy RPG Adventure

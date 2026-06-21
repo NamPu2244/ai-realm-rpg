@@ -16,7 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-neutral-950 flex text-neutral-100">
       <aside className="w-52 shrink-0 bg-neutral-900 border-r border-neutral-800 flex flex-col">
         <div className="px-4 py-5 border-b border-neutral-800">
-          <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest mb-0.5">AI Realm</p>
+          <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest mb-0.5">Storyweave</p>
           <p className="text-neutral-200 font-semibold text-sm">Admin Panel</p>
         </div>
 

@@ -2,7 +2,7 @@
 // All functions are fire-and-forget; call from event handlers or effects.
 // Silently no-ops in environments where AudioContext is unavailable (SSR, old browsers).
 
-const MUTE_KEY = "ai-realm-muted";
+const MUTE_KEY = "storyweave-muted";
 
 let _muted = globalThis.localStorage?.getItem(MUTE_KEY) === "1";
 

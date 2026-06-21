@@ -71,7 +71,7 @@ export default function GameHeader({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-bold tracking-widest bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(217,119,6,0.25)]">
-            <Swords size={20} className="text-amber-400" /> AI REALM
+            <Swords size={20} className="text-amber-400" /> STORYWEAVE
           </h1>
           <p className="text-xs text-amber-100/40 uppercase tracking-wider mt-0.5">
             {worldConfig?.language} · {worldConfig?.tone}

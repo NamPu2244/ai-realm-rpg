@@ -21,8 +21,8 @@ const notoSansThai = Noto_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "AI Realm",
-  description: "AI Realm - Text-based RPG ที่ขับเคลื่อนด้วย AI Game Master ผจญภัยในโลกที่คุณสร้างเอง",
+  title: "Storyweave",
+  description: "Storyweave - Text-based RPG ที่ขับเคลื่อนด้วย AI Game Master ผจญภัยในโลกที่คุณสร้างเอง",
 };
 
 export default function RootLayout({

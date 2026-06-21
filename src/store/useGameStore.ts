@@ -407,7 +407,7 @@ export const useGameStore = create<GameState>()(
       },
     }),
     {
-      name: 'ai-realm-save',
+      name: 'storyweave-save',
       version: 4,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
