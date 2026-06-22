@@ -118,6 +118,11 @@ export default function GamePage() {
   const [apiKeyDraft, setApiKeyDraft] = useState(groq_api_key);
   const statChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(() => {
+    if (globalThis.location === undefined) return false;
+    return new URLSearchParams(globalThis.location.search).get("upgrade") === "success";
+  });
+
   // Page transition state
   const displayedPhaseRef = useRef(game_phase);
   const [displayedPhase, setDisplayedPhase] = useState(game_phase);
@@ -211,6 +216,18 @@ export default function GamePage() {
 
     return () => listener.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ทำ side-effects เมื่อกลับมาจาก Stripe checkout สำเร็จ (clean URL, refresh Pro status, auto-hide toast)
+  useEffect(() => {
+    if (!showUpgradeSuccess) return;
+    fetchSubscriptionStatus();
+    const url = new URL(globalThis.location.href);
+    url.searchParams.delete("upgrade");
+    globalThis.history.replaceState(null, "", url.toString());
+    const t = setTimeout(() => setShowUpgradeSuccess(false), 5000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // เริ่มจับเวลา QTE เมื่อ AI สั่งให้ active
@@ -992,6 +1009,15 @@ export default function GamePage() {
 
         {isDamageFlash && (
           <div className="fixed inset-0 z-40 bg-red-700 animate-damage-flash pointer-events-none" />
+        )}
+
+        {showUpgradeSuccess && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-level-up-pop">
+            <div className="px-6 py-3 bg-emerald-900/90 border border-emerald-400/60 rounded-xl shadow-[0_0_30px_rgba(52,211,153,0.3)] text-center">
+              <p className="text-xs text-emerald-400/80 uppercase tracking-widest mb-0.5">สำเร็จ!</p>
+              <p className="text-base font-bold text-emerald-300">คุณได้รับสิทธิ์ Pro แล้ว ✦</p>
+            </div>
+          </div>
         )}
 
         {showLevelUp && (

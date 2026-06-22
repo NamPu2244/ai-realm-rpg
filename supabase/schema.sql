@@ -105,7 +105,34 @@ begin
 end;
 $$;
 
--- 4. Feedback ---------------------------------------------------------------
+-- 4. Subscriptions ----------------------------------------------------------
+alter table public.profiles
+  add column if not exists stripe_customer_id text unique;
+
+create table if not exists public.user_subscriptions (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  status text not null default 'inactive',      -- 'active' | 'cancelled' | 'inactive'
+  plan text not null default 'pro',             -- 'pro'
+  stripe_subscription_id text unique,
+  stripe_price_id text,
+  current_period_end timestamptz,
+  granted_by text,                              -- 'stripe' | 'manual'
+  granted_by_email text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.user_subscriptions enable row level security;
+
+create policy "Users can view own subscription"
+  on public.user_subscriptions for select
+  using (auth.uid() = user_id);
+
+drop trigger if exists subscriptions_set_updated_at on public.user_subscriptions;
+create trigger subscriptions_set_updated_at
+  before update on public.user_subscriptions
+  for each row execute procedure public.set_updated_at();
+
+-- 5. Feedback ---------------------------------------------------------------
 create table if not exists public.feedback (
   id bigserial primary key,
   message text not null,

@@ -194,6 +194,9 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
   const [worldName, setWorldName]             = useState("");
   const [worldNameError, setWorldNameError]   = useState(false);
   const [showUpsell, setShowUpsell]           = useState(false);
+  const [upsellPlan, setUpsellPlan]           = useState<"monthly" | "yearly">("yearly");
+  const [upsellLoading, setUpsellLoading]     = useState(false);
+  const [upsellError, setUpsellError]         = useState<string | null>(null);
 
   const toggleTrait = (trait: string) => {
     setTraits((prev) => {
@@ -231,6 +234,8 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
     onStart({ language: resolvedLanguage, genre: resolvedGenre, tone, character: resolvedCharacter, customWorld: customWorld.trim(), openingSeed, worldName: worldName.trim() });
   };
 
+  const ctaPrice = upsellPlan === "monthly" ? "฿99/เดือน" : "฿799/ปี";
+
   return (
     <div className="relative h-screen overflow-y-auto bg-neutral-950 text-neutral-200 font-sans">
 
@@ -239,34 +244,123 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
         <dialog
           open
           aria-label="Pro subscription"
-          className="fixed inset-0 z-50 m-0 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 w-full h-full max-w-none border-0"
+          className="fixed inset-0 z-50 m-0 p-0 w-full h-full max-w-none border-0 bg-transparent"
         >
-          <div className="relative bg-neutral-900 border border-amber-700/40 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="flex items-center gap-2 mb-3">
+          {/* Backdrop button — click to dismiss */}
+          <button
+            type="button"
+            aria-label="ปิด"
+            tabIndex={-1}
+            className="absolute inset-0 w-full h-full bg-black/70 backdrop-blur-sm cursor-default"
+            onClick={() => setShowUpsell(false)}
+          />
+          {/* Card — floats above backdrop */}
+          <div
+            className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none"
+          >
+          <div className="relative pointer-events-auto bg-neutral-900 border border-amber-700/40 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-1">
               <Sparkles size={18} className="text-amber-400" />
               <h2 className="text-base font-bold text-amber-300">ปลดล็อก Pro</h2>
             </div>
-            <p className="text-sm text-neutral-300 mb-4 leading-relaxed">
+            <p className="text-sm text-neutral-400 mb-4 leading-relaxed">
               สร้างโลกและตัวละครในแบบที่คุณจินตนาการได้อย่างไร้ขีดจำกัด
             </p>
-            <ul className="space-y-2 text-sm text-neutral-400 mb-5">
-              <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">✦</span>Custom Genre — บรรยายแนวโลกได้อย่างอิสระ</li>
-              <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">✦</span>Custom World — ใส่กฎ ระบบ และแฟกชันของโลกเอง</li>
-              <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">✦</span>Character Concept — เขียนที่มาตัวละครได้ละเอียด</li>
-              <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">✦</span>Save Slots เพิ่มขึ้น</li>
+
+            {/* Feature list */}
+            <ul className="space-y-1.5 text-sm text-neutral-400 mb-5">
+              {[
+                "Custom Genre — บรรยายแนวโลกได้อย่างอิสระ",
+                "Custom World — ใส่กฎ ระบบ และแฟกชันของโลกเอง",
+                "Character Concept — เขียนที่มาตัวละครได้ละเอียด",
+                "Save Slots เพิ่มขึ้น",
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2">
+                  <span className="text-amber-500 mt-0.5 shrink-0">✦</span>{f}
+                </li>
+              ))}
             </ul>
+
+            {/* Plan selector */}
+            <div className="flex gap-2 mb-4">
+              {(["monthly", "yearly"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setUpsellPlan(p)}
+                  className={`flex-1 rounded-xl border py-3 text-center transition-all duration-200 ${
+                    upsellPlan === p
+                      ? "border-amber-600 bg-amber-900/30 text-amber-300"
+                      : "border-neutral-700 text-neutral-500 hover:border-neutral-500 hover:text-neutral-300"
+                  }`}
+                >
+                  <div className="text-xs font-semibold uppercase tracking-wider">
+                    {p === "monthly" ? "รายเดือน" : "รายปี"}
+                  </div>
+                  <div className="text-base font-bold mt-0.5">
+                    {p === "monthly" ? "฿99" : "฿799"}
+                  </div>
+                  {p === "yearly" && (
+                    <div className="text-[10px] text-emerald-400 mt-0.5">ประหยัด 33%</div>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Error */}
+            {upsellError && (
+              <p className="text-xs text-red-400 mb-3 text-center">{upsellError}</p>
+            )}
+
+            {/* CTA */}
             <button
-              onClick={() => setShowUpsell(false)}
-              className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-neutral-950 font-bold text-sm transition-colors"
+              type="button"
+              disabled={upsellLoading}
+              onClick={async () => {
+                setUpsellError(null);
+                setUpsellLoading(true);
+                try {
+                  const res = await fetch("/api/stripe/checkout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ plan: upsellPlan }),
+                  });
+                  const data = await res.json() as { url?: string; error?: string };
+                  if (!res.ok || !data.url) throw new Error(data.error ?? "เกิดข้อผิดพลาด");
+                  globalThis.location.href = data.url;
+                } catch (err) {
+                  setUpsellError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด ลองอีกครั้ง");
+                  setUpsellLoading(false);
+                }
+              }}
+              className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 font-bold text-sm transition-colors flex items-center justify-center gap-2"
             >
-              เร็วๆ นี้ — ติดตามความคืบหน้า
+              {upsellLoading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  กำลังเชื่อมต่อ...
+                </>
+              ) : (
+                `สมัคร Pro — ${ctaPrice}`
+              )}
             </button>
+
+            <p className="text-[10px] text-neutral-600 text-center mt-2">
+              ชำระผ่านบัตรเครดิต หรือ PromptPay • ยกเลิกได้ทุกเมื่อ
+            </p>
+
             <button
+              type="button"
               onClick={() => setShowUpsell(false)}
-              className="mt-2 w-full py-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+              className="mt-2 w-full py-1.5 text-xs text-neutral-600 hover:text-neutral-400 transition-colors"
             >
               ปิด
             </button>
+          </div>
           </div>
         </dialog>
       )}
