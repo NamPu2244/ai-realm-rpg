@@ -363,7 +363,9 @@ ${historyContext}
           { role: 'user', content: userPrompt },
         ],
         stream: true,
-        temperature: 0.7,
+        // Use a higher temperature on the very first turn to encourage more
+        // creative and varied world-building from the random seed.
+        temperature: (!history || history.length === 0) ? 0.85 : 0.7,
         max_tokens: 2048,
       }),
     });

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { WorldConfig, WorldTone } from "@/store/useGameStore";
+import { generateRandomStart } from "@/utils/randomStarts";
 
 const LANGUAGES = ["ไทย", "English", "日本語"];
 
@@ -79,16 +80,6 @@ const OPENING_SEEDS: Record<string, string[]> = {
   ],
 };
 
-const RANDOM_PROLOGUES: string[] = [
-  "ลืมตาขึ้นมาพบว่าตัวเองกำลังดิ่งพสุธาจากท้องฟ้า โดยที่ร่มชูชีพมีรอยฉีกขาด",
-  "คุณนั่งอยู่ในงานเลี้ยงหรูหรา แต่จู่ๆ ทุกคนในห้องก็หยุดนิ่งและหันมาจ้องคุณด้วยสายตาอาฆาต",
-  "รอดชีวิตจากเหตุการณ์ยานอวกาศตกบนดาวเคราะห์น้ำแข็ง และออกซิเจนชุดสูทเหลือเพียง 10 นาที",
-  "ตื่นขึ้นมากลางพิธีบูชายัญ โดยที่คุณไม่ใช่คนทำพิธี แต่เป็นเครื่องสังเวยที่ถูกมัดอยู่",
-  "คุณกำลังขับรถหนีด้วยความเร็วสูงบนทางด่วน ขณะที่เฮลิคอปเตอร์ติดไฟฉายส่องตามหลังและเสียงไซเรนถี่ขึ้นทุกที",
-  "สายไฟเบอร์ออปติกในร่างกายของคุณกะพริบเตือนสีแดง เคาท์ดาวน์การฆ่าตัวเองของชิปฝังสมองเหลืออีกไม่กี่นาที กลางตรอกย่านเมืองไซเบอร์พังก์ที่ฝนกรดตกไม่หยุด",
-  "เรือที่คุณโดยสารมาอับปางกลางพายุ คุณเกาะแผ่นไม้ลอยมาติดเกาะร้างที่เต็มไปด้วยซากปรักหักพังประหลาด ขณะที่คลื่นยักษ์กำลังก่อตัวซัดเข้าฝั่งอีกครั้ง",
-  "ระหว่างพิธีราชาภิเษกของคุณเอง มีคนลอบสังหารกษัตริย์องค์ก่อนต่อหน้าทุกคน และทุกสายตาในท้องพระโรงกำลังจับจ้องมาที่คุณในฐานะผู้ต้องสงสัยอันดับหนึ่ง",
-];
 
 const TONES: { id: WorldTone; icon: LucideIcon; label: string; desc: string }[] = [
   { id: "hardcore", icon: Skull,     label: "Hardcore",      desc: "โลกสมจริงเข้มข้น การกระทำโง่ๆ อาจถึงตาย ผลลัพธ์รุนแรงและจริงจัง" },
@@ -234,7 +225,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
       const seedPool = customGenre.trim() ? OPENING_SEEDS.generic : (OPENING_SEEDS[genreId] || OPENING_SEEDS.generic);
       openingSeed = seedPool[Math.floor(Math.random() * seedPool.length)];
     } else {
-      openingSeed = RANDOM_PROLOGUES[Math.floor(Math.random() * RANDOM_PROLOGUES.length)];
+      openingSeed = generateRandomStart();
     }
 
     onStart({ language: resolvedLanguage, genre: resolvedGenre, tone, character: resolvedCharacter, customWorld: customWorld.trim(), openingSeed, worldName: worldName.trim() });
