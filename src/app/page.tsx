@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useGameStore, WorldConfig, ChatLog } from "@/store/useGameStore";
+import { useGameStore, WorldConfig, ChatLog, OpenThread } from "@/store/useGameStore";
 import WorldCreationMenu from "@/components/WorldCreationMenu";
 import AuthScreen from "@/components/AuthScreen";
 import MainMenuDashboard from "@/components/MainMenuDashboard";
@@ -52,6 +52,7 @@ export default function GamePage() {
     faction_standings,
     companions,
     visited_locations,
+    open_threads,
     auth_status,
     groq_api_key,
     is_pro,
@@ -330,6 +331,7 @@ export default function GamePage() {
       quest_log: updatedQuests,
       companions: updatedCompanions,
       visited_locations: updatedLocations,
+      open_threads: Array.isArray(data.open_threads) ? (data.open_threads as OpenThread[]) : freshState.open_threads,
       history: [
         ...newHistory,
         {
@@ -748,6 +750,7 @@ export default function GamePage() {
       faction_standings: state.faction_standings,
       companions: state.companions,
       visited_locations: state.visited_locations,
+      open_threads: state.open_threads,
     };
 
     const blob = new Blob([JSON.stringify(saveData, null, 2)], {
@@ -846,6 +849,7 @@ export default function GamePage() {
           faction_standings: Array.isArray(data.faction_standings) ? data.faction_standings : [],
           companions: (data.companions && typeof data.companions === "object") ? data.companions : {},
           visited_locations: Array.isArray(data.visited_locations) ? data.visited_locations : [],
+          open_threads: Array.isArray(data.open_threads) ? data.open_threads : [],
         });
         setError(null);
       } catch (err) {
@@ -1037,6 +1041,7 @@ export default function GamePage() {
             livesLeft={lives_left}
             companions={companions}
             factionStandings={faction_standings}
+            openThreads={open_threads}
           />
         </div>
 

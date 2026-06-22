@@ -145,6 +145,7 @@ CHARACTER TRACKING:
 NARRATIVE CRAFT:
 - Vary response length to fit the moment. Quick action-reaction beats: 50-120 words. Exploration, emotional turning points, or major reveals: 150-300 words. Never pad with filler, repetition, or restating what just happened.
 - PROSE VOICE: Write as a storyteller with a distinct voice — not a neutral game system logging events. Vary sentence length deliberately. Short. Punchy. Then a longer sentence that winds through a texture, slows around a detail, and releases. A fragment when the moment calls for it. Rhythm and word choice are as important as content.
+- TELEGRAPHING RULE: For any major story beat (boss encounter, faction betrayal, major revelation, trap), plant a concrete foreshadowing signal 1-2 turns before delivering it. Use world pressure (NPC behavior, environmental change, overheard fragment) — never block the player directly or break immersion.
 - BANNED PHRASES — these are dead AI tells, never use them under any circumstances: "you find yourself", "you notice (that)", "you realize (that)", "you feel (that)", "it seems", "it appears", "suddenly", "quickly", "carefully", "you can see", "you observe", "you hear a sound of", "the air (is/smells)", "you decide to", "you begin to", "you manage to". Rewrite any sentence that would require these.
 - SPECIFICITY RULE: Every sensory or environmental detail must be concrete and specific, never generic. Not "torches light the corridor" — which wall, are the brackets wrought iron or rusted nails, is the flame guttering or steady. Not "the crowd murmurs" — what specific word or fragment cuts through. Precise and unexpected details make a scene real. Vague atmosphere is dead prose.
 - NPCs have their own agenda — they are not obligated to help. A guard may ignore a bribe. A merchant may refuse to sell. A stranger may walk away mid-conversation. When they do comply, they want something in return or have a hidden motive. Compliance costs something.
@@ -209,10 +210,53 @@ EXPECTED JSON SCHEMA (respond with ONLY this JSON object, no extra text):
   "faction_updates": [{"name": "String (faction name)", "standing": Number (-100 to 100), "label": "String (descriptor in ${language})"}],
   "quest_updates": [{"id": "String (kebab-slug)", "title": "String", "description": "String", "status": "active|completed|failed"}],
   "companion_updates": [{"name": "String", "description": "String", "role": "String", "hp": Number, "max_hp": Number, "status_effects": ["String"], "skills": ["String"], "status": "active|dead|missing", "relationship": "String"}],
-  "new_locations": [{"name": "String", "description": "String (1 sentence in ${language})"}]
-}`;
+  "new_locations": [{"name": "String", "description": "String (1 sentence in ${language})"}],
+  "open_threads": [{"id": "String (kebab-slug)", "description": "String (in ${language})", "urgency": "low|medium|high|critical", "expires_in_turns": "Number|null"}]
 }
 
+OPEN THREADS RULE:
+- "open_threads" tracks unresolved narrative hooks, looming dangers, pending consequences, and ticking clocks.
+- Add a new thread (with a unique kebab-slug id) whenever a significant narrative hook, threat, or unresolved tension is introduced.
+- Increase urgency (low → medium → high → critical) as pressure builds across turns.
+- REMOVE a thread by omitting its id when it is resolved, defused, or delivered.
+- Return the FULL current list of active threads every turn (like player_status). If no threads exist, return an empty array [].
+- If expires_in_turns is a number, it counts down each turn. When it reaches 0, the consequence MUST be delivered in the narrative that turn.`;
+}
+
+
+// ---- Deterministic dice tools ----
+
+const GM_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "roll_dice",
+      description: "Roll one or more dice and return the total. Use this for any uncertain action resolution: attacks, skill checks, saving throws, etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          sides: { type: "number", description: "Number of sides on the die (e.g., 20 for D20, 6 for D6)" },
+          count: { type: "number", description: "Number of dice to roll", default: 1 },
+          modifier: { type: "number", description: "Flat modifier to add to the total (attribute bonus, etc.)", default: 0 },
+          purpose: { type: "string", description: "What this roll is for (e.g., 'player attacks goblin', 'saving throw vs poison')" }
+        },
+        required: ["sides", "purpose"]
+      }
+    }
+  }
+] as const;
+
+function resolveTool(name: string, args: Record<string, unknown>): string {
+  if (name === "roll_dice") {
+    const sides = (args.sides as number) || 20;
+    const count = (args.count as number) || 1;
+    const modifier = (args.modifier as number) || 0;
+    const rolls = Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
+    const total = rolls.reduce((a, b) => a + b, 0) + modifier;
+    return JSON.stringify({ rolls, modifier, total, purpose: args.purpose });
+  }
+  return JSON.stringify({ error: "Unknown tool" });
+}
 
 // ตรวจสอบ shape/ขนาดของ request body แบบหยาบๆ ก่อนนำไปประกอบ prompt
 // เพื่อกัน payload ที่ผิดรูปแบบหรือใหญ่เกินไปจนทำให้ prompt บวมหรือ context ล้น
@@ -350,6 +394,66 @@ ${historyContext}
 \n[NEW PLAYER ACTION]\nPlayer: ${playerAction}
 \n[QTE REMINDER] After writing the narrative, ask yourself: did a sudden dangerous attack/hazard just strike the player with no time to think? If YES → is_qte_active: true, set qte_time_limit (2-7s), provide 2-3 short qte_options. If NO → is_qte_active: false, qte_time_limit: 0, qte_options: [].`;
 
+    // Phase 1: Non-streaming tool call to resolve dice rolls deterministically.
+    // Skip on the very first turn (world generation) to keep opening latency low.
+    let diceResultsSection = "";
+    const isFirstTurn = !history || history.length === 0;
+    if (!isFirstTurn) {
+      try {
+        const phase1Response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`,
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt + "\n\n[DICE PLANNING PHASE] Before writing the narrative, identify every uncertain action in the player's turn that requires a dice roll and call roll_dice for each one. If this is a purely narrative/dialogue turn with no uncertain outcomes, call no tools." },
+            ],
+            stream: false,
+            temperature: 0.7,
+            max_tokens: 512,
+            tools: GM_TOOLS,
+            tool_choice: "auto",
+          }),
+        });
+
+        if (phase1Response.ok) {
+          const phase1Data = await phase1Response.json() as {
+            choices?: Array<{
+              message?: {
+                tool_calls?: Array<{
+                  function?: { name?: string; arguments?: string };
+                }>;
+              };
+            }>;
+          };
+          const toolCalls = phase1Data.choices?.[0]?.message?.tool_calls;
+          if (toolCalls && toolCalls.length > 0) {
+            const diceLines: string[] = [];
+            for (const call of toolCalls) {
+              const fnName = call.function?.name;
+              if (!fnName) continue;
+              let args: Record<string, unknown> = {};
+              try { args = JSON.parse(call.function?.arguments ?? "{}"); } catch {}
+              const result = resolveTool(fnName, args);
+              const parsed = JSON.parse(result) as { purpose?: unknown; rolls?: unknown; modifier?: unknown; total?: unknown };
+              diceLines.push(`- ${parsed.purpose}: rolls=${JSON.stringify(parsed.rolls)}, modifier=${parsed.modifier ?? 0}, total=${parsed.total}`);
+            }
+            if (diceLines.length > 0) {
+              diceResultsSection = "\n\n[DICE RESULTS — Server-rolled, non-negotiable. Use these exact numbers in your narrative and player_status updates.]\n" + diceLines.join("\n");
+            }
+          }
+        }
+      } catch {
+        // Non-fatal: fall through to Phase 2 without dice results
+      }
+    }
+
+    const finalUserPrompt = diceResultsSection ? userPrompt + diceResultsSection : userPrompt;
+
     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -360,12 +464,12 @@ ${historyContext}
         model: 'meta-llama/llama-4-scout-17b-16e-instruct',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: 'user', content: finalUserPrompt },
         ],
         stream: true,
         // Use a higher temperature on the very first turn to encourage more
         // creative and varied world-building from the random seed.
-        temperature: (!history || history.length === 0) ? 0.85 : 0.7,
+        temperature: isFirstTurn ? 0.85 : 0.7,
         max_tokens: 2048,
       }),
     });

@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { ImageOff, RefreshCw, Backpack, Coins, Shield, Swords, Brain, Eye, MessageCircle, ChevronRight, ChevronLeft } from "lucide-react";
-import { PlayerStatus, WorldConfig, Companion, FactionStanding } from "@/store/useGameStore";
+import { PlayerStatus, WorldConfig, Companion, FactionStanding, OpenThread } from "@/store/useGameStore";
 import { buildCharacterPortraitUrl } from "@/lib/gameText";
 import InventoryModal from "./InventoryModal";
 
@@ -114,6 +114,24 @@ function companionHpColor(hp: number, maxHp: number): string {
   return maxHp > 0 && hp / maxHp <= 0.3 ? "bg-red-800 animate-pulse" : "bg-emerald-900";
 }
 
+function urgencyColor(urgency: OpenThread['urgency']): string {
+  switch (urgency) {
+    case 'critical': return 'text-red-400 animate-pulse';
+    case 'high':     return 'text-orange-400';
+    case 'medium':   return 'text-yellow-400';
+    default:         return 'text-neutral-400';
+  }
+}
+
+function urgencyLabel(urgency: OpenThread['urgency']): string {
+  switch (urgency) {
+    case 'critical': return 'CRITICAL';
+    case 'high':     return 'HIGH';
+    case 'medium':   return 'MED';
+    default:         return 'LOW';
+  }
+}
+
 interface CharacterSidebarProps {
   worldConfig: WorldConfig | null;
   currentObjective: string;
@@ -123,6 +141,7 @@ interface CharacterSidebarProps {
   livesLeft: number;
   companions: Record<string, Companion>;
   factionStandings: FactionStanding[];
+  openThreads: OpenThread[];
 }
 
 export default function CharacterSidebar({
@@ -134,10 +153,12 @@ export default function CharacterSidebar({
   livesLeft,
   companions,
   factionStandings,
+  openThreads,
 }: Readonly<CharacterSidebarProps>) {
   const prevInventoryRef = useRef<string[]>(playerStatus.inventory);
   const [newItems, setNewItems] = useState<Set<string>>(new Set());
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [threadsExpanded, setThreadsExpanded] = useState(true);
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
@@ -194,6 +215,42 @@ export default function CharacterSidebar({
               <div className="mb-5 border-l-2 border-amber-900/50 pl-3">
                 <SectionLabel>Objective</SectionLabel>
                 <p className="text-xs text-amber-200/70 leading-relaxed">{currentObjective}</p>
+              </div>
+            )}
+
+            {openThreads.length > 0 && (
+              <div className="mb-5">
+                <button
+                  type="button"
+                  onClick={() => setThreadsExpanded((v) => !v)}
+                  className="flex items-center justify-between w-full mb-2 group"
+                >
+                  <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-stone-600 group-hover:text-stone-400 transition-colors">
+                    Active Threads
+                  </p>
+                  <span className="text-[9px] text-stone-700 group-hover:text-stone-500 transition-colors">
+                    {threadsExpanded ? '▲' : '▼'}
+                  </span>
+                </button>
+                {threadsExpanded && (
+                  <div className="flex flex-col gap-2">
+                    {openThreads.map((thread) => (
+                      <div key={thread.id} className="border-l-2 border-stone-800 pl-2.5">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <span className={`text-[9px] font-bold tracking-widest ${urgencyColor(thread.urgency)}`}>
+                            {urgencyLabel(thread.urgency)}
+                          </span>
+                          {thread.expires_in_turns !== null && (
+                            <span className="text-[9px] text-stone-600 tabular-nums shrink-0">
+                              {thread.expires_in_turns}t
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-stone-400 leading-snug">{thread.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

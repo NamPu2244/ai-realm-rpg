@@ -79,6 +79,13 @@ export interface VisitedLocation {
   description: string;
 }
 
+export interface OpenThread {
+  id: string;
+  description: string;
+  urgency: 'low' | 'medium' | 'high' | 'critical';
+  expires_in_turns: number | null;
+}
+
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
 
 export interface WorldConfig {
@@ -133,6 +140,7 @@ interface GameState {
   faction_standings: FactionStanding[];
   companions: Record<string, Companion>;
   visited_locations: VisitedLocation[];
+  open_threads: OpenThread[];
 
   // User-supplied Groq API key (stored locally, never sent to our DB)
   groq_api_key: string;
@@ -190,6 +198,7 @@ const initialState = {
   faction_standings: [] as FactionStanding[],
   companions: {} as Record<string, Companion>,
   visited_locations: [] as VisitedLocation[],
+  open_threads: [] as OpenThread[],
   groq_api_key: '',
   user: null,
   auth_status: 'unknown' as AuthStatus,
@@ -290,6 +299,7 @@ export const useGameStore = create<GameState>()(
           faction_standings: Array.isArray(gs.faction_standings) ? gs.faction_standings : [],
           companions: (gs.companions && typeof gs.companions === 'object') ? gs.companions : initialState.companions,
           visited_locations: Array.isArray(gs.visited_locations) ? gs.visited_locations : [],
+          open_threads: Array.isArray(gs.open_threads) ? gs.open_threads : [],
           current_save_slot_id: slotId,
           game_phase: 'Playing',
         });
@@ -358,6 +368,7 @@ export const useGameStore = create<GameState>()(
               faction_standings: state.faction_standings,
               companions: state.companions,
               visited_locations: state.visited_locations,
+              open_threads: state.open_threads,
             },
           })
           .eq('id', state.current_save_slot_id);
@@ -437,6 +448,7 @@ export const useGameStore = create<GameState>()(
           faction_standings: state.faction_standings ?? [],
           companions: state.companions ?? initialState.companions,
           visited_locations: state.visited_locations ?? [],
+          open_threads: state.open_threads ?? [],
           // NOSONAR: cast required because spreading Partial<PersistedState> makes action fields optional
         } as PersistedState;
       },
