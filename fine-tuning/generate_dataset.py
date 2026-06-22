@@ -1,5 +1,5 @@
 """
-Dataset generator for AI Realm RPG fine-tuning.
+Dataset generator for Storyweave fine-tuning.
 
 Uses Claude to generate high-quality GM responses in the exact JSON schema
 the game expects, across diverse scenarios (genre, tone, player actions).

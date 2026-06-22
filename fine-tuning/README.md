@@ -1,4 +1,4 @@
-# AI Realm RPG — Fine-tuning Pipeline (Apple Silicon)
+# Storyweave — Fine-tuning Pipeline (Apple Silicon)
 
 QLoRA fine-tune Qwen2.5-14B-Instruct บน MacBook Pro M-series ด้วย MLX
 
@@ -7,7 +7,7 @@ QLoRA fine-tune Qwen2.5-14B-Instruct บน MacBook Pro M-series ด้วย ML
 ```
 generate_dataset.py  →  dataset.jsonl       (ใช้ Claude API สร้าง training data)
 train_lora.py        →  lora-adapters/      (train LoRA adapter ด้วย MLX)
-convert_and_deploy.sh →  Ollama model "ai-realm-rpg"  (fuse → GGUF → register)
+convert_and_deploy.sh →  Ollama model "storyweave"  (fuse → GGUF → register)
 ```
 
 ## ข้อกำหนด
@@ -80,7 +80,7 @@ Script จะทำทั้งหมดโดยอัตโนมัติ:
 1. Fuse LoRA adapter เข้า base model (`mlx_lm.fuse`)
 2. Clone และ build llama.cpp ถ้ายังไม่มี (ใช้ Metal สำหรับ Mac)
 3. Convert เป็น GGUF และ quantize เป็น Q4_K_M (~8 GB)
-4. Register กับ Ollama เป็นชื่อ `ai-realm-rpg`
+4. Register กับ Ollama เป็นชื่อ `storyweave`
 
 ---
 
@@ -92,10 +92,10 @@ Script จะทำทั้งหมดโดยอัตโนมัติ:
 // เปลี่ยนจาก:
 model: "qwen2.5:14b",
 // เป็น:
-model: "ai-realm-rpg",
+model: "storyweave",
 ```
 
-ทดสอบก่อนด้วย: `ollama run ai-realm-rpg`
+ทดสอบก่อนด้วย: `ollama run storyweave`
 
 ---
 

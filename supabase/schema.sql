@@ -1,4 +1,4 @@
--- AI Realm: Phase 6 schema (accounts + cloud save slots)
+-- Storyweave: Phase 6 schema (accounts + cloud save slots)
 -- Run this in the Supabase SQL editor for your project.
 
 -- 1. Profiles -----------------------------------------------------------

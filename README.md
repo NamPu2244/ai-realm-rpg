@@ -1,4 +1,4 @@
-# 🗺️ AI Realm RPG
+# 🗺️ Storyweave
 
 > เกม Text-Based RPG ที่ขับเคลื่อนด้วย AI — สร้างโลก, ตัวละคร, และเนื้อเรื่องของคุณเอง แล้วให้ Game Master AI เล่าเรื่องแบบไดนามิกไปกับคุณทุกการตัดสินใจ
 
@@ -96,7 +96,7 @@ API Route ที่ [`src/app/api/chat/route.ts`](src/app/api/chat/route.ts) จ
 
 ### State Management — [`src/store/useGameStore.ts`](src/store/useGameStore.ts)
 
-Zustand store ตัวเดียว (persist ลง `localStorage` ในชื่อ `ai-realm-save`) เก็บ state ทั้งหมดของเกม:
+Zustand store ตัวเดียว (persist ลง `localStorage` ในชื่อ `storyweave-save`) เก็บ state ทั้งหมดของเกม:
 
 - **`game_phase`** — `'Auth' | 'Dashboard' | 'Menu' | 'Playing'` ควบคุม UI หลักใน `page.tsx`
 - **`world_config`** — ภาษา, genre, tone, ตัวละคร, รายละเอียดโลก, opening seed, AI provider/model — กำหนดครั้งเดียวตอนสร้างเกมโดย `WorldCreationMenu`

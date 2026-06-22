@@ -1,4 +1,4 @@
-# AI Realm RPG - Project Context
+# Storyweave - Project Context
 
 This is a text-based Hardcore Fantasy RPG powered by AI, built with Next.js and TypeScript. It features a stateful game engine that manages player status, inventory, and story progression through dynamic AI interactions.
 

@@ -14,7 +14,7 @@ LORA_DIR="${1:?Usage: bash convert_and_deploy.sh <lora-adapters-dir>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FUSED_DIR="${SCRIPT_DIR}/fused-model"
 GGUF_DIR="${SCRIPT_DIR}/gguf"
-MODEL_NAME="ai-realm-rpg"
+MODEL_NAME="storyweave"
 BASE_MODEL="mlx-community/Qwen2.5-14B-Instruct-4bit"
 
 # llama.cpp path (override ด้วย env var ถ้าอยู่ที่อื่น)

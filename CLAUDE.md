@@ -19,11 +19,11 @@ The game's AI features require a `GROQ_API_KEY` in `.env.local`. Requests go to 
 
 ## Architecture
 
-This is a text-based AI-driven RPG ("AI Realm") built with Next.js App Router, React 19, TypeScript, Tailwind CSS 4, and Zustand. The entire game runs as a single-page client app talking to one API route that proxies to the Groq LLM API.
+This is a text-based AI-driven RPG ("Storyweave") built with Next.js App Router, React 19, TypeScript, Tailwind CSS 4, and Zustand. The entire game runs as a single-page client app talking to one API route that proxies to the Groq LLM API.
 
 ### State management (`src/store/useGameStore.ts`)
 
-A single Zustand store (persisted to localStorage as `ai-realm-save`) holds all game state:
+A single Zustand store (persisted to localStorage as `storyweave-save`) holds all game state:
 - `game_phase`: `'Menu' | 'Playing'` — drives top-level UI in `page.tsx`
 - `world_config`: language, genre, tone, character, custom world details, opening seed — set once at game creation by `WorldCreationMenu`
 - `player_status`: hp/mana/inventory/status_effects — fully owned and updated by the AI's JSON responses, not computed locally
