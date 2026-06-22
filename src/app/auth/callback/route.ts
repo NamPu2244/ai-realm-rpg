@@ -5,7 +5,18 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+
+  // Guard against open-redirect: only allow relative paths
+  const rawNext = searchParams.get("next") ?? "/";
+  const next = rawNext.startsWith("/") ? rawNext : "/";
+
+  // In production behind a proxy the request URL may have http:// even though
+  // the public site is https://. Prefer the forwarded host header when present.
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const baseUrl =
+    forwardedHost
+      ? `https://${forwardedHost}`
+      : origin;
 
   if (code) {
     const cookieStore = await cookies();
@@ -28,9 +39,9 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(`${baseUrl}${next}`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/?auth_error=1`);
+  return NextResponse.redirect(`${baseUrl}/?auth_error=1`);
 }
