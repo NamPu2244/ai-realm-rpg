@@ -132,6 +132,14 @@ function urgencyLabel(urgency: OpenThread['urgency']): string {
   }
 }
 
+// Seconds per urgency level before the pressure bar fully depletes
+const PRESSURE_SECONDS: Record<OpenThread['urgency'], number> = {
+  critical: 75,
+  high:     110,
+  medium:   180,
+  low:      300,
+};
+
 interface CharacterSidebarProps {
   worldConfig: WorldConfig | null;
   currentObjective: string;
@@ -141,6 +149,7 @@ interface CharacterSidebarProps {
   companions: Record<string, Companion>;
   factionStandings: FactionStanding[];
   openThreads: OpenThread[];
+  isLoading: boolean;
 }
 
 export default function CharacterSidebar({
@@ -152,12 +161,29 @@ export default function CharacterSidebar({
   companions,
   factionStandings,
   openThreads,
+  isLoading,
 }: Readonly<CharacterSidebarProps>) {
   const prevInventoryRef = useRef<string[]>(playerStatus.inventory);
   const [newItems, setNewItems] = useState<Set<string>>(new Set());
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [threadsExpanded, setThreadsExpanded] = useState(true);
   const [isOpen, setIsOpen] = useState(true);
+  const [turnSeconds, setTurnSeconds] = useState(0);
+  const prevLoadingRef = useRef(isLoading);
+
+  // Count up seconds between turns; reset each time a turn completes
+  useEffect(() => {
+    if (prevLoadingRef.current && !isLoading) {
+      setTurnSeconds(0);
+    }
+    prevLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const id = setInterval(() => setTurnSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [isLoading]);
 
   useEffect(() => {
     const prev = prevInventoryRef.current;
@@ -231,22 +257,49 @@ export default function CharacterSidebar({
                   </span>
                 </button>
                 {threadsExpanded && (
-                  <div className="flex flex-col gap-2">
-                    {openThreads.map((thread) => (
-                      <div key={thread.id} className="border-l-2 border-stone-800 pl-2.5">
-                        <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className={`text-[9px] font-bold tracking-widest ${urgencyColor(thread.urgency)}`}>
-                            {urgencyLabel(thread.urgency)}
-                          </span>
-                          {thread.expires_in_turns !== null && (
-                            <span className="text-[9px] text-stone-600 tabular-nums shrink-0">
-                              {thread.expires_in_turns}t
+                  <div className="flex flex-col gap-2.5">
+                    {openThreads.map((thread) => {
+                      const hasCountdown = thread.expires_in_turns !== null;
+                      const isCritical = thread.urgency === 'critical';
+                      const isHigh = thread.urgency === 'high';
+                      const totalSecs = PRESSURE_SECONDS[thread.urgency];
+                      const pct = hasCountdown ? Math.max(0, 100 - (turnSeconds / totalSecs) * 100) : null;
+                      const mins = Math.floor(turnSeconds / 60);
+                      const secs = turnSeconds % 60;
+
+                      return (
+                        <div
+                          key={thread.id}
+                          className={`pl-2.5 border-l-2 ${
+                            isCritical ? 'border-red-600' :
+                            isHigh     ? 'border-orange-600' :
+                                         'border-stone-800'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className={`text-[9px] font-bold tracking-widest ${urgencyColor(thread.urgency)}`}>
+                              {urgencyLabel(thread.urgency)}
                             </span>
+                            {hasCountdown && (
+                              <span className={`text-[9px] tabular-nums shrink-0 font-mono ${isCritical ? 'text-red-500' : isHigh ? 'text-orange-500' : 'text-stone-600'}`}>
+                                {thread.expires_in_turns}t · {mins > 0 ? `${mins}m ` : ''}{secs}s
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-stone-400 leading-snug mb-1.5">{thread.description}</p>
+                          {pct !== null && (
+                            <div className="w-full h-0.5 bg-stone-800 overflow-hidden">
+                              <div
+                                className={`h-full transition-none ${
+                                  isCritical ? 'bg-red-600' : isHigh ? 'bg-orange-600' : 'bg-yellow-700'
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
                           )}
                         </div>
-                        <p className="text-[10px] text-stone-400 leading-snug">{thread.description}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

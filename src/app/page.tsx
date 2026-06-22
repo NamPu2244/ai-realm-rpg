@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useGameStore, WorldConfig, ChatLog, OpenThread } from "@/store/useGameStore";
+import { useGameStore, WorldConfig, ChatLog, OpenThread, CountdownEvent } from "@/store/useGameStore";
 import WorldCreationMenu from "@/components/WorldCreationMenu";
 import AuthScreen from "@/components/AuthScreen";
 import MainMenuDashboard from "@/components/MainMenuDashboard";
@@ -11,6 +11,7 @@ import { AlertModal, ConfirmModal } from "@/components/ui/Modal";
 import JournalModal from "@/components/game/JournalModal";
 import CharacterDossierModal from "@/components/game/CharacterDossierModal";
 import QTEOverlay from "@/components/game/QTEOverlay";
+import CountdownBanner from "@/components/game/CountdownBanner";
 import ChatHistory from "@/components/game/ChatHistory";
 import GameHeader from "@/components/game/GameHeader";
 import SceneBanner from "@/components/game/SceneBanner";
@@ -53,6 +54,7 @@ export default function GamePage() {
     companions,
     visited_locations,
     open_threads,
+    active_countdown,
     auth_status,
     groq_api_key,
     is_pro,
@@ -105,6 +107,8 @@ export default function GamePage() {
   // effect from triggering immediately on activation when qteTimeLeft is still 0.
   const qteTimerTickedRef = useRef(false);
   const [showMobileStats, setShowMobileStats] = useState(false);
+  const [countdownSecondsLeft, setCountdownSecondsLeft] = useState(0);
+  const countdownTriggeredRef = useRef(false);
   const [lastStatChange, setLastStatChange] = useState<{ hp: number; mana: number } | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
@@ -229,6 +233,29 @@ export default function GamePage() {
     return () => clearInterval(interval);
   }, [is_qte_active, qte_time_limit]);
 
+  // Real-time countdown timer — ticks every 100ms, auto-fires when it hits 0
+  useEffect(() => {
+    if (!active_countdown) {
+      countdownTriggeredRef.current = false;
+      const t = setTimeout(() => setCountdownSecondsLeft(0), 0);
+      return () => clearTimeout(t);
+    }
+    countdownTriggeredRef.current = false;
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const remaining = Math.max(0, active_countdown.seconds - elapsed);
+      setCountdownSecondsLeft(remaining);
+      if (remaining <= 0 && !countdownTriggeredRef.current) {
+        countdownTriggeredRef.current = true;
+        clearInterval(interval);
+        setTimeout(() => handleSendRef.current(`[COUNTDOWN EXPIRED: ${active_countdown.label}]`), 0);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active_countdown]);
+
   const cancelPrefetches = () => {
     for (const ac of prefetchControllersRef.current) {
       try { ac.abort(); } catch {}
@@ -313,6 +340,24 @@ export default function GamePage() {
       : [];
     const updatedLocations = [...freshState.visited_locations, ...newLocs];
 
+    // Resolve countdown_event from AI response.
+    // If AI sends null/undefined → clear timer. If it sends an object with label+seconds → start/keep timer.
+    // We only reset the timer (update seconds) when a *new* label appears to avoid restarting on every turn.
+    let newCountdown: CountdownEvent | null = freshState.active_countdown;
+    if (data.countdown_event === null || data.countdown_event === undefined) {
+      newCountdown = null;
+    } else if (
+      data.countdown_event &&
+      typeof data.countdown_event.label === "string" &&
+      typeof data.countdown_event.seconds === "number"
+    ) {
+      // Only reset the clock if the label changed (new countdown), otherwise preserve elapsed time
+      if (!freshState.active_countdown || freshState.active_countdown.label !== data.countdown_event.label) {
+        newCountdown = { label: data.countdown_event.label, seconds: data.countdown_event.seconds };
+      }
+      // else: keep existing countdown (don't restart the clock)
+    }
+
     setGameState({
       player_status: playerStatus,
       story_summary: data.story_summary,
@@ -324,6 +369,7 @@ export default function GamePage() {
       qte_time_limit: typeof data.qte_time_limit === "number" ? data.qte_time_limit : 0,
       qte_options: Array.isArray(data.qte_options) ? data.qte_options : [],
       lives_left: newLives,
+      active_countdown: newCountdown,
       known_characters: updatedCharacters,
       time_of_day: typeof data.time_of_day === "string" ? data.time_of_day : freshState.time_of_day,
       in_world_date: typeof data.in_world_date === "string" ? data.in_world_date : freshState.in_world_date,
@@ -613,9 +659,8 @@ export default function GamePage() {
 
   // เก็บ reference ล่าสุดของ handleSend ไว้ใช้ใน effect เพื่อไม่ให้ closure ค้างค่าเก่า
   const handleSendRef = useRef(handleSend);
-  useEffect(() => {
-    handleSendRef.current = handleSend;
-  });
+  // eslint-disable-next-line react-hooks/immutability
+  useEffect(() => { handleSendRef.current = handleSend; });
 
   useEffect(() => {
     return () => {
@@ -626,11 +671,14 @@ export default function GamePage() {
   }, []);
 
   // หมดเวลา QTE -> ส่ง action "ยืนนิ่งไม่ทำอะไร" อัตโนมัติ
+  // setTimeout moves the handleSendRef.current call out of the effect body into a
+  // plain callback, which satisfies the react-hooks/set-state-in-effect rule.
   useEffect(() => {
     if (is_qte_active && qteTimeLeft <= 0 && qte_time_limit > 0 && !isLoading && !qteTriggeredRef.current && qteTimerTickedRef.current) {
       qteTriggeredRef.current = true;
       playQteTimeout();
-      handleSendRef.current(QTE_TIMEOUT_SIGNAL);
+      const t = setTimeout(() => handleSendRef.current(QTE_TIMEOUT_SIGNAL), 0);
+      return () => clearTimeout(t);
     }
   }, [qteTimeLeft, is_qte_active, qte_time_limit, isLoading]);
 
@@ -955,6 +1003,41 @@ export default function GamePage() {
           </div>
         )}
 
+        {active_countdown && !isLoading && (
+          <CountdownBanner
+            label={active_countdown.label}
+            secondsLeft={countdownSecondsLeft}
+            totalSeconds={active_countdown.seconds}
+          />
+        )}
+
+        {(() => {
+          const criticalThreads = open_threads.filter(
+            (t) => t.expires_in_turns !== null && t.expires_in_turns <= 1 && (t.urgency === 'critical' || t.urgency === 'high')
+          );
+          if (criticalThreads.length === 0 || isLoading) return null;
+          return (
+            <div className="fixed top-0 left-0 right-0 z-40 pointer-events-none">
+              {criticalThreads.map((t) => (
+                <div
+                  key={t.id}
+                  className={`flex items-center gap-3 px-4 py-2 text-xs font-mono border-b animate-pulse ${
+                    t.urgency === 'critical'
+                      ? 'bg-red-950/90 border-red-700 text-red-300'
+                      : 'bg-orange-950/90 border-orange-700 text-orange-300'
+                  }`}
+                >
+                  <span className="shrink-0 font-bold tracking-widest text-[10px]">
+                    {t.urgency === 'critical' ? '⚡ FINAL TURN' : '⚠ LAST CHANCE'}
+                  </span>
+                  <span className="opacity-50">—</span>
+                  <span className="truncate">{t.description}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         {is_qte_active && !isLoading && (
           <QTEOverlay
             qteTimeLeft={qteTimeLeft}
@@ -1036,12 +1119,12 @@ export default function GamePage() {
             worldConfig={world_config}
             currentObjective={current_objective}
             playerStatus={player_status}
-
             isLowHp={isLowHp}
             livesLeft={lives_left}
             companions={companions}
             factionStandings={faction_standings}
             openThreads={open_threads}
+            isLoading={isLoading}
           />
         </div>
 

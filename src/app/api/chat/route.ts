@@ -131,6 +131,7 @@ GAMEPLAY RULES:
   • [WORLD EVENT: SHIFT] — Time moves visibly: the light changes angle, rain begins or stops, a fire burns lower, the crowd thins or thickens, a smell arrives or fades. Make the player feel duration without narrating it abstractly.
   • [WORLD EVENT: DISTANT] — Something is happening far away and the player can witness it without being involved: smoke on the horizon, a column of riders passing a distant road, a sound of impact or breaking glass from another building, a light where there shouldn't be one.
 - QTE RULE (Quick Time Event): If an enemy or hazard launches a sudden, fast, or potentially lethal attack that demands an immediate reaction, set "is_qte_active" to true, set "qte_time_limit" to a number of seconds (2-7) based on how fast the threat is, and provide 2-3 short "qte_options" (in ${language}) describing immediate reactions (e.g. "หลบซ้าย", "ป้องกัน", "反撃"). On all other turns, set "is_qte_active" to false, "qte_time_limit" to 0, and "qte_options" to an empty array. If the player's action was a "[TIME OUT...]" message, narrate the consequence of standing completely still and apply appropriate damage/effects.
+- COUNTDOWN RULE: When the narrative introduces a real, ticking deadline — a bomb about to detonate, a hostage about to be executed, a door sealed for exactly N seconds, poison spreading through the body, a structure collapsing — set "countdown_event" to an object: { "label": "<short description in ${language} of what is counting down>", "seconds": <integer, 15-120> }. Choose seconds to match the urgency (30s = very urgent, 60s = moderate, 120s = slow burn). Once a countdown is active, keep returning it in subsequent turns (you do NOT need to reset the seconds — the client tracks elapsed time). When the countdown threat is resolved, escaped, defused, or no longer relevant, set "countdown_event" to null. Do NOT set "countdown_event" for vague or turn-based threats — only for situations where the player would feel the weight of actual seconds ticking away. If the player's action begins with "[COUNTDOWN EXPIRED:", narrate the full consequence of the timer hitting zero (explosion, death, failure, etc.) and apply appropriate damage/status effects. Do NOT set a new countdown_event in that same turn unless a new distinct timer immediately starts.
 - LIVES & RESPAWN RULE: If "hp" drops to 0 or below: if "lives_left" > 0, decrease "lives_left" by 1, restore "hp" to "max_hp", clear "inventory" to an empty array, and narrate the character's soul/body being returned to the last safe zone or camp (keep "is_dead" false). If "lives_left" is already 0 when "hp" drops to 0 or below, set "is_dead" to true and keep "hp" at 0. Otherwise keep "lives_left" unchanged.
 
 DIALOGUE FORMATTING:
@@ -212,6 +213,7 @@ EXPECTED JSON SCHEMA (respond with ONLY this JSON object, no extra text):
   "companion_updates": [{"name": "String", "description": "String", "role": "String", "hp": Number, "max_hp": Number, "status_effects": ["String"], "skills": ["String"], "status": "active|dead|missing", "relationship": "String"}],
   "new_locations": [{"name": "String", "description": "String (1 sentence in ${language})"}],
   "open_threads": [{"id": "String (kebab-slug)", "description": "String (in ${language})", "urgency": "low|medium|high|critical", "expires_in_turns": "Number or null"}],
+  "countdown_event": null | {"label": "String (short description of the ticking threat in ${language})", "seconds": Number (15-120)},
   "suggested_actions": ["String (2-4 short suggested next actions in ${language}, each under 8 words — things the player could plausibly do right now given the scene)"]
 }
 
@@ -441,7 +443,8 @@ ${historyContext}
               try { args = JSON.parse(call.function?.arguments ?? "{}"); } catch {}
               const result = resolveTool(fnName, args);
               const parsed = JSON.parse(result) as { purpose?: unknown; rolls?: unknown; modifier?: unknown; total?: unknown };
-              diceLines.push(`- ${parsed.purpose}: rolls=${JSON.stringify(parsed.rolls)}, modifier=${parsed.modifier ?? 0}, total=${parsed.total}`);
+              const modifier = typeof parsed.modifier === 'number' ? parsed.modifier : 0;
+              diceLines.push(`- ${parsed.purpose}: rolls=${JSON.stringify(parsed.rolls)}, modifier=${modifier}, total=${parsed.total}`);
             }
             if (diceLines.length > 0) {
               diceResultsSection = "\n\n[DICE RESULTS — Server-rolled, non-negotiable. Use these exact numbers in your narrative and player_status updates.]\n" + diceLines.join("\n");
@@ -455,25 +458,48 @@ ${historyContext}
 
     const finalUserPrompt = diceResultsSection ? userPrompt + diceResultsSection : userPrompt;
 
-    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${groqKey}`,
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: finalUserPrompt },
-        ],
-        stream: true,
-        // Use a higher temperature on the very first turn to encourage more
-        // creative and varied world-building from the random seed.
-        temperature: isFirstTurn ? 0.85 : 0.7,
-        max_tokens: 2048,
-      }),
+    const groqRequestBody = JSON.stringify({
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: finalUserPrompt },
+      ],
+      stream: true,
+      // Use a higher temperature on the very first turn to encourage more
+      // creative and varied world-building from the random seed.
+      temperature: isFirstTurn ? 0.85 : 0.7,
+      max_tokens: 2048,
     });
+
+    const groqHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${groqKey}`,
+    };
+
+    let groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: groqHeaders,
+      body: groqRequestBody,
+    });
+
+    // On TPM rate limit, wait the specified time and retry once (stays within 60s budget).
+    if (groqResponse.status === 429) {
+      const errText = await groqResponse.text().catch(() => "");
+      const retryMatch = /try again in ([\d.]+)(ms|s)/i.exec(errText);
+      let waitMs = 15000;
+      if (retryMatch) {
+        const raw = Number.parseFloat(retryMatch[1]);
+        waitMs = retryMatch[2] === 'ms' ? Math.ceil(raw) + 500 : Math.ceil(raw * 1000) + 500;
+      }
+      if (waitMs <= 28000) {
+        await new Promise<void>(resolve => setTimeout(resolve, waitMs));
+        groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: groqHeaders,
+          body: groqRequestBody,
+        });
+      }
+    }
 
     if (!groqResponse.ok || !groqResponse.body) {
       const errText = await groqResponse.text().catch(() => "");

@@ -52,9 +52,9 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
     if (prologue === null) return;
 
     if (!prologue) {
-      setDone(true);
+      const t = setTimeout(() => setDone(true), 0);
       autoRef.current = setTimeout(handleEnter, 1500);
-      return;
+      return () => clearTimeout(t);
     }
 
     const chars = [...prologue]; // Unicode-safe split
@@ -80,8 +80,8 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
   useEffect(() => {
     if (prologue !== null) {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-      setShowRetry(false);
-      return;
+      const t = setTimeout(() => setShowRetry(false), 0);
+      return () => clearTimeout(t);
     }
     retryTimerRef.current = setTimeout(() => setShowRetry(true), 25000);
     return () => {

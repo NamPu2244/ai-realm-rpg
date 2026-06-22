@@ -86,6 +86,11 @@ export interface OpenThread {
   expires_in_turns: number | null;
 }
 
+export interface CountdownEvent {
+  label: string;       // what the player is racing against (in game language)
+  seconds: number;     // total seconds on the clock when set
+}
+
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
 
 export interface WorldConfig {
@@ -141,6 +146,9 @@ interface GameState {
   companions: Record<string, Companion>;
   visited_locations: VisitedLocation[];
   open_threads: OpenThread[];
+
+  // Real-time countdown event (e.g. "bomb will explode in 30 seconds")
+  active_countdown: CountdownEvent | null;
 
   // User-supplied Groq API key (stored locally, never sent to our DB)
   groq_api_key: string;
@@ -199,6 +207,7 @@ const initialState = {
   companions: {} as Record<string, Companion>,
   visited_locations: [] as VisitedLocation[],
   open_threads: [] as OpenThread[],
+  active_countdown: null,
   groq_api_key: '',
   user: null,
   auth_status: 'unknown' as AuthStatus,
