@@ -211,7 +211,8 @@ EXPECTED JSON SCHEMA (respond with ONLY this JSON object, no extra text):
   "quest_updates": [{"id": "String (kebab-slug)", "title": "String", "description": "String", "status": "active|completed|failed"}],
   "companion_updates": [{"name": "String", "description": "String", "role": "String", "hp": Number, "max_hp": Number, "status_effects": ["String"], "skills": ["String"], "status": "active|dead|missing", "relationship": "String"}],
   "new_locations": [{"name": "String", "description": "String (1 sentence in ${language})"}],
-  "open_threads": [{"id": "String (kebab-slug)", "description": "String (in ${language})", "urgency": "low|medium|high|critical", "expires_in_turns": "Number|null"}]
+  "open_threads": [{"id": "String (kebab-slug)", "description": "String (in ${language})", "urgency": "low|medium|high|critical", "expires_in_turns": "Number or null"}],
+  "suggested_actions": ["String (2-4 short suggested next actions in ${language}, each under 8 words — things the player could plausibly do right now given the scene)"]
 }
 
 OPEN THREADS RULE:

@@ -264,7 +264,7 @@ export default function GamePage() {
 
     // Model sometimes decreases lives_left but forgets to reset hp/inventory.
     // Enforce the respawn contract client-side so the game state is always consistent.
-    let playerStatus = { level: 1, exp: 0, skills: [], ...data.player_status };
+    let playerStatus = { ...freshState.player_status, ...data.player_status };
     if (respawned) {
       playerStatus = { ...playerStatus, hp: playerStatus.max_hp, inventory: [] };
     }
@@ -282,7 +282,7 @@ export default function GamePage() {
       for (const fu of data.faction_updates) {
         if (!fu?.name) continue;
         const idx = updatedFactions.findIndex((f) => f.name === fu.name);
-        if (idx >= 0) updatedFactions[idx] = fu;
+        if (idx >= 0) updatedFactions[idx] = { ...updatedFactions[idx], ...fu };
         else updatedFactions.push(fu);
       }
     }
@@ -293,7 +293,7 @@ export default function GamePage() {
       for (const qu of data.quest_updates) {
         if (!qu?.id) continue;
         const idx = updatedQuests.findIndex((q) => q.id === qu.id);
-        if (idx >= 0) updatedQuests[idx] = qu;
+        if (idx >= 0) updatedQuests[idx] = { ...updatedQuests[idx], ...qu };
         else updatedQuests.push(qu);
       }
     }
@@ -1036,7 +1036,7 @@ export default function GamePage() {
             worldConfig={world_config}
             currentObjective={current_objective}
             playerStatus={player_status}
-            hpPercent={hpPercent}
+
             isLowHp={isLowHp}
             livesLeft={lives_left}
             companions={companions}

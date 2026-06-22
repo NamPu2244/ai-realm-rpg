@@ -136,7 +136,6 @@ interface CharacterSidebarProps {
   worldConfig: WorldConfig | null;
   currentObjective: string;
   playerStatus: PlayerStatus;
-  hpPercent: number;
   isLowHp: boolean;
   livesLeft: number;
   companions: Record<string, Companion>;
@@ -148,7 +147,6 @@ export default function CharacterSidebar({
   worldConfig,
   currentObjective,
   playerStatus,
-  hpPercent,
   isLowHp,
   livesLeft,
   companions,
