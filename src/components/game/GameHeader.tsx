@@ -8,6 +8,7 @@ interface GameHeaderProps {
   isLowHp: boolean;
   authStatus: AuthStatus;
   hasPersonalKey: boolean;
+  energy: number;
   timeOfDay: string;
   inWorldDate: string;
   importInputRef: RefObject<HTMLInputElement | null>;
@@ -24,11 +25,18 @@ interface GameHeaderProps {
 const ICON_BTN = "flex items-center justify-center w-8 h-8 bg-stone-900/60 hover:bg-amber-900/30 text-amber-100/60 hover:text-amber-200 border border-amber-900/30 hover:border-amber-700/50 rounded-lg transition-all hover:-translate-y-0.5";
 const MENU_ITEM = "w-full flex items-center gap-2.5 px-3 py-2 text-xs text-amber-100/60 hover:text-amber-200 hover:bg-amber-900/20 transition-colors";
 
+function energyChipClass(energy: number): string {
+  if (energy < 5) return 'text-amber-300 border-amber-500/60 bg-amber-950/50 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.2)]';
+  if (energy < 15) return 'text-amber-400/90 border-amber-700/50 bg-stone-900/60';
+  return 'text-amber-100/60 border-amber-900/30 bg-stone-900/40';
+}
+
 export default function GameHeader({
   worldConfig,
   isLowHp,
   authStatus,
   hasPersonalKey,
+  energy,
   timeOfDay,
   inWorldDate,
   importInputRef,
@@ -89,6 +97,17 @@ export default function GameHeader({
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* Energy indicator — shown for authenticated users */}
+          {authStatus === 'authenticated' && (
+            <div
+              title={`พลังงานที่เหลือ ${energy} / 50`}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-mono tabular-nums select-none transition-all ${energyChipClass(energy)}`}
+            >
+              <span>⚡</span>
+              <span>{energy} / 50</span>
+            </div>
+          )}
+
           {/* Settings — quick access with indicator dot */}
           <button
             type="button"

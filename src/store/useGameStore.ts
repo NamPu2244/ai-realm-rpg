@@ -163,11 +163,16 @@ interface GameState {
   // Subscription
   is_pro: boolean;
 
+  // Energy / action points
+  energy: number;
+
   // Actions
   setGameState: (newState: Partial<GameState>) => void;
+  setEnergy: (value: number) => void;
   resetGame: () => void;
   fetchUserSaves: (userId: string) => Promise<void>;
   fetchSubscriptionStatus: () => Promise<void>;
+  fetchEnergyBalance: () => Promise<void>;
   loadSaveSlot: (slotId: string) => Promise<void>;
   createNewSaveSlot: (worldConfig: WorldConfig) => Promise<void>;
   syncCurrentGameToCloud: () => Promise<void>;
@@ -215,15 +220,17 @@ const initialState = {
   current_save_slot_id: null,
   is_loading_saves: false,
   is_pro: false,
+  energy: 50,
 };
 
-type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id' | 'groq_api_key' | 'is_pro'>;
+type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id' | 'groq_api_key' | 'is_pro' | 'energy'>;
 
 export const useGameStore = create<GameState>()(
   persist<GameState, [], [], PersistedState>(
     (set, get) => ({
       ...initialState,
       setGameState: (newState) => set((state) => ({ ...state, ...newState })),
+      setEnergy: (value) => set({ energy: value }),
       resetGame: () => set(initialState),
 
       fetchUserSaves: async (userId) => {
@@ -266,6 +273,20 @@ export const useGameStore = create<GameState>()(
           .eq('status', 'active')
           .maybeSingle();
         set({ is_pro: !!data });
+      },
+
+      fetchEnergyBalance: async () => {
+        const { user } = get();
+        if (!user) return;
+        const supabase = getSupabaseClient();
+        const { data } = await supabase
+          .from('profiles')
+          .select('energy_balance')
+          .eq('id', user.id)
+          .single();
+        if (data && typeof data.energy_balance === 'number') {
+          set({ energy: data.energy_balance });
+        }
       },
 
       loadSaveSlot: async (slotId) => {
@@ -431,7 +452,7 @@ export const useGameStore = create<GameState>()(
       version: 4,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, is_pro, ...rest } = state;
+        const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, is_pro, energy, ...rest } = state;
         return {
           ...rest,
           game_phase: state.auth_status === 'authenticated' ? 'Dashboard' : rest.game_phase,

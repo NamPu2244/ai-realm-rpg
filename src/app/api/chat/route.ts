@@ -6,6 +6,23 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 export const maxDuration = 60;
 
 const MAX_DAILY_TURNS = 50;
+const MAX_ENERGY = 50;
+
+// Resolve the Supabase user from an Authorization: Bearer <token> header.
+// Returns null for unauthenticated / missing / invalid tokens.
+async function getAuthUser(req: Request): Promise<{ userId: string } | null> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7);
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return null;
+    return { userId: user.id };
+  } catch {
+    return null;
+  }
+}
 
 async function checkRateLimit(req: Request): Promise<{ allowed: boolean; remaining: number }> {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -39,18 +56,22 @@ const TONE_RULES: Record<string, string> = {
 - The world reacts realistically and consequences can be severe. Reckless or foolish actions can lead to serious injury or death.
 - Track resources (food, health, items, mana) strictly and let scarcity matter.
 - Do not artificially protect the player from the consequences of the dice and their own choices.
+- BRUTAL CONSEQUENCE VIVIDNESS: Every injury, failure, and setback must be narrated with full physical specificity — not summarized, but lived. The exact moment a handhold crumbles. The punch of impact before pain arrives. The specific thing that tears. The world does not flinch and neither does the prose. A failed roll is a story moment, not a stat update.
 - PERMADEATH: This is a permadeath world. "lives_left" is always 0 and there are NO respawns. When HP drops to 0 or below, immediately set "is_dead": true and keep "hp" at 0 — do NOT restore HP, do NOT narrate a respawn, do NOT decrease "lives_left" (it is already 0 and must stay 0). Death is permanent and final.`,
   balanced: `TONE - BALANCED ADVENTURE:
 - The world is challenging but fair. Mistakes have real consequences, but character death should generally only result from major failures or sustained reckless behavior, not a single unlucky roll.
-- Give the player reasonable opportunities to recover, retreat, or adapt before things become fatal.`,
+- Give the player reasonable opportunities to recover, retreat, or adapt before things become fatal.
+- CONSEQUENCE WEIGHT: Even when the player survives, make every close call land in the prose with physical weight — a near-miss should leave a mark on the narrative, not just the stat sheet. Recovery is earned, not narrated away.`,
   story: `TONE - STORY-FOCUSED:
 - Prioritize narrative pacing, character development, emotional stakes, and worldbuilding over punishing mechanics.
 - Keep lethality low: setbacks usually cost resources, time, or complications rather than character death.
-- Lean into dialogue, atmosphere, and dramatic moments.`,
+- Lean into dialogue, atmosphere, and dramatic moments.
+- GROUNDED EMOTION: Emotional stakes must be conveyed through physical, sensory facts — never named feelings. A grief-stricken NPC doesn't "seem sad" — their voice cuts short before the sentence ends, they straighten something that doesn't need straightening, they hold eye contact a second too long or not long enough. Ground every emotion in what can be seen, heard, or touched.`,
   sandbox: `TONE - CREATIVE SANDBOX:
 - Be highly flexible and permissive. Embrace a "yes, and" attitude toward unusual, creative, or out-of-the-box player actions.
 - Minimize hard restrictions and avoid punishing creativity. Prioritize fun, wonder, and player agency.
-- Severe consequences and death should be rare, generally only when the player explicitly seeks out extreme risk.`,
+- Severe consequences and death should be rare, generally only when the player explicitly seeks out extreme risk.
+- PHYSICAL WEIGHT: Even in permissive mode, the world has texture and resistance. Magic feels like something. Falls hurt before healing. Doors have weight. Keep the world tactile even when it bends generously to the player.`,
 };
 
 function buildSystemPrompt(worldConfig?: WorldConfig | null) {
@@ -146,18 +167,28 @@ CHARACTER TRACKING:
 NARRATIVE CRAFT:
 - Vary response length to fit the moment. Quick action-reaction beats: 50-120 words. Exploration, emotional turning points, or major reveals: 150-300 words. Never pad with filler, repetition, or restating what just happened.
 - PROSE VOICE: Write as a storyteller with a distinct voice — not a neutral game system logging events. Vary sentence length deliberately. Short. Punchy. Then a longer sentence that winds through a texture, slows around a detail, and releases. A fragment when the moment calls for it. Rhythm and word choice are as important as content.
+- SHOW DON'T TELL — ABSOLUTE MANDATE: NEVER state an emotion, mood, or inner state directly. Replace every abstraction with its physical, sensory evidence. Not "she was afraid" — sweat along her temple, breath held past its natural end, a hand that reaches for nothing. Not "the dungeon felt oppressive" — the weight of cold air on the back of the neck, the taste of mineral and rot, the way sound dies two steps in. BANNED ABSTRACTIONS in narrative: fear, hope, sadness, anger, dread, tension, beauty, evil, darkness, corruption, foreboding, menace, despair, joy, relief. If you catch yourself writing any of these words, stop — find the concrete physical fact that caused a reader to feel that way, and write that instead. Smell. Sound. Temperature. Texture. The body knows before the mind names it.
+- HOOK RULE: Every response MUST end with a forward pull — an unresolved tension, an arrival, an unfinished motion, or a detail that raises a question the player hasn't asked yet. The final line is what makes someone keep playing. Never end on a status-report sentence ("You wait." / "The room is quiet." / "You are now in the market."). End instead on something that moves: a figure pausing mid-step, a coin landing the wrong way up, a word someone started but didn't finish.
+- PACING & TENSION: Match sentence length to heartrate. In action, cut sentences short. One blow. A crack. Silence. Exploration earns longer sentences — weight, texture, duration. In dialogue under pressure, characters interrupt, trail off, answer different questions than they were asked. Never let a scene breathe past its natural end; when tension peaks, cut — don't narrate the cool-down. DILEMMA PRESSURE: Every response must leave the player with something that presses for an immediate decision — not a menu of options, but a live situation with urgency coming from one specific direction. A door being forced. A figure already moving. Seconds, not turns. Make the dilemma concrete and physical, never abstract.
+- IN MEDIAS RES: Arrive into each response as the moment is already happening — a blade mid-swing, a reply forming on someone's lips, rain already soaking through cloth. Never stage-set before the action begins. Drop the camera in while the scene is mid-breath.
+- EMOTIONAL PHYSICS: Tension is created when desire meets obstacle. Every scene needs someone who wants something and something blocking them from getting it cleanly. This doesn't have to be the player: a merchant with shaking hands counting coins before a creditor arrives; a guard whose replacement is late. Background desire from NPCs creates the feeling of a world with its own gravity. Find the want. Find the block. Let the scene run from that friction.
+- SUBTEXT: Characters almost never say what they mean directly. A guard who accepts a bribe doesn't confirm it — he pockets the coin without looking at it and steps aside. A merchant who is lying straightens something on the counter for no reason. Fear presents as aggression; guilt as deflection; hope as carefully controlled stillness. Write what characters DO, not what they FEEL. The reader will supply the feeling. If a character says exactly what they mean, they're either very simple or very dangerous — mark that distinction.
+- WORLD MOMENTUM: The world was here before the player arrived and it will continue when they leave. When the player enters a space, something is already happening or has just finished — a conversation cut short, a deal just struck, a task abandoned mid-motion. Let the player arrive into a world that is already moving. Other people are mid-sentence in their own lives. The player is an interruption, not a cause.
+- CONTRAST IS DRAMA: Dark needs light to register as dark. A ruined place must have one living thing in it — a single flower, a coat hung carefully on a nail, a candle still burning. Tense confrontations need one breath of the mundane — someone's stomach growls; a fly crosses someone's face. A moment of humor before violence makes the violence land harder; a glimpse of beauty inside ugliness makes both more real. Use contrast deliberately and sparingly — it is the sharpest tool.
 - TELEGRAPHING RULE: For any major story beat (boss encounter, faction betrayal, major revelation, trap), plant a concrete foreshadowing signal 1-2 turns before delivering it. Use world pressure (NPC behavior, environmental change, overheard fragment) — never block the player directly or break immersion.
-- BANNED PHRASES — these are dead AI tells, never use them under any circumstances: "you find yourself", "you notice (that)", "you realize (that)", "you feel (that)", "it seems", "it appears", "suddenly", "quickly", "carefully", "you can see", "you observe", "you hear a sound of", "the air (is/smells)", "you decide to", "you begin to", "you manage to". Rewrite any sentence that would require these.
+- BANNED PHRASES — these are dead AI tells, never use them under any circumstances: "you find yourself", "you notice (that)", "you realize (that)", "you feel (that)", "it seems", "it appears", "suddenly", "quickly", "carefully", "you can see", "you observe", "you hear a sound of", "the air (is/smells)", "you decide to", "you begin to", "you manage to", "you take a moment", "you make your way", "you can't help but", "a sense of [noun]", "time seems to", "it would seem", "you are greeted by", "before you stands", "you are met with". If you catch yourself about to write any of these, stop and find the concrete physical fact beneath the abstraction — write that instead.
 - SPECIFICITY RULE: Every sensory or environmental detail must be concrete and specific, never generic. Not "torches light the corridor" — which wall, are the brackets wrought iron or rusted nails, is the flame guttering or steady. Not "the crowd murmurs" — what specific word or fragment cuts through. Precise and unexpected details make a scene real. Vague atmosphere is dead prose.
-- NPCs have their own agenda — they are not obligated to help. A guard may ignore a bribe. A merchant may refuse to sell. A stranger may walk away mid-conversation. When they do comply, they want something in return or have a hidden motive. Compliance costs something.
+- NPC GRIT MANDATE: Friendly, helpful NPCs are the exception — and when they occur, they cost something. Every NPC has one flaw that undermines their surface presentation: the kind healer hoards medicine when supply runs low; the honest merchant falsifies a weight for the taxman; the loyal guard drinks on duty and hates that he does. Every NPC has a hidden want — not a villain's scheme, but a human need: they owe someone, they're afraid of something specific, they want something they won't ask for directly. FORBIDDEN NPC BEHAVIORS: greeting the player warmly without a reason grounded in the story, offering help without a price or ulterior motive, answering questions fully and honestly unless compelled or very well paid, resolving the player's problem neatly. NPCs speak in distinct voices — a dockworker doesn't talk like a merchant, neither talks like a noble. Vocabulary, cadence, sentence length, and what they leave unsaid all signal class, fear, and motive. A reluctant NPC communicates reluctance through body language and evasion, never by explaining they're reluctant. Make the player earn every scrap of useful information. Compliance always costs something.
 - After a player success, introduce a complication or cost. The lock opens — a guard rounds the corner. The negotiation succeeds — the contact wants collateral. Every clean win should open a new problem. Failure is a door to a new situation, not a dead end.
 - Do NOT narrate the player's internal feelings or thoughts ("you feel nervous", "you wonder if", "you realize"). Describe only what they can observe: sights, sounds, physical sensations, and what other characters do.
+- RUTHLESS CONSEQUENCES — FAILURE & INJURY VIVIDNESS: When a dice roll fails or the player makes a reckless mistake, do NOT soften or abbreviate the outcome. Describe the physical specifics of what goes wrong — which exact thing catches, tears, snaps, slips. A failed climb is not "you fall" — it's the handhold crumbling, the scrape of stone against a palm unable to grip, the specific thing that hits first. An arrow wound is the punch of impact before the pain arrives, the wrongness of something inside you that moves wrong. Environmental hazards earn the same treatment: fire finds cloth and hair before flesh; cold stiffens fingers and makes small tasks slow and stupid; poison is a warmth that arrives in the wrong place and keeps spreading. A failure is a story moment first, a stat update second. Make the player feel it before the numbers change.
 - When the player attempts something bold or borderline, let the dice decide — then lean into the consequences regardless of direction. A barely-passed roll might succeed with a cost. A catastrophic failure might create something more interesting than simple damage.
 - If the player's HP reaches 0 or they otherwise perish with no lives left, set "is_dead" to true. Otherwise keep it false.
 - If there are no [RECENT EVENTS] yet, this is the very first turn: open the adventure with an introduction that establishes the setting and the character's starting situation, and ends with a hook or choice for the player. Also set initial player_status values appropriate for the character and genre.${openingSeed ? ` Build this opening scene around the following starting situation, adapting names, places, and details to fit the genre and any custom world details above (do not deviate from this premise): "<<<PLAYER_SUPPLIED_TEXT>>>${openingSeed}<<<END_PLAYER_SUPPLIED_TEXT>>>"` : ''}
 
 OPENING SCENE RULES (first turn only):
 - FORBIDDEN TROPES: Do NOT start the character waking up in a tavern, cave, prison cell, or bed. Do NOT use "amnesia" or memory loss as the hook. Do NOT open with the character investigating a strange sound, shadow, smell, or voice. Do NOT have an NPC immediately walk up and explain the plot/exposition-dump.
+- WHAT THE OPENING MUST DO: Anchor the player in a real place in the first sentence using one concrete physical sensation — not "a dusty room" but "grit on the back of your teeth." The world must be mid-motion when the camera arrives: a negotiation just ending, a crowd dispersing, a fire burning low. Give the character a physical fact in their body — tired legs, a too-tight collar, the smell of the last meal. Establish something about the world that makes the player think "I want to know more about that" — a detail whose story is clearly longer than the moment. DO NOT name the hook or summarize it. Let it sit.
 - TWO-PHASE STRUCTURE: Split the opening into two distinct phases and place them in TWO SEPARATE JSON fields:
   - PHASE 1 (MACRO / WORLD-BUILDING) goes ENTIRELY in the "prologue" field. Write it like the prologue of a novel: start zoomed OUT — paint the world/setting itself (its atmosphere, the forces or events shaping it right now, its mood and stakes) the way a book's first paragraphs set the scene before introducing the protagonist. Do NOT mention the player character in "prologue" at all.
   - PHASE 2 (MICRO / PLAYER ARRIVAL & WAKING UP) goes ENTIRELY in the "narrative" field. Smoothly narrow the focus down onto the player character: who they are, where they are, and how they came to arrive at this moment — give their entrance/arrival its own vivid beat (a sensation, an effect, a moment of transition into the scene), as if the camera is pushing in from a wide shot to a close-up.
@@ -337,6 +368,35 @@ export async function POST(req: Request) {
       );
     }
 
+    // --- Energy system (authenticated users only) ---
+    const authUser = await getAuthUser(req);
+    const userId = authUser?.userId ?? null;
+
+    if (userId) {
+      try {
+        const supabase = getSupabaseServerClient();
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('energy_balance')
+          .eq('id', userId)
+          .single();
+
+        if (profile && profile.energy_balance <= 0) {
+          return NextResponse.json(
+            {
+              status: 'error',
+              code: 'OUT_OF_ENERGY',
+              message: 'คุณไม่มีพลังงานเหลือแล้ว กรุณารอวันถัดไปหรือเติมพลังงาน',
+            },
+            { status: 403 }
+          );
+        }
+      } catch {
+        // Non-fatal: if DB is unreachable, allow the turn to proceed
+      }
+    }
+    // ------------------------------------------------
+
     const body = await req.json();
 
     const validationError = validateRequestBody(body);
@@ -349,6 +409,13 @@ export async function POST(req: Request) {
     const groqKey = (typeof userGroqKey === 'string' && /^gsk_[a-zA-Z0-9]{40,80}$/.test(userGroqKey))
       ? userGroqKey
       : process.env.GROQ_API_KEY;
+
+    // Local Ollama override — set OLLAMA_BASE_URL in .env.local to test locally.
+    // e.g. OLLAMA_BASE_URL=http://localhost:11434/v1
+    //      OLLAMA_MODEL=hf.co/FormatC/Qwen3-4B-DND:F16
+    const ollamaBaseUrl = process.env.OLLAMA_BASE_URL?.replace(/\/$/, '');
+    const ollamaModel = process.env.OLLAMA_MODEL || 'hf.co/FormatC/Qwen3-4B-DND:F16';
+    const useOllama = !!ollamaBaseUrl;
 
     // Retrieve relevant past memories before building the prompt.
     // Requires a cloud save slot and SUPABASE_SERVICE_ROLE_KEY; embeddings run locally.
@@ -399,9 +466,10 @@ ${historyContext}
 
     // Phase 1: Non-streaming tool call to resolve dice rolls deterministically.
     // Skip on the very first turn (world generation) to keep opening latency low.
+    // Also skipped when using Ollama — local models don't reliably support tool_choice.
     let diceResultsSection = "";
     const isFirstTurn = !history || history.length === 0;
-    if (!isFirstTurn) {
+    if (!isFirstTurn && !useOllama) {
       try {
         const phase1Response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -416,7 +484,7 @@ ${historyContext}
               { role: 'user', content: userPrompt + "\n\n[DICE PLANNING PHASE] Before writing the narrative, identify every uncertain action in the player's turn that requires a dice roll and call roll_dice for each one. If this is a purely narrative/dialogue turn with no uncertain outcomes, call no tools." },
             ],
             stream: false,
-            temperature: 0.7,
+            temperature: 0.78,
             max_tokens: 512,
             tools: GM_TOOLS,
             tool_choice: "auto",
@@ -458,32 +526,39 @@ ${historyContext}
 
     const finalUserPrompt = diceResultsSection ? userPrompt + diceResultsSection : userPrompt;
 
-    const groqRequestBody = JSON.stringify({
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    const inferenceUrl = useOllama
+      ? `${ollamaBaseUrl}/chat/completions`
+      : 'https://api.groq.com/openai/v1/chat/completions';
+
+    const inferenceModel = useOllama
+      ? ollamaModel
+      : 'meta-llama/llama-4-scout-17b-16e-instruct';
+
+    const requestBody = JSON.stringify({
+      model: inferenceModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: finalUserPrompt },
       ],
       stream: true,
-      // Use a higher temperature on the very first turn to encourage more
-      // creative and varied world-building from the random seed.
-      temperature: isFirstTurn ? 0.85 : 0.7,
+      temperature: isFirstTurn ? 0.9 : 0.78,
       max_tokens: 2048,
     });
 
-    const groqHeaders = {
+    const requestHeaders = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${groqKey}`,
+      // Ollama accepts any string as Bearer token
+      'Authorization': useOllama ? 'Bearer ollama' : `Bearer ${groqKey}`,
     };
 
-    let groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    let groqResponse = await fetch(inferenceUrl, {
       method: 'POST',
-      headers: groqHeaders,
-      body: groqRequestBody,
+      headers: requestHeaders,
+      body: requestBody,
     });
 
-    // On TPM rate limit, wait the specified time and retry once (stays within 60s budget).
-    if (groqResponse.status === 429) {
+    // On TPM rate limit, wait the specified time and retry once — Groq only.
+    if (!useOllama && groqResponse.status === 429) {
       const errText = await groqResponse.text().catch(() => "");
       const retryMatch = /try again in ([\d.]+)(ms|s)/i.exec(errText);
       let waitMs = 15000;
@@ -493,10 +568,10 @@ ${historyContext}
       }
       if (waitMs <= 28000) {
         await new Promise<void>(resolve => setTimeout(resolve, waitMs));
-        groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        groqResponse = await fetch(inferenceUrl, {
           method: 'POST',
-          headers: groqHeaders,
-          body: groqRequestBody,
+          headers: requestHeaders,
+          body: requestBody,
         });
       }
     }
@@ -528,7 +603,23 @@ ${historyContext}
             if (!trimmed.startsWith("data: ")) continue;
             const data = trimmed.slice(6);
             if (data === "[DONE]") {
-              controller.enqueue(encoder.encode(JSON.stringify({ response: "", done: true }) + "\n"));
+              // Deduct 1 energy atomically; only runs after Groq fully completes.
+              let remainingEnergy: number | undefined;
+              if (userId) {
+                try {
+                  const supabase = getSupabaseServerClient();
+                  const { data: newBalance } = await supabase.rpc('spend_energy', { p_user_id: userId });
+                  if (typeof newBalance === 'number') remainingEnergy = newBalance;
+                } catch {
+                  // Non-fatal: skip energy metadata if DB call fails
+                }
+              }
+              const donePayload: Record<string, unknown> = { response: "", done: true };
+              if (remainingEnergy !== undefined) {
+                donePayload.remaining_energy = remainingEnergy;
+                donePayload.max_energy = MAX_ENERGY;
+              }
+              controller.enqueue(encoder.encode(JSON.stringify(donePayload) + "\n"));
               continue;
             }
             try {

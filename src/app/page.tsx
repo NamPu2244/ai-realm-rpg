@@ -58,10 +58,13 @@ export default function GamePage() {
     auth_status,
     groq_api_key,
     is_pro,
+    energy,
     setGameState,
+    setEnergy,
     resetGame,
     fetchUserSaves,
     fetchSubscriptionStatus,
+    fetchEnergyBalance,
     createNewSaveSlot,
     syncCurrentGameToCloud,
     quitToMainMenu,
@@ -128,6 +131,8 @@ export default function GamePage() {
   const [displayedPhase, setDisplayedPhase] = useState(game_phase);
   const [transOverlay, setTransOverlay] = useState(false);
 
+  const [showEnergyModal, setShowEnergyModal] = useState(false);
+
   // กล่องแจ้งเตือน/ยืนยันแบบ modal (แทน window.alert / window.confirm)
   const [alertInfo, setAlertInfo] = useState<string | null>(null);
   const [confirmInfo, setConfirmInfo] = useState<{
@@ -191,6 +196,7 @@ export default function GamePage() {
         });
         fetchUserSaves(sessionUser.id);
         fetchSubscriptionStatus();
+        fetchEnergyBalance();
         if (useGameStore.getState().game_phase !== "Playing") {
           setGameState({ game_phase: "Dashboard" });
         }
@@ -532,9 +538,16 @@ export default function GamePage() {
       // อ่านค่าจาก store โดยตรง (ไม่ใช้ closure) เพื่อป้องกัน stale closure
       // กรณีที่ createNewSaveSlot reset store แล้วยังไม่ re-render ก่อน runTurn ถูกเรียก
       const freshState = useGameStore.getState();
+
+      // Attach the user's session token so the server can enforce energy limits
+      const { data: { session } } = await getSupabaseClient().auth.getSession();
+
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { "Authorization": `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           prompt: message,
           history: newHistory.slice(-10),
@@ -550,9 +563,13 @@ export default function GamePage() {
 
       if (!res.body) throw new Error("No response body");
 
-      // เมื่อ API คืนค่า error จะได้ JSON { error: "..." } กลับมาแทน NDJSON stream ปกติ
+      // เมื่อ API คืนค่า error จะได้ JSON { error/code/... } กลับมาแทน NDJSON stream ปกติ
       if (!res.ok) {
         const errBody = await res.json().catch(() => null);
+        if (errBody?.code === "OUT_OF_ENERGY") {
+          setShowEnergyModal(true);
+          return; // finally still fires → setIsLoading(false)
+        }
         throw new Error(errBody?.error || `Request failed with status ${res.status}`);
       }
 
@@ -561,6 +578,7 @@ export default function GamePage() {
       let rawAiResponse = "";
       let lineBuffer = "";
       let streamError: string | null = null;
+      let streamedRemainingEnergy: number | null = null;
 
       const processLine = (line: string) => {
         if (line.trim() === "") return;
@@ -574,6 +592,10 @@ export default function GamePage() {
           // ป้องกัน "undefined" ติด string เมื่อ response field ไม่มีหรือไม่ใช่ string
           if (typeof parsed.response === "string") {
             rawAiResponse += parsed.response;
+          }
+          // Capture server-side energy metadata from the final done chunk
+          if (typeof parsed.remaining_energy === "number") {
+            streamedRemainingEnergy = parsed.remaining_energy;
           }
           const narrativeMatch = /"narrative":\s*"([^"\\]*(?:\\.[^"\\]*)*)/.exec(rawAiResponse);
           if (narrativeMatch) {
@@ -598,6 +620,11 @@ export default function GamePage() {
       processLine(lineBuffer);
 
       if (streamError) throw new Error(`Groq: ${streamError}`);
+
+      // Update energy from server metadata (deducted after successful Groq stream)
+      if (streamedRemainingEnergy !== null) {
+        setEnergy(streamedRemainingEnergy);
+      }
 
       const result = extractAndParseJSON(rawAiResponse);
 
@@ -1100,6 +1127,7 @@ export default function GamePage() {
               isLowHp={isLowHp}
               authStatus={auth_status}
               hasPersonalKey={!!groq_api_key}
+              energy={energy}
               timeOfDay={time_of_day}
               inWorldDate={in_world_date}
               importInputRef={importInputRef}
@@ -1321,6 +1349,44 @@ export default function GamePage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Out-of-energy modal */}
+        {showEnergyModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md bg-neutral-900 border border-amber-800/50 rounded-2xl shadow-[0_0_60px_rgba(217,119,6,0.15)] p-7 flex flex-col gap-5">
+              {/* Icon + title */}
+              <div className="flex flex-col items-center gap-2 text-center">
+                <span className="text-5xl leading-none">⚡</span>
+                <h2 className="text-amber-300 font-bold text-lg tracking-wide mt-1">สายฟ้าของคุณหมดแล้ว!</h2>
+              </div>
+
+              {/* Body */}
+              <p className="text-neutral-300 text-sm leading-relaxed text-center">
+                เหนื่อยล้าจากการผจญภัยจนก้าวขาไม่ออก...
+                <br />
+                พักผ่อนเพื่อรอฟื้นฟูพลังงานในวันพรุ่งนี้ หรือเติมเสบียงเร่งด่วนเพื่อลุยต่อทันที
+              </p>
+
+              {/* Buttons */}
+              <div className="flex flex-col gap-2.5 mt-1">
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-600 to-yellow-500 text-neutral-900 opacity-50 cursor-not-allowed shadow-[0_0_20px_rgba(217,119,6,0.25)]"
+                >
+                  เติมพลังงาน <span className="font-normal opacity-80">(เร็วๆ นี้)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEnergyModal(false)}
+                  className="w-full py-2.5 rounded-xl text-sm text-neutral-400 hover:text-neutral-200 border border-neutral-700 hover:border-neutral-500 transition-colors"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
             </div>
           </div>
         )}
