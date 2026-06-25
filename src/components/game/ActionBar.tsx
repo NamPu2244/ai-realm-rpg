@@ -60,8 +60,8 @@ const ACTION_STYLES: Record<ActionType, ActionStyle> = {
   },
   default: {
     icon: ChevronRight,
-    card: "border-stone-700/50 hover:border-amber-800/50 hover:bg-amber-950/20 text-amber-200/65 hover:text-amber-100",
-    key: "text-amber-700/60 group-hover:text-amber-500/80",
+    card: "border-theme-border hover:border-theme-accent/50 hover:bg-theme-surface text-theme-text/65 hover:text-theme-text",
+    key: "text-theme-accent/60 group-hover:text-theme-accent/80",
     label: "กระทำ",
   },
 };
@@ -116,8 +116,8 @@ const PLAYER_ACTION_TYPES: PlayerActionType[] = [
     emoji: "⚔️",
     label: "กระทำ",
     placeholder: "ตัวละครคุณทำอะไร?",
-    activeClass: "bg-amber-950/60 border-amber-500/70 text-amber-200",
-    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-amber-800/50 hover:text-amber-400/70",
+    activeClass: "bg-theme-surface border-theme-accent/70 text-theme-accent",
+    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-theme-accent/50 hover:text-theme-accent/70",
   },
   {
     id: "ตรวจสอบ",
@@ -214,7 +214,7 @@ export default function ActionBar({
   };
 
   return (
-    <div className="p-4 md:p-6 border-t border-amber-900/20 bg-stone-950/70 flex flex-col gap-3">
+    <div className="p-4 md:p-6 border-t border-theme-border bg-theme-surface flex flex-col gap-3">
       {error && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-950/40 border border-red-800/50 rounded-xl text-sm text-red-300">
           <span>⚠️ {error}</span>
@@ -233,7 +233,7 @@ export default function ActionBar({
         <>
           {suggestedActions.length > 0 && (
             <div className="space-y-1.5">
-              <div className="text-xs text-amber-400/60 font-medium px-1">เลือกสิ่งที่ตัวละครคุณจะทำ</div>
+              <div className="text-xs text-theme-accent/60 font-medium px-1">เลือกสิ่งที่ตัวละครคุณจะทำ</div>
               <div className="grid grid-cols-1 gap-1.5">
                 {suggestedActions.map((action, i) => {
                   const type = detectActionType(action);
@@ -245,7 +245,7 @@ export default function ActionBar({
                       onClick={() => onSend(action)}
                       disabled={isLoading}
                       title={`ตัวเลือกที่ AI แนะนำ — กดปุ่ม [${i + 1}] หรือคลิกเพื่อทำทันที`}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-stone-900/50 border rounded-lg transition-all disabled:opacity-40 group ${style.card}`}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-theme-surface/60 border rounded-lg transition-all disabled:opacity-40 group ${style.card}`}
                     >
                       <span className={`shrink-0 transition-colors ${style.key}`}>
                         <Icon size={14} />
@@ -261,7 +261,7 @@ export default function ActionBar({
 
           {/* Action type selector */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] text-stone-600 uppercase tracking-widest shrink-0 mr-0.5">วิธีตอบ</span>
+            <span className="text-[10px] text-theme-muted uppercase tracking-widest shrink-0 mr-0.5">วิธีตอบ</span>
             {PLAYER_ACTION_TYPES.map((t) => (
               <button
                 key={t.id}
@@ -295,14 +295,14 @@ export default function ActionBar({
               onKeyDown={handleKeyDown}
               disabled={isLoading}
               placeholder={isLoading ? "GM กำลังประมวลผล..." : placeholder}
-              className={`flex-1 bg-stone-900/60 border ${
-                isLowHp ? "border-red-900/50 focus:border-red-500" : "border-amber-900/30 focus:border-amber-500/60"
-              } rounded-xl px-4 py-3 focus:outline-none disabled:opacity-50 transition-colors placeholder:text-amber-100/30`}
+              className={`flex-1 bg-theme-surface border ${
+                isLowHp ? "border-red-900/50 focus:border-red-500" : "border-theme-border focus:border-theme-accent/60"
+              } rounded-xl px-4 py-3 text-theme-text focus:outline-none disabled:opacity-50 transition-colors placeholder:text-theme-muted/50`}
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-bold rounded-xl hover:from-amber-400 hover:to-orange-400 disabled:opacity-40 transition-all shadow-[0_0_20px_rgba(217,119,6,0.25)] hover:shadow-[0_0_25px_rgba(217,119,6,0.4)]"
+              className="flex items-center gap-2 px-6 py-3 bg-theme-accent text-theme-bg font-bold rounded-xl hover:opacity-90 disabled:opacity-40 transition-all shadow-[0_0_20px_var(--theme-accent-glow)] hover:shadow-[0_0_28px_var(--theme-accent-glow)]"
             >
               {isLoading ? "..." : <><Send size={15} /> ส่ง</>}
             </button>

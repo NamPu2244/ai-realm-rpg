@@ -1,8 +1,75 @@
 @import "tailwindcss";
 
+/* ============================================================
+   DYNAMIC THEME CSS VARIABLES
+   Apply one of these classes to the game wrapper element.
+   ============================================================ */
+
+/* Default values (fantasy) — also used as fallback when no theme class is set */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --theme-bg: #0f0b07;
+  --theme-surface: rgba(26, 18, 8, 0.85);
+  --theme-border: rgba(120, 80, 20, 0.40);
+  --theme-accent: #d97706;
+  --theme-accent-glow: rgba(217, 119, 6, 0.35);
+  --theme-text: #f5e9d9;
+  --theme-muted: #a8927a;
+  --theme-selection: rgba(120, 53, 15, 0.60);
+}
+
+/* ---- Fantasy: dark parchment + gold accents + serif ---- */
+.theme-fantasy {
+  --theme-bg: #0f0b07;
+  --theme-surface: rgba(26, 18, 8, 0.85);
+  --theme-border: rgba(120, 80, 20, 0.40);
+  --theme-accent: #d97706;
+  --theme-accent-glow: rgba(217, 119, 6, 0.35);
+  --theme-text: #f5e9d9;
+  --theme-muted: #a8927a;
+  --theme-selection: rgba(120, 53, 15, 0.60);
+  font-family: Georgia, var(--font-geist-sans), var(--font-noto-sans-thai), serif;
+}
+
+/* ---- Cyberpunk: pitch black + neon cyan/magenta + monospace ---- */
+.theme-cyberpunk {
+  --theme-bg: #00000f;
+  --theme-surface: rgba(0, 8, 20, 0.92);
+  --theme-border: rgba(0, 220, 255, 0.25);
+  --theme-accent: #00dcff;
+  --theme-accent-glow: rgba(0, 220, 255, 0.40);
+  --theme-text: #cce8ff;
+  --theme-muted: #3a6a80;
+  --theme-selection: rgba(0, 100, 150, 0.55);
+  font-family: var(--font-geist-mono), var(--font-noto-sans-thai), monospace;
+}
+
+/* ---- Horror: abyssal black + blood-red + muted serif ---- */
+.theme-horror {
+  --theme-bg: #030303;
+  --theme-surface: rgba(10, 4, 4, 0.93);
+  --theme-border: rgba(139, 0, 0, 0.35);
+  --theme-accent: #b30000;
+  --theme-accent-glow: rgba(179, 0, 0, 0.45);
+  --theme-text: #c8b0b0;
+  --theme-muted: #5a3838;
+  --theme-selection: rgba(80, 0, 0, 0.65);
+  font-family: Georgia, 'Times New Roman', var(--font-noto-sans-thai), serif;
+}
+
+/* ---- Survival: deep forest + earthy green + sans ---- */
+.theme-survival {
+  --theme-bg: #080b06;
+  --theme-surface: rgba(12, 18, 8, 0.90);
+  --theme-border: rgba(74, 110, 60, 0.35);
+  --theme-accent: #5a9e6a;
+  --theme-accent-glow: rgba(90, 158, 106, 0.35);
+  --theme-text: #c4d4b0;
+  --theme-muted: #506045;
+  --theme-selection: rgba(40, 70, 30, 0.65);
+  font-family: var(--font-geist-sans), var(--font-noto-sans-thai), sans-serif;
 }
 
 @theme inline {
@@ -10,6 +77,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans), var(--font-noto-sans-thai);
   --font-mono: var(--font-geist-mono), var(--font-noto-sans-thai);
+
+  /* Semantic theme tokens — use as bg-theme-bg, text-theme-text, border-theme-border, etc. */
+  --color-theme-bg: var(--theme-bg);
+  --color-theme-surface: var(--theme-surface);
+  --color-theme-border: var(--theme-border);
+  --color-theme-accent: var(--theme-accent);
+  --color-theme-text: var(--theme-text);
+  --color-theme-muted: var(--theme-muted);
   --animate-shake: shake 0.4s ease-in-out;
   --animate-fade-out-cinematic: fadeOutCinematic 1.8s ease-out forwards;
   --animate-modal-backdrop: modalBackdrop 0.2s ease-out forwards;
@@ -130,6 +205,26 @@ body {
     var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Per-theme body backgrounds (`:has()` lets the body react to a class on a child element) */
+body:has(.theme-cyberpunk) {
+  background:
+    radial-gradient(ellipse 70% 50% at 25% -5%, rgba(0, 220, 255, 0.07), transparent),
+    radial-gradient(ellipse 55% 60% at 85% 100%, rgba(255, 0, 200, 0.06), transparent),
+    #00000f;
+}
+body:has(.theme-horror) {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(139, 0, 0, 0.10), transparent),
+    radial-gradient(ellipse 55% 50% at 100% 100%, rgba(60, 0, 0, 0.15), transparent),
+    #030303;
+}
+body:has(.theme-survival) {
+  background:
+    radial-gradient(ellipse 80% 55% at 50% -10%, rgba(74, 110, 60, 0.10), transparent),
+    radial-gradient(ellipse 55% 50% at 0% 100%, rgba(30, 50, 20, 0.14), transparent),
+    #080b06;
 }
 
 /* ผู้ใช้ที่เปิด "ลดการเคลื่อนไหว" ในระบบ: ปิด animate-pulse/animate-shake/cinematic

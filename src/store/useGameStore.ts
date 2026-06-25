@@ -93,6 +93,17 @@ export interface CountdownEvent {
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
 
+export type UiTheme = 'theme-fantasy' | 'theme-cyberpunk' | 'theme-horror' | 'theme-survival';
+
+/** Maps a genre string to the best-fit UI theme. Used when ui_theme is not set explicitly. */
+export function genreToTheme(genre: string): UiTheme {
+  const g = genre.toLowerCase();
+  if (/sci.?fi|cyber|space|futur|mech|android|robot|tech|neon/.test(g)) return 'theme-cyberpunk';
+  if (/horror|gothic|dark|haunt|vampir|undead|eldritch|lovecraft|ghost|demon|cthulhu/.test(g)) return 'theme-horror';
+  if (/survival|post.?apoc|wasteland|wilder|zombie|disaster|apocalyp/.test(g)) return 'theme-survival';
+  return 'theme-fantasy';
+}
+
 export interface WorldConfig {
   language: string;
   genre: string;
@@ -101,6 +112,7 @@ export interface WorldConfig {
   customWorld: string;
   openingSeed: string;
   worldName?: string;
+  ui_theme?: UiTheme;
 }
 
 export interface AuthUser {

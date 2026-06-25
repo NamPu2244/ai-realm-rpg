@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useGameStore, WorldConfig, ChatLog, OpenThread, CountdownEvent } from "@/store/useGameStore";
+import { useGameStore, WorldConfig, ChatLog, OpenThread, CountdownEvent, genreToTheme } from "@/store/useGameStore";
 import WorldCreationMenu from "@/components/WorldCreationMenu";
 import AuthScreen from "@/components/AuthScreen";
 import MainMenuDashboard from "@/components/MainMenuDashboard";
@@ -757,6 +757,11 @@ export default function GamePage() {
   }, [game_phase]);
 
   const handleStartGame = async (config: WorldConfig) => {
+    const configWithTheme: WorldConfig = {
+      ...config,
+      ui_theme: config.ui_theme ?? genreToTheme(config.genre),
+    };
+    config = configWithTheme;
     // Show loading screen immediately while AI generates the opening
     setGameState({
       world_config: config,
@@ -1013,9 +1018,11 @@ export default function GamePage() {
     }
 
     // Playing screen
+    const uiTheme = world_config?.ui_theme ?? genreToTheme(world_config?.genre ?? '');
     return (
       <div
-        className={`relative flex h-screen bg-transparent text-amber-50 font-sans selection:bg-amber-800/60 transition-all duration-1000 ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
+        className={`relative flex h-screen bg-transparent text-theme-text font-sans transition-all duration-1000 ${uiTheme} ${isLowHp ? "shadow-[inset_0_0_150px_rgba(220,38,38,0.15)]" : ""} ${isShaking ? "animate-shake" : ""}`}
+        style={{ ['--tw-selection-color' as string]: 'var(--theme-selection)' }}
       >
         {sceneImageUrl && (
           <div
