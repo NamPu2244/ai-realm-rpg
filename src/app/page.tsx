@@ -18,6 +18,9 @@ import SceneBanner from "@/components/game/SceneBanner";
 import ActionBar from "@/components/game/ActionBar";
 import CharacterSidebar from "@/components/game/CharacterSidebar";
 import MobileStatsDrawer from "@/components/game/MobileStatsDrawer";
+import SettingsModal from "@/components/game/SettingsModal";
+import FeedbackModal from "@/components/game/FeedbackModal";
+import EnergyModal from "@/components/game/EnergyModal";
 import { Heart, MessageSquare } from "lucide-react";
 import WorldLoadingScreen from "@/components/WorldLoadingScreen";
 import {
@@ -29,7 +32,10 @@ import {
   getQteTimeoutDisplay,
   buildSceneImageUrl,
 } from "@/lib/gameText";
-import { playDamage, playLevelUp, playQteAlert, playQteSelect, playQteTimeout, playAmbient } from "@/lib/sounds";
+import { playQteSelect, playAmbient } from "@/lib/sounds";
+import { useGameEffects } from "@/hooks/useGameEffects";
+import { useQteTimer } from "@/hooks/useQteTimer";
+import { useCountdownTimer } from "@/hooks/useCountdownTimer";
 
 export default function GamePage() {
   const {
@@ -81,44 +87,31 @@ export default function GamePage() {
   } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const prevHpRef = useRef(player_status.hp);
 
-  const [isShaking, setIsShaking] = useState(false);
-  const [isDamageFlash, setIsDamageFlash] = useState(false);
-  const [showLevelUp, setShowLevelUp] = useState(false);
-  const [levelUpNum, setLevelUpNum] = useState(0);
-  const prevLevelRef = useRef(player_status.level);
   const ambientTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showJournal, setShowJournal] = useState(false);
   const [showDossier, setShowDossier] = useState(false);
-  const [qteTimeLeft, setQteTimeLeft] = useState(0);
   const [worldLoading, setWorldLoading] = useState<{
     active: boolean;
     config: WorldConfig | null;
     prologue: string | null;
   }>({ active: false, config: null, prologue: null });
 
-  // Refs for AI prefetch (pre-generate responses to suggested actions in background)
   const prefetchCacheRef = useRef<Map<string, unknown>>(new Map());
   const prefetchControllersRef = useRef<AbortController[]>([]);
-  // Called once when the first AI turn completes (for world loading screen)
   const onFirstTurnCompleteRef = useRef<((prologue?: string) => void) | null>(null);
-  // Tracks the last world event type fired — prevents the same type repeating back-to-back
   const lastWorldEventTypeRef = useRef<string | null>(null);
-  const qteTriggeredRef = useRef(false);
-  // Tracks whether the QTE timer has ticked at least once — prevents the auto-fire
-  // effect from triggering immediately on activation when qteTimeLeft is still 0.
-  const qteTimerTickedRef = useRef(false);
   const [showMobileStats, setShowMobileStats] = useState(false);
-  const [countdownSecondsLeft, setCountdownSecondsLeft] = useState(0);
-  const countdownTriggeredRef = useRef(false);
+
+  const cancelPrefetches = () => {
+    for (const ac of prefetchControllersRef.current) {
+      try { ac.abort(); } catch {}
+    }
+    prefetchControllersRef.current = [];
+  };
   const [lastStatChange, setLastStatChange] = useState<{ hp: number; mana: number } | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
-  const [feedbackSent, setFeedbackSent] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [apiKeyDraft, setApiKeyDraft] = useState(groq_api_key);
   const statChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(() => {
@@ -126,21 +119,17 @@ export default function GamePage() {
     return new URLSearchParams(globalThis.location.search).get("upgrade") === "success";
   });
 
-  // Page transition state
   const displayedPhaseRef = useRef(game_phase);
   const [displayedPhase, setDisplayedPhase] = useState(game_phase);
   const [transOverlay, setTransOverlay] = useState(false);
 
   const [showEnergyModal, setShowEnergyModal] = useState(false);
-
-  // กล่องแจ้งเตือน/ยืนยันแบบ modal (แทน window.alert / window.confirm)
   const [alertInfo, setAlertInfo] = useState<string | null>(null);
   const [confirmInfo, setConfirmInfo] = useState<{
     message: string;
     onConfirm: () => void;
   } | null>(null);
 
-  // คำนวณเปอร์เซ็นต์ HP (ถ้าต่ำกว่า 30% จะถือว่าปางตาย)
   const hpPercent =
     player_status.max_hp > 0
       ? (player_status.hp / player_status.max_hp) * 100
@@ -152,39 +141,17 @@ export default function GamePage() {
   );
   const isLowHp = hpPercent <= 30 && hpPercent > 0 && game_phase === "Playing";
 
+  // Extracted hooks
+  const { isShaking, isDamageFlash, showLevelUp, levelUpNum } = useGameEffects(
+    player_status.hp,
+    player_status.level,
+  );
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history, streamingNarrative]);
 
-  // สั่นหน้าจอและ flash แดงเมื่อ HP ลดลง
-  useEffect(() => {
-    if (player_status.hp < prevHpRef.current) {
-      setIsShaking(true);
-      setIsDamageFlash(true);
-      playDamage();
-      const shakeTimer = setTimeout(() => setIsShaking(false), 400);
-      const flashTimer = setTimeout(() => setIsDamageFlash(false), 350);
-      prevHpRef.current = player_status.hp;
-      return () => { clearTimeout(shakeTimer); clearTimeout(flashTimer); };
-    }
-    prevHpRef.current = player_status.hp;
-  }, [player_status.hp]);
-
-  // แสดง banner เมื่อ level ขึ้น
-  useEffect(() => {
-    if (player_status.level > prevLevelRef.current && prevLevelRef.current > 0) {
-      setLevelUpNum(player_status.level);
-      setShowLevelUp(true);
-      playLevelUp();
-      const timer = setTimeout(() => setShowLevelUp(false), 2200);
-      prevLevelRef.current = player_status.level;
-      return () => clearTimeout(timer);
-    }
-    prevLevelRef.current = player_status.level;
-  }, [player_status.level]);
-
-  // ตรวจสอบสถานะ login กับ Supabase ตอนเปิดแอป และติดตามการเปลี่ยนสถานะ
-  // (login/logout) เพื่อสลับไปหน้า Dashboard/Auth ให้ถูกต้อง
+  // Auth session management
   useEffect(() => {
     const supabase = getSupabaseClient();
 
@@ -204,8 +171,6 @@ export default function GamePage() {
         useGameStore.getState().auth_status !== "guest" &&
         useGameStore.getState().game_phase !== "Playing"
       ) {
-        // ไม่ดีดผู้เล่นที่กำลังเล่นอยู่ออกจากเกม เผื่อ session หลุดชั่วคราว
-        // ตอนสลับแท็บแล้ว Supabase auto-refresh ล้มเหลว (event นี้จะถูกยิงซ้ำได้)
         setGameState({ game_phase: "Auth" });
       }
     };
@@ -224,7 +189,7 @@ export default function GamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ทำ side-effects เมื่อกลับมาจาก Stripe checkout สำเร็จ (clean URL, refresh Pro status, auto-hide toast)
+  // Stripe upgrade success toast
   useEffect(() => {
     if (!showUpgradeSuccess) return;
     fetchSubscriptionStatus();
@@ -236,61 +201,33 @@ export default function GamePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // เริ่มจับเวลา QTE เมื่อ AI สั่งให้ active
+  // Animated transitions between Auth / Dashboard / Menu
   useEffect(() => {
-    if (!is_qte_active) {
-      qteTimerTickedRef.current = false;
-      const t = setTimeout(() => setQteTimeLeft(0), 0);
-      return () => clearTimeout(t);
-    }
-    playQteAlert();
-    qteTriggeredRef.current = false;
-    qteTimerTickedRef.current = false;
-    const effectiveLimit = Math.max(qte_time_limit, 5);
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      qteTimerTickedRef.current = true;
-      const elapsed = (Date.now() - startTime) / 1000;
-      setQteTimeLeft(Math.max(0, effectiveLimit - elapsed));
-    }, 100);
-    return () => clearInterval(interval);
-  }, [is_qte_active, qte_time_limit]);
+    const isMenuP = (p: string) => p === "Auth" || p === "Dashboard" || p === "Menu";
+    const prev = displayedPhaseRef.current;
+    if (game_phase === prev) return;
+    displayedPhaseRef.current = game_phase;
 
-  // Real-time countdown timer — ticks every 100ms, auto-fires when it hits 0
+    if (isMenuP(game_phase) && isMenuP(prev)) {
+      setTransOverlay(true);
+      const t1 = setTimeout(() => setDisplayedPhase(game_phase), 220);
+      const t2 = setTimeout(() => setTransOverlay(false), 520);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+    setDisplayedPhase(game_phase);
+  }, [game_phase]);
+
+  // Cleanup on unmount
   useEffect(() => {
-    if (!active_countdown) {
-      countdownTriggeredRef.current = false;
-      const t = setTimeout(() => setCountdownSecondsLeft(0), 0);
-      return () => clearTimeout(t);
-    }
-    countdownTriggeredRef.current = false;
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const remaining = Math.max(0, active_countdown.seconds - elapsed);
-      setCountdownSecondsLeft(remaining);
-      if (remaining <= 0 && !countdownTriggeredRef.current) {
-        countdownTriggeredRef.current = true;
-        clearInterval(interval);
-        setTimeout(() => handleSendRef.current(`[COUNTDOWN EXPIRED: ${active_countdown.label}]`), 0);
-      }
-    }, 100);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active_countdown]);
+    return () => {
+      if (ambientTimerRef.current) clearTimeout(ambientTimerRef.current);
+      if (statChangeTimerRef.current) clearTimeout(statChangeTimerRef.current);
+      cancelPrefetches();
+    };
+  }, []);
 
-  const cancelPrefetches = () => {
-    for (const ac of prefetchControllersRef.current) {
-      try { ac.abort(); } catch {}
-    }
-    prefetchControllersRef.current = [];
-  };
-
-  // Apply parsed AI turn data: update game state, schedule ambient events,
-  // sync to cloud, and kick off background prefetches for suggested actions.
-  // Called from both runTurn (after streaming) and the prefetch cache path (instant).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const applyGameResult = (data: any, newHistory: ChatLog[], worldConfig: WorldConfig | null, message: string, isSystemInit: boolean) => {
+  const applyGameResult = (data: any, newHistory: ChatLog[], worldConfig: WorldConfig | null, message: string, isSystemInit: boolean, onSend: typeof handleSend) => {
     const freshState = useGameStore.getState();
     const prevHp = freshState.player_status.hp;
     const prevMana = freshState.player_status.mana;
@@ -312,8 +249,6 @@ export default function GamePage() {
     const newLives = typeof data.lives_left === "number" ? data.lives_left : prevLives;
     const respawned = newLives < prevLives && !data.is_dead;
 
-    // Model sometimes decreases lives_left but forgets to reset hp/inventory.
-    // Enforce the respawn contract client-side so the game state is always consistent.
     let playerStatus = { ...freshState.player_status, ...data.player_status };
     if (respawned) {
       playerStatus = { ...playerStatus, hp: playerStatus.max_hp, inventory: [] };
@@ -326,7 +261,6 @@ export default function GamePage() {
       }
     }
 
-    // Merge faction updates
     const updatedFactions = [...freshState.faction_standings];
     if (Array.isArray(data.faction_updates)) {
       for (const fu of data.faction_updates) {
@@ -337,7 +271,6 @@ export default function GamePage() {
       }
     }
 
-    // Merge quest updates
     const updatedQuests = [...freshState.quest_log];
     if (Array.isArray(data.quest_updates)) {
       for (const qu of data.quest_updates) {
@@ -348,7 +281,6 @@ export default function GamePage() {
       }
     }
 
-    // Merge companion updates
     const updatedCompanions = { ...freshState.companions };
     if (Array.isArray(data.companion_updates)) {
       for (const cu of data.companion_updates) {
@@ -356,16 +288,12 @@ export default function GamePage() {
       }
     }
 
-    // Append new locations (dedup by name)
     const existingNames = new Set(freshState.visited_locations.map((l) => l.name));
     const newLocs = Array.isArray(data.new_locations)
       ? data.new_locations.filter((l: { name: string }) => l?.name && !existingNames.has(l.name))
       : [];
     const updatedLocations = [...freshState.visited_locations, ...newLocs];
 
-    // Resolve countdown_event from AI response.
-    // If AI sends null/undefined → clear timer. If it sends an object with label+seconds → start/keep timer.
-    // We only reset the timer (update seconds) when a *new* label appears to avoid restarting on every turn.
     let newCountdown: CountdownEvent | null = freshState.active_countdown;
     if (data.countdown_event === null || data.countdown_event === undefined) {
       newCountdown = null;
@@ -374,11 +302,9 @@ export default function GamePage() {
       typeof data.countdown_event.label === "string" &&
       typeof data.countdown_event.seconds === "number"
     ) {
-      // Only reset the clock if the label changed (new countdown), otherwise preserve elapsed time
       if (!freshState.active_countdown || freshState.active_countdown.label !== data.countdown_event.label) {
         newCountdown = { label: data.countdown_event.label, seconds: data.countdown_event.seconds };
       }
-      // else: keep existing countdown (don't restart the clock)
     }
 
     setGameState({
@@ -415,7 +341,6 @@ export default function GamePage() {
     setStreamingNarrative("");
     setRetryAction(null);
 
-    // Signal world loading screen that the first turn is ready
     if (onFirstTurnCompleteRef.current) {
       onFirstTurnCompleteRef.current(data.prologue);
       onFirstTurnCompleteRef.current = null;
@@ -424,17 +349,15 @@ export default function GamePage() {
     const isAmbientOrSystem = isWorldEventSignal(message) || message === QTE_TIMEOUT_SIGNAL;
     if (isWorldEventSignal(message)) playAmbient();
 
-    // 25% chance of a typed ambient world event (skipped on system/QTE turns and after death)
     if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
       const delay = 6000 + Math.random() * 6000;
       ambientTimerRef.current = setTimeout(() => {
         const s = useGameStore.getState();
         if (!s.is_dead && !s.is_qte_active && s.game_phase === "Playing") {
-          // Pick a type different from the last one to avoid back-to-back repetition
           const available = WORLD_EVENT_TYPES.filter((t) => t !== lastWorldEventTypeRef.current);
           const picked = available[Math.floor(Math.random() * available.length)];
           lastWorldEventTypeRef.current = picked;
-          handleSendRef.current(buildWorldEventSignal(picked), true);
+          onSend(buildWorldEventSignal(picked), true);
         }
       }, delay);
     }
@@ -463,7 +386,6 @@ export default function GamePage() {
       }
     }
 
-    // Pre-fetch suggested actions in background so the next player action can respond instantly
     if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && suggestedActions.length > 0) {
       cancelPrefetches();
       prefetchCacheRef.current.clear();
@@ -535,11 +457,7 @@ export default function GamePage() {
     setError(null);
 
     try {
-      // อ่านค่าจาก store โดยตรง (ไม่ใช้ closure) เพื่อป้องกัน stale closure
-      // กรณีที่ createNewSaveSlot reset store แล้วยังไม่ re-render ก่อน runTurn ถูกเรียก
       const freshState = useGameStore.getState();
-
-      // Attach the user's session token so the server can enforce energy limits
       const { data: { session } } = await getSupabaseClient().auth.getSession();
 
       const res = await fetch("/api/chat", {
@@ -563,12 +481,11 @@ export default function GamePage() {
 
       if (!res.body) throw new Error("No response body");
 
-      // เมื่อ API คืนค่า error จะได้ JSON { error/code/... } กลับมาแทน NDJSON stream ปกติ
       if (!res.ok) {
         const errBody = await res.json().catch(() => null);
         if (errBody?.code === "OUT_OF_ENERGY") {
           setShowEnergyModal(true);
-          return; // finally still fires → setIsLoading(false)
+          return;
         }
         throw new Error(errBody?.error || `Request failed with status ${res.status}`);
       }
@@ -584,16 +501,13 @@ export default function GamePage() {
         if (line.trim() === "") return;
         try {
           const parsed = JSON.parse(line);
-          // Error จาก Groq ที่ซ่อนอยู่ใน stream body (rate limit, content filter ฯลฯ)
           if (typeof parsed.stream_error === "string") {
             streamError = parsed.stream_error;
             return;
           }
-          // ป้องกัน "undefined" ติด string เมื่อ response field ไม่มีหรือไม่ใช่ string
           if (typeof parsed.response === "string") {
             rawAiResponse += parsed.response;
           }
-          // Capture server-side energy metadata from the final done chunk
           if (typeof parsed.remaining_energy === "number") {
             streamedRemainingEnergy = parsed.remaining_energy;
           }
@@ -621,7 +535,6 @@ export default function GamePage() {
 
       if (streamError) throw new Error(`Groq: ${streamError}`);
 
-      // Update energy from server metadata (deducted after successful Groq stream)
       if (streamedRemainingEnergy !== null) {
         setEnergy(streamedRemainingEnergy);
       }
@@ -629,7 +542,7 @@ export default function GamePage() {
       const result = extractAndParseJSON(rawAiResponse);
 
       if (result.success) {
-        applyGameResult(result.data, newHistory, worldConfig, message, isSystemInit);
+        applyGameResult(result.data, newHistory, worldConfig, message, isSystemInit, handleSend);
       } else {
         setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
         setError("AI ตอบกลับมาผิดพลาด ไม่สามารถอ่านข้อมูลได้ ลองอีกครั้ง");
@@ -659,7 +572,6 @@ export default function GamePage() {
   ) => {
     if (!message.trim() && !isSystemInit) return;
 
-    // ยกเลิก ambient event ที่รออยู่เมื่อผู้เล่นส่ง action
     if (ambientTimerRef.current) {
       clearTimeout(ambientTimerRef.current);
       ambientTimerRef.current = null;
@@ -672,7 +584,6 @@ export default function GamePage() {
     const displayContent =
       message === QTE_TIMEOUT_SIGNAL ? getQteTimeoutDisplay(worldConfig?.language) : message;
 
-    // ส่ง prompt ที่ descriptive กว่าให้ AI เพื่อไม่ให้สับสนและตอบ plain text แทน JSON
     const apiMessage = isNoResponse
       ? "[ไม่ตอบสนอง]: ผู้เล่นยืนนิ่งเงียบและไม่กระทำสิ่งใด เวลาผ่านไปเล็กน้อย กรุณาดำเนินเรื่องต่อโดยไม่มีการกระทำจากผู้เล่น"
       : message;
@@ -682,14 +593,13 @@ export default function GamePage() {
       : [...history, { role: "player" as const, content: displayContent }];
     if (!isSystemInit) setGameState({ history: newHistory });
 
-    // Check prefetch cache for instant response on suggested actions
     const canUsePrefetch = !isSystemInit && !isNoResponse && message !== QTE_TIMEOUT_SIGNAL && !isWorldEventSignal(message);
     const cached = canUsePrefetch ? prefetchCacheRef.current.get(message) : null;
     cancelPrefetches();
     prefetchCacheRef.current.clear();
 
     if (cached) {
-      applyGameResult(cached, newHistory, worldConfig, message, false);
+      applyGameResult(cached, newHistory, worldConfig, message, false, handleSend);
       return;
     }
 
@@ -701,60 +611,34 @@ export default function GamePage() {
     runTurn(retryAction.newHistory, retryAction.message, retryAction.worldConfig);
   };
 
-  // เก็บ reference ล่าสุดของ handleSend ไว้ใช้ใน effect เพื่อไม่ให้ closure ค้างค่าเก่า
-  const handleSendRef = useRef(handleSend);
-  // eslint-disable-next-line react-hooks/immutability
-  useEffect(() => { handleSendRef.current = handleSend; });
-
-  useEffect(() => {
-    return () => {
-      if (ambientTimerRef.current) clearTimeout(ambientTimerRef.current);
-      if (statChangeTimerRef.current) clearTimeout(statChangeTimerRef.current);
-      cancelPrefetches();
-    };
-  }, []);
-
-  // หมดเวลา QTE -> ส่ง action "ยืนนิ่งไม่ทำอะไร" อัตโนมัติ
-  // setTimeout moves the handleSendRef.current call out of the effect body into a
-  // plain callback, which satisfies the react-hooks/set-state-in-effect rule.
-  useEffect(() => {
-    if (is_qte_active && qteTimeLeft <= 0 && qte_time_limit > 0 && !isLoading && !qteTriggeredRef.current && qteTimerTickedRef.current) {
-      qteTriggeredRef.current = true;
-      playQteTimeout();
-      const t = setTimeout(() => handleSendRef.current(QTE_TIMEOUT_SIGNAL), 0);
-      return () => clearTimeout(t);
-    }
-  }, [qteTimeLeft, is_qte_active, qte_time_limit, isLoading]);
-
-  // กด 1/2/3/4 เพื่อเลือก suggested action ทันที (เฉพาะตอนไม่มี QTE และไม่ loading)
+  // Keyboard shortcuts: 1-4 to select suggested actions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (is_qte_active || isLoading || is_dead) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const idx = Number.parseInt(e.key) - 1;
       if (idx >= 0 && idx < suggested_actions.length) {
-        handleSendRef.current(suggested_actions[idx]);
+        handleSend(suggested_actions[idx]);
       }
     };
     globalThis.addEventListener("keydown", handleKeyDown);
     return () => globalThis.removeEventListener("keydown", handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [is_qte_active, isLoading, is_dead, suggested_actions]);
 
-  // Animated transitions between Auth / Dashboard / Menu
-  useEffect(() => {
-    const isMenuP = (p: string) => p === "Auth" || p === "Dashboard" || p === "Menu";
-    const prev = displayedPhaseRef.current;
-    if (game_phase === prev) return;
-    displayedPhaseRef.current = game_phase;
+  // QTE timer (extracted hook)
+  const { qteTimeLeft } = useQteTimer(
+    is_qte_active,
+    qte_time_limit,
+    isLoading,
+    handleSend,
+  );
 
-    if (isMenuP(game_phase) && isMenuP(prev)) {
-      setTransOverlay(true);
-      const t1 = setTimeout(() => setDisplayedPhase(game_phase), 220);
-      const t2 = setTimeout(() => setTransOverlay(false), 520);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }
-    setDisplayedPhase(game_phase);
-  }, [game_phase]);
+  // Countdown timer (extracted hook)
+  const { countdownSecondsLeft } = useCountdownTimer(
+    active_countdown,
+    (label) => handleSend(`[COUNTDOWN EXPIRED: ${label}]`),
+  );
 
   const handleStartGame = async (config: WorldConfig) => {
     const configWithTheme: WorldConfig = {
@@ -762,7 +646,6 @@ export default function GamePage() {
       ui_theme: config.ui_theme ?? genreToTheme(config.genre),
     };
     config = configWithTheme;
-    // Show loading screen immediately while AI generates the opening
     setGameState({
       world_config: config,
       game_phase: "Playing",
@@ -775,30 +658,11 @@ export default function GamePage() {
       await createNewSaveSlot(config);
     }
 
-    // When the first AI turn completes, hand the prologue to the loading screen
     onFirstTurnCompleteRef.current = (prologueText) => {
       setWorldLoading((prev) => ({ ...prev, prologue: prologueText ?? "" }));
     };
 
     handleSend("Begin the adventure.", true, config);
-  };
-
-  const submitFeedback = async () => {
-    if (!feedbackText.trim() || feedbackSubmitting) return;
-    setFeedbackSubmitting(true);
-    try {
-      const saveSlotId = useGameStore.getState().current_save_slot_id;
-      await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: feedbackText.trim(), saveSlotId }),
-      });
-      setFeedbackSent(true);
-      setFeedbackText("");
-      setTimeout(() => { setShowFeedback(false); setFeedbackSent(false); }, 2000);
-    } finally {
-      setFeedbackSubmitting(false);
-    }
   };
 
   const handleRetryWorldCreation = () => {
@@ -850,9 +714,7 @@ export default function GamePage() {
       open_threads: state.open_threads,
     };
 
-    const blob = new Blob([JSON.stringify(saveData, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -911,19 +773,12 @@ export default function GamePage() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        if (typeof reader.result !== "string") {
-          throw new TypeError("Invalid save file");
-        }
+        if (typeof reader.result !== "string") throw new TypeError("Invalid save file");
         const data = JSON.parse(reader.result);
-        if (!data.player_status || !data.world_config) {
-          throw new Error("Invalid save file");
-        }
+        if (!data.player_status || !data.world_config) throw new Error("Invalid save file");
         setGameState({
           player_status: {
-            level: 1,
-            exp: 0,
-            skills: [],
-            gold: 0,
+            level: 1, exp: 0, skills: [], gold: 0,
             attributes: { str: 10, dex: 10, int: 10, con: 10, wis: 10, cha: 10 },
             ...data.player_status,
           },
@@ -958,7 +813,6 @@ export default function GamePage() {
   };
 
   const renderScreen = () => {
-    // World loading screen overlays everything when starting a new world
     if (worldLoading.active && worldLoading.config) {
       return (
         <WorldLoadingScreen
@@ -1025,10 +879,7 @@ export default function GamePage() {
         style={{ ['--tw-selection-color' as string]: 'var(--theme-selection)' }}
       >
         {sceneImageUrl && (
-          <div
-            className="fixed inset-0 z-0 pointer-events-none overflow-hidden"
-            aria-hidden="true"
-          >
+          <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
             <div
               className="absolute inset-0 scale-110"
               style={{
@@ -1126,7 +977,6 @@ export default function GamePage() {
           />
         )}
 
-        {/* z-10 wrapper ensures content sits above the fixed z-0 atmospheric background */}
         <div className="relative z-10 flex flex-1 min-w-0">
           <div className="flex-1 flex flex-col min-w-0 max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/60 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
             <GameHeader
@@ -1145,10 +995,9 @@ export default function GamePage() {
               onImportSave={handleImportSave}
               onQuitToDashboard={() => quitToMainMenu()}
               onNewGame={handleNewGame}
-              onOpenSettings={() => { setApiKeyDraft(groq_api_key); setShowSettings(true); }}
+              onOpenSettings={() => setShowSettings(true)}
             />
 
-            {/* Persistent scene image — shows current location/scene, updates every time scene changes */}
             {current_image_prompt && (
               <SceneBanner imagePrompt={current_image_prompt} tone={world_config?.tone} />
             )}
@@ -1189,7 +1038,6 @@ export default function GamePage() {
           />
         </div>
 
-        {/* Mobile stats FAB — visible only on small screens */}
         <button
           type="button"
           onClick={() => setShowMobileStats(true)}
@@ -1215,7 +1063,6 @@ export default function GamePage() {
           factionStandings={faction_standings}
         />
 
-        {/* Feedback button */}
         <button
           type="button"
           onClick={() => setShowFeedback(true)}
@@ -1224,179 +1071,23 @@ export default function GamePage() {
           <MessageSquare size={12} /> Feedback
         </button>
 
-        {/* Settings modal */}
-        {showSettings && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="w-full max-w-lg bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">API Key ของคุณ</h2>
-                {groq_api_key ? (
-                  <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 rounded-full px-2.5 py-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> ใช้ Key ส่วนตัว
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-950/50 border border-amber-800/40 rounded-full px-2.5 py-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> ใช้ Key ส่วนกลาง
-                  </span>
-                )}
-              </div>
+        <SettingsModal
+          isOpen={showSettings}
+          groqApiKey={groq_api_key}
+          onSave={(key) => { setGameState({ groq_api_key: key }); setShowSettings(false); }}
+          onDelete={() => { setGameState({ groq_api_key: "" }); setShowSettings(false); }}
+          onClose={() => setShowSettings(false)}
+        />
 
-              {/* Policy explanation */}
-              <div className="bg-neutral-800/60 border border-neutral-700/60 rounded-lg p-4 flex flex-col gap-3 text-xs text-neutral-400 leading-relaxed">
-                <div className="flex gap-3">
-                  <span className="text-amber-500 mt-0.5 shrink-0">⚠</span>
-                  <div>
-                    <p className="text-neutral-300 font-medium mb-1">Key ส่วนกลาง — จำกัด 50 เทิร์น/วัน ต่อ IP</p>
-                    <p>เราแชร์ API Key ของเราให้ทุกคนใช้ร่วมกัน แต่มีโควต้าจำกัด 50 เทิร์น/วันต่อ IP Address เพื่อป้องกันไม่ให้ค่าใช้จ่ายบานปลาย โควต้ารีเซตทุกเที่ยงคืน UTC (07:00 น. ตามเวลาไทย)</p>
-                  </div>
-                </div>
-                <div className="border-t border-neutral-700/50" />
-                <div className="flex gap-3">
-                  <span className="text-emerald-500 mt-0.5 shrink-0">✓</span>
-                  <div>
-                    <p className="text-neutral-300 font-medium mb-1">Key ส่วนตัว — ไม่มีจำกัดจากเรา</p>
-                    <p>ถ้ามี Groq API Key ของตัวเอง จะไม่มีการจำกัดเทิร์นจากฝั่งเรา ขึ้นอยู่กับโควต้า Groq ของคุณเอง (Groq มีระดับฟรีให้ใช้งาน) Key ของคุณ<span className="text-neutral-200"> ถูกส่งไปยัง Server เฉพาะตอนเล่นเกม</span> — ไม่ถูกบันทึกหรือเก็บไว้ที่เซิร์ฟเวอร์ของเรา และจะหายไปเมื่อปิด Tab</p>
-                  </div>
-                </div>
-              </div>
+        <FeedbackModal
+          isOpen={showFeedback}
+          onClose={() => setShowFeedback(false)}
+        />
 
-              {/* Key input */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="groq-key-input" className="text-xs text-neutral-400 font-medium">
-                  ใส่ Groq API Key ของคุณ
-                </label>
-                <input
-                  id="groq-key-input"
-                  type="password"
-                  className="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-3 py-2.5 text-sm text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-amber-700/60 font-mono"
-                  placeholder="gsk_..."
-                  value={apiKeyDraft}
-                  onChange={(e) => setApiKeyDraft(e.target.value)}
-                  autoFocus
-                />
-                <p className="text-xs text-neutral-600">
-                  สร้าง Key ฟรีได้ที่{" "}
-                  <a
-                    href="https://console.groq.com/keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-amber-600 hover:text-amber-400 underline underline-offset-2 transition-colors"
-                  >
-                    console.groq.com/keys
-                  </a>
-                  {" "}— สมัครฟรี ไม่ต้องใส่บัตรเครดิต
-                </p>
-              </div>
-
-              <div className="flex gap-2 justify-between items-center">
-                {groq_api_key && (
-                  <button
-                    type="button"
-                    onClick={() => { setApiKeyDraft(""); setGameState({ groq_api_key: "" }); setShowSettings(false); }}
-                    className="px-3 py-2 text-xs text-red-400/70 hover:text-red-300 transition-colors"
-                  >
-                    ลบ Key ออก
-                  </button>
-                )}
-                <div className="flex gap-2 ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => setShowSettings(false)}
-                    className="px-4 py-2 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
-                  >
-                    ยกเลิก
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setGameState({ groq_api_key: apiKeyDraft.trim() }); setShowSettings(false); }}
-                    className="px-4 py-2 text-xs bg-amber-800/70 hover:bg-amber-700/70 text-amber-200 rounded-lg transition-colors"
-                  >
-                    บันทึก
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Feedback modal */}
-        {showFeedback && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-4">
-              <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">ส่ง Feedback</h2>
-              {feedbackSent ? (
-                <p className="text-emerald-400 text-sm text-center py-4">ขอบคุณสำหรับ feedback ครับ!</p>
-              ) : (
-                <>
-                  <textarea
-                    className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-sm text-neutral-200 placeholder-neutral-500 resize-none focus:outline-none focus:border-amber-700/60"
-                    rows={5}
-                    placeholder="แจ้งปัญหา, เสนอแนะ, หรือบอกว่าชอบอะไร..."
-                    value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
-                    maxLength={2000}
-                    autoFocus
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => { setShowFeedback(false); setFeedbackText(""); }}
-                      className="px-4 py-2 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
-                    >
-                      ยกเลิก
-                    </button>
-                    <button
-                      type="button"
-                      onClick={submitFeedback}
-                      disabled={feedbackSubmitting || feedbackText.trim().length < 5}
-                      className="px-4 py-2 text-xs bg-amber-800/70 hover:bg-amber-700/70 disabled:opacity-40 text-amber-200 rounded-lg transition-colors"
-                    >
-                      {feedbackSubmitting ? "กำลังส่ง..." : "ส่ง"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Out-of-energy modal */}
-        {showEnergyModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md bg-neutral-900 border border-amber-800/50 rounded-2xl shadow-[0_0_60px_rgba(217,119,6,0.15)] p-7 flex flex-col gap-5">
-              {/* Icon + title */}
-              <div className="flex flex-col items-center gap-2 text-center">
-                <span className="text-5xl leading-none">⚡</span>
-                <h2 className="text-amber-300 font-bold text-lg tracking-wide mt-1">สายฟ้าของคุณหมดแล้ว!</h2>
-              </div>
-
-              {/* Body */}
-              <p className="text-neutral-300 text-sm leading-relaxed text-center">
-                เหนื่อยล้าจากการผจญภัยจนก้าวขาไม่ออก...
-                <br />
-                พักผ่อนเพื่อรอฟื้นฟูพลังงานในวันพรุ่งนี้ หรือเติมเสบียงเร่งด่วนเพื่อลุยต่อทันที
-              </p>
-
-              {/* Buttons */}
-              <div className="flex flex-col gap-2.5 mt-1">
-                <button
-                  type="button"
-                  disabled
-                  className="w-full py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-600 to-yellow-500 text-neutral-900 opacity-50 cursor-not-allowed shadow-[0_0_20px_rgba(217,119,6,0.25)]"
-                >
-                  เติมพลังงาน <span className="font-normal opacity-80">(เร็วๆ นี้)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowEnergyModal(false)}
-                  className="w-full py-2.5 rounded-xl text-sm text-neutral-400 hover:text-neutral-200 border border-neutral-700 hover:border-neutral-500 transition-colors"
-                >
-                  ปิดหน้าต่าง
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <EnergyModal
+          isOpen={showEnergyModal}
+          onClose={() => setShowEnergyModal(false)}
+        />
       </div>
     );
   };
@@ -1405,14 +1096,12 @@ export default function GamePage() {
     <>
       {renderScreen()}
 
-      {/* Shared modals — rendered outside renderScreen so they persist across transitions */}
-      {alertInfo && (
-        <AlertModal
-          variant="danger"
-          message={alertInfo}
-          onClose={() => setAlertInfo(null)}
-        />
-      )}
+      <AlertModal
+        variant="danger"
+        message={alertInfo ?? ""}
+        onClose={() => setAlertInfo(null)}
+        // AlertModal should not render when message is empty — handled internally or via conditional
+      />
       {confirmInfo && (
         <ConfirmModal
           variant="danger"
@@ -1425,7 +1114,6 @@ export default function GamePage() {
         />
       )}
 
-      {/* Page transition overlay — flashes to black between menu screens */}
       {transOverlay && (
         <div className="fixed inset-0 z-[200] pointer-events-none bg-neutral-950 animate-[pageTransition_0.52s_ease-in-out_forwards]" />
       )}
