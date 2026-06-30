@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV = [
-  { href: '/admin', label: 'ภาพรวม' },
-  { href: '/admin/users', label: 'จัดการผู้ใช้' },
+  { href: '/admin', label: 'Overview' },
+  { href: '/admin/users', label: 'Users' },
   { href: '/admin/feedback', label: 'Feedback' },
 ]
 
@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="px-4 py-4 border-t border-neutral-800">
           <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
-            ← กลับหน้าเกม
+            ← Back to Game
           </Link>
         </div>
       </aside>

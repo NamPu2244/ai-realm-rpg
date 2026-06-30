@@ -215,7 +215,7 @@ export default function CharacterSidebar({
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        title={isOpen ? "ซ่อน sidebar" : "แสดง sidebar"}
+        title={isOpen ? "Hide sidebar" : "Show sidebar"}
         className={`flex items-center justify-center shrink-0 h-10 w-full border-b transition-colors ${isLowHp ? "border-red-950 hover:bg-red-950/30" : "border-stone-800 hover:bg-stone-800/60"} text-stone-600 hover:text-stone-300`}
       >
         {isOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}

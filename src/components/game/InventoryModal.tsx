@@ -87,7 +87,7 @@ export default function InventoryModal({ isOpen, onClose, inventory, newItems }:
             ) : (
               <div className="flex flex-col items-center justify-center py-10 gap-3 text-stone-700">
                 <Backpack size={28} />
-                <p className="text-xs italic">กระเป๋าว่างเปล่า</p>
+                <p className="text-xs italic">Your pack is empty</p>
               </div>
             )}
           </div>

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       message.length > 2000
     ) {
       return NextResponse.json(
-        { error: "ข้อความต้องมีความยาว 5–2000 ตัวอักษร" },
+        { error: "Message must be between 5 and 2000 characters" },
         { status: 400 }
       );
     }
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error("[feedback] insert error:", error);
-      return NextResponse.json({ error: "บันทึกไม่สำเร็จ" }, { status: 500 });
+      return NextResponse.json({ error: "Failed to save feedback" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });

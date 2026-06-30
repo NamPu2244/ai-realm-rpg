@@ -125,11 +125,11 @@ PLAYER INPUT HANDLING:
 
 ACTION TYPE PREFIX:
 - The player's action may begin with an action type tag that declares HOW their character acts. Parse and interpret accordingly:
-  - [พูด]: — The player character speaks aloud. The text after the colon is their spoken words. NPCs in earshot can hear it; treat it as actual dialogue.
-  - [คิด]: — An internal thought only. NPCs are completely unaware. Do NOT let NPCs react to the thought itself; you may reflect it subtly through the character's body language or hesitation.
-  - [กระทำ]: — A deliberate physical or mechanical action.
-  - [ตรวจสอบ]: — The player examines, inspects, or investigates something closely.
-  - [ไม่ตอบสนอง] — The player character remains completely silent and still. Time passes; advance the scene — NPCs grow impatient, react to the silence, or an opportunity opens or closes without the player acting.
+  - [speak]: — The player character speaks aloud. The text after the colon is their spoken words. NPCs in earshot can hear it; treat it as actual dialogue.
+  - [think]: — An internal thought only. NPCs are completely unaware. Do NOT let NPCs react to the thought itself; you may reflect it subtly through the character's body language or hesitation.
+  - [act]: — A deliberate physical or mechanical action.
+  - [investigate]: — The player examines, inspects, or investigates something closely.
+  - [no response] — The player character remains completely silent and still. Time passes; advance the scene — NPCs grow impatient, react to the silence, or an opportunity opens or closes without the player acting.
 - If no prefix is present, treat the action as a default physical/narrative action.
 
 GAMEPLAY RULES:
@@ -369,7 +369,7 @@ export async function POST(req: Request) {
     const { allowed } = await checkRateLimit(req);
     if (!allowed) {
       return NextResponse.json(
-        { error: `คุณใช้ครบ ${MAX_DAILY_TURNS} เทิร์นต่อวันแล้ว กรุณากลับมาใหม่พรุ่งนี้ (เพื่อป้องกัน API key ถูกใช้เกินโควต้า)` },
+        { error: `You have used all ${MAX_DAILY_TURNS} turns for today. Please come back tomorrow. (Shared API key quota protection)` },
         { status: 429, headers: { 'X-RateLimit-Remaining': '0' } }
       );
     }
@@ -392,7 +392,7 @@ export async function POST(req: Request) {
             {
               status: 'error',
               code: 'OUT_OF_ENERGY',
-              message: 'คุณไม่มีพลังงานเหลือแล้ว กรุณารอวันถัดไปหรือเติมพลังงาน',
+              message: 'You have no energy remaining. Please wait until tomorrow or top up your energy.',
             },
             { status: 403 }
           );
@@ -585,7 +585,7 @@ ${historyContext}
     if (!groqResponse.ok || !groqResponse.body) {
       const errText = await groqResponse.text().catch(() => "");
       return NextResponse.json(
-        { error: `Groq API ตอบกลับผิดพลาด (${groqResponse.status}): ${errText}` },
+        { error: `Groq API returned an error (${groqResponse.status}): ${errText}` },
         { status: 502 }
       );
     }

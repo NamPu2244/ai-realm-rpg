@@ -135,7 +135,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
                   />
                 ))}
               </div>
-              <p className="text-xs text-neutral-600 tracking-[0.4em] uppercase">กำลังสร้างโลก</p>
+              <p className="text-xs text-neutral-600 tracking-[0.4em] uppercase">Creating World</p>
               {config.openingSeed && (
                 <p className="text-sm text-neutral-500 italic leading-relaxed mt-3 max-w-sm">
                   {config.openingSeed}
@@ -147,7 +147,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
                   onClick={onRetry}
                   className="mt-2 text-xs text-amber-700/70 hover:text-amber-400 border border-amber-900/40 hover:border-amber-700/50 px-4 py-2 rounded-lg transition-all"
                 >
-                  ใช้เวลานานเกินไป? ลองสร้างโลกใหม่
+                  Taking too long? Try again
                 </button>
               )}
             </div>
@@ -169,7 +169,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
             onClick={handleEnter}
             className={`text-[11px] tracking-[0.5em] uppercase transition-opacity hover:opacity-100 opacity-60 animate-pulse ${s.accent}`}
           >
-            เข้าสู่โลก &rarr;
+            Enter World &rarr;
           </button>
         )}
       </div>

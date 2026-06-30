@@ -57,7 +57,7 @@ export default function AdminUsersPage() {
   }
 
   const handleRevoke = async (userId: string) => {
-    if (!token || !confirm('ยืนยันการถอนสิทธิ์ Pro ของผู้ใช้นี้?')) return
+    if (!token || !confirm('Confirm revoke Pro access for this user?')) return
     setActing(userId)
     await fetch(`/api/admin/users/${userId}/revoke`, {
       method: 'POST',
@@ -71,18 +71,18 @@ export default function AdminUsersPage() {
     u.email.toLowerCase().includes(search.toLowerCase())
   )
 
-  if (loading) return <div className="p-8 text-neutral-500 text-sm">กำลังโหลด...</div>
+  if (loading) return <div className="p-8 text-neutral-500 text-sm">Loading...</div>
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold text-neutral-100">
-          ผู้ใช้ทั้งหมด{' '}
+          All Users{' '}
           <span className="text-neutral-500 font-normal text-sm">({users.length})</span>
         </h1>
         <input
           type="text"
-          placeholder="ค้นหา email..."
+          placeholder="Search by email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="bg-neutral-800 border border-neutral-700 text-neutral-200 text-sm rounded px-3 py-1.5 w-60 placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500"
@@ -94,10 +94,10 @@ export default function AdminUsersPage() {
           <thead>
             <tr className="border-b border-neutral-800 text-neutral-500 text-xs uppercase tracking-wider">
               <th className="text-left py-2 pr-4 font-medium">Email</th>
-              <th className="text-left py-2 pr-4 font-medium">สมัครเมื่อ</th>
-              <th className="text-left py-2 pr-4 font-medium">เข้าล่าสุด</th>
+              <th className="text-left py-2 pr-4 font-medium">Joined</th>
+              <th className="text-left py-2 pr-4 font-medium">Last sign-in</th>
               <th className="text-center py-2 pr-4 font-medium">Slots</th>
-              <th className="text-left py-2 pr-4 font-medium">สถานะ</th>
+              <th className="text-left py-2 pr-4 font-medium">Status</th>
               <th className="text-left py-2 font-medium">Actions</th>
             </tr>
           </thead>
@@ -106,11 +106,11 @@ export default function AdminUsersPage() {
               <tr key={user.id} className="text-neutral-300 hover:bg-neutral-900/40 transition-colors">
                 <td className="py-3 pr-4 font-mono text-xs text-neutral-400">{user.email}</td>
                 <td className="py-3 pr-4 text-xs text-neutral-500">
-                  {new Date(user.created_at).toLocaleDateString('th-TH')}
+                  {new Date(user.created_at).toLocaleDateString('en-US')}
                 </td>
                 <td className="py-3 pr-4 text-xs text-neutral-500">
                   {user.last_sign_in_at
-                    ? new Date(user.last_sign_in_at).toLocaleDateString('th-TH')
+                    ? new Date(user.last_sign_in_at).toLocaleDateString('en-US')
                     : '—'}
                 </td>
                 <td className="py-3 pr-4 text-center text-xs">{user.save_slot_count}</td>
@@ -125,14 +125,14 @@ export default function AdminUsersPage() {
                 </td>
                 <td className="py-3">
                   {acting === user.id && (
-                    <span className="text-xs text-neutral-500">กำลังดำเนินการ...</span>
+                    <span className="text-xs text-neutral-500">Processing...</span>
                   )}
                   {acting !== user.id && user.subscription?.status === 'active' && (
                     <button
                       onClick={() => handleRevoke(user.id)}
                       className="text-xs text-red-400 hover:text-red-300 transition-colors"
                     >
-                      ถอนสิทธิ์
+                      Revoke
                     </button>
                   )}
                   {acting !== user.id && user.subscription?.status !== 'active' && (
@@ -140,7 +140,7 @@ export default function AdminUsersPage() {
                       onClick={() => handleGrant(user.id)}
                       className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
                     >
-                      ให้สิทธิ์ Pro
+                      Grant Pro
                     </button>
                   )}
                 </td>
@@ -150,7 +150,7 @@ export default function AdminUsersPage() {
         </table>
 
         {filtered.length === 0 && (
-          <p className="text-neutral-600 text-sm text-center py-10">ไม่พบผู้ใช้</p>
+          <p className="text-neutral-600 text-sm text-center py-10">No users found</p>
         )}
       </div>
     </div>

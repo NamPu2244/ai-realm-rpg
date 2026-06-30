@@ -84,7 +84,7 @@ export default function MobileStatsDrawer({
         className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-stone-950/98 border-t border-amber-900/30 rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out max-h-[80vh] overflow-y-auto ${isOpen ? "translate-y-0" : "translate-y-full"}`}
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-amber-900/20 sticky top-0 bg-stone-950/98">
-          <h2 className="text-sm font-bold text-amber-400/80 uppercase tracking-widest">สถานะตัวละคร</h2>
+          <h2 className="text-sm font-bold text-amber-400/80 uppercase tracking-widest">Character Status</h2>
           <button type="button" onClick={onClose} className="text-amber-100/40 hover:text-amber-200 text-sm px-2 py-1 transition-colors">
             <X size={16} />
           </button>
@@ -94,22 +94,22 @@ export default function MobileStatsDrawer({
 
           {/* Character info */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><UserRound size={11} /> ตัวละคร</p>
-            <p className="text-xs text-amber-50/70 leading-relaxed">{worldConfig?.character || "ไม่มีข้อมูล"}</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><UserRound size={11} /> Character</p>
+            <p className="text-xs text-amber-50/70 leading-relaxed">{worldConfig?.character || "Unknown"}</p>
             <p className="text-xs text-amber-100/30 mt-0.5">{worldConfig?.genre}</p>
           </div>
 
           {/* Objective */}
           {currentObjective && (
             <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-3">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><Crosshair size={11} /> เป้าหมาย</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><Crosshair size={11} /> Objective</p>
               <p className="text-sm text-amber-200/90 leading-relaxed">{currentObjective}</p>
             </div>
           )}
 
           {/* Vitals */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-3">
-            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Heart size={11} /> สถานะร่างกาย</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Heart size={11} /> Vitals</p>
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-rose-400 font-medium">HP</span>
@@ -238,7 +238,7 @@ export default function MobileStatsDrawer({
           {/* Status Effects */}
           {playerStatus.status_effects.length > 0 && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Sparkles size={11} /> สถานะ</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Sparkles size={11} /> Conditions</p>
               <div className="flex flex-wrap gap-2">
                 {playerStatus.status_effects.map((effect) => (
                   <span
@@ -276,7 +276,7 @@ export default function MobileStatsDrawer({
               <Backpack size={11} className="text-amber-400/60 group-hover:text-amber-400/90 transition-colors" />
               <span className="text-xs text-amber-400/60 uppercase tracking-widest group-hover:text-amber-400/90 transition-colors">Inventory</span>
               <span className="text-xs text-stone-600 ml-1">
-                {playerStatus.inventory.length > 0 ? `${playerStatus.inventory.length} items` : "ว่างเปล่า"}
+                {playerStatus.inventory.length > 0 ? `${playerStatus.inventory.length} items` : "empty"}
               </span>
             </div>
             <ChevronRight size={14} className="text-stone-600 group-hover:text-stone-400 transition-colors" />

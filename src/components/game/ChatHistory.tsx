@@ -22,17 +22,17 @@ interface ChatHistoryProps {
 
 // ---- Action type metadata (mirrors ActionBar definitions) ----
 const ACTION_TYPE_META: Record<string, { label: string; colorClass: string }> = {
-  พูด: { label: "💬 พูดตอบ", colorClass: "text-sky-300 bg-sky-950/50 border-sky-700/50" },
-  คิด: { label: "💭 คิดในใจ", colorClass: "text-purple-300 bg-purple-950/50 border-purple-700/50" },
-  กระทำ: { label: "⚔️ กระทำ", colorClass: "text-amber-300 bg-amber-950/50 border-amber-700/50" },
-  ตรวจสอบ: { label: "🔍 ตรวจสอบ", colorClass: "text-emerald-300 bg-emerald-950/50 border-emerald-700/50" },
-  ไม่ตอบสนอง: { label: "🚫 ไม่ตอบสนอง", colorClass: "text-neutral-400 bg-neutral-900/60 border-neutral-700/40" },
+  speak: { label: "💬 Speak", colorClass: "text-sky-300 bg-sky-950/50 border-sky-700/50" },
+  think: { label: "💭 Think", colorClass: "text-purple-300 bg-purple-950/50 border-purple-700/50" },
+  act: { label: "⚔️ Act", colorClass: "text-amber-300 bg-amber-950/50 border-amber-700/50" },
+  investigate: { label: "🔍 Investigate", colorClass: "text-emerald-300 bg-emerald-950/50 border-emerald-700/50" },
+  "no response": { label: "🚫 No Response", colorClass: "text-neutral-400 bg-neutral-900/60 border-neutral-700/40" },
 };
 
 function parsePlayerContent(content: string): { actionType: string | null; text: string } {
-  const m = /^\[(พูด|คิด|กระทำ|ตรวจสอบ)\]:\s*([\s\S]*)/.exec(content);
+  const m = /^\[(speak|think|act|investigate)\]:\s*([\s\S]*)/.exec(content);
   if (m) return { actionType: m[1], text: m[2] };
-  if (content === "[ไม่ตอบสนอง]") return { actionType: "ไม่ตอบสนอง", text: "" };
+  if (content === "[no response]") return { actionType: "no response", text: "" };
   return { actionType: null, text: content };
 }
 
@@ -93,7 +93,7 @@ function PlayerBubble({ content }: Readonly<{ content: string }>) {
               {meta.label}
             </span>
           ) : (
-            <span className="text-[10px] text-amber-400/40 uppercase tracking-widest font-semibold">คุณ</span>
+            <span className="text-[10px] text-amber-400/40 uppercase tracking-widest font-semibold">You</span>
           )}
         </div>
         {text && <div className="whitespace-pre-wrap leading-relaxed">{text}</div>}
@@ -156,7 +156,7 @@ function ChatHistory({
         ))
       ) : (
         <div className="flex items-center justify-center h-full text-amber-100/30 animate-pulse text-sm tracking-widest">
-          กำลังเชื่อมต่อจิตวิญญาณ...
+          Connecting to the realm...
         </div>
       )}
 
@@ -164,25 +164,25 @@ function ChatHistory({
         <div className="flex items-start gap-3 px-5 py-4 bg-amber-950/20 border border-amber-800/25 rounded-xl">
           <span className="text-amber-500/50 text-base shrink-0 leading-none mt-0.5">💡</span>
           <p className="text-xs text-amber-100/45 leading-relaxed">
-            <span className="text-amber-400/70 font-semibold">คุณคือตัวละครในเรื่องนี้</span>
-            {" "}— เลือกตัวเลือกด้านล่าง หรือพิมพ์สิ่งที่ตัวละครคุณจะทำ เช่น{" "}
-            <span className="italic text-amber-300/55">&ldquo;มองรอบๆ ห้อง&rdquo;</span>
-            {" "}หรือ{" "}
-            <span className="italic text-amber-300/55">&ldquo;เดินไปทางประตู&rdquo;</span>
+            <span className="text-amber-400/70 font-semibold">You are a character in this story</span>
+            {" "}— choose an option below, or type what your character will do, e.g.{" "}
+            <span className="italic text-amber-300/55">&ldquo;Look around the room&rdquo;</span>
+            {" "}or{" "}
+            <span className="italic text-amber-300/55">&ldquo;Walk toward the door&rdquo;</span>
           </p>
         </div>
       )}
 
       {streamingNarrative && (
         <div className="space-y-3">
-          <div className="text-[10px] text-amber-400/40 uppercase tracking-widest animate-pulse">กำลังเขียน...</div>
+          <div className="text-[10px] text-amber-400/40 uppercase tracking-widest animate-pulse">Writing...</div>
           <GMMessage chat={{ content: streamingNarrative }} isStreaming />
         </div>
       )}
 
       {isLoading && !streamingNarrative && (
         <div className="flex items-center gap-2 text-amber-100/30 italic animate-pulse text-sm tracking-wide">
-          <Dices size={14} /> กำลังทอยเต๋าโชคชะตา...
+          <Dices size={14} /> Rolling the dice of fate...
         </div>
       )}
 

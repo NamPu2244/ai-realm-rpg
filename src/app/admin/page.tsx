@@ -18,44 +18,44 @@ export default function AdminOverviewPage() {
     ;(async () => {
       try {
         const { data: { session } } = await getSupabaseClient().auth.getSession()
-        if (!session) { setError('ไม่พบ session'); return }
+        if (!session) { setError('No session found'); return }
         const res = await fetch('/api/admin/stats', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         })
-        if (!res.ok) { setError('โหลดข้อมูลไม่สำเร็จ'); return }
+        if (!res.ok) { setError('Failed to load data'); return }
         setStats(await res.json())
       } catch {
-        setError('เกิดข้อผิดพลาด')
+        setError('An error occurred')
       }
     })()
   }, [])
 
   if (error) return <div className="p-8 text-red-400">{error}</div>
-  if (!stats) return <div className="p-8 text-neutral-500 text-sm">กำลังโหลด...</div>
+  if (!stats) return <div className="p-8 text-neutral-500 text-sm">Loading...</div>
 
   return (
     <div className="p-8 max-w-4xl">
-      <h1 className="text-lg font-semibold text-neutral-100 mb-6">ภาพรวม</h1>
+      <h1 className="text-lg font-semibold text-neutral-100 mb-6">Overview</h1>
 
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <StatCard label="ผู้ใช้ทั้งหมด" value={stats.totalUsers} />
+        <StatCard label="Total Users" value={stats.totalUsers} />
         <StatCard label="Pro (active)" value={stats.proUsers} accent />
         <StatCard label="Feedback" value={stats.feedbackCount} />
       </div>
 
       <section>
         <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-widest mb-3">
-          Feedback ล่าสุด
+          Recent Feedback
         </h2>
         {stats.recentFeedback.length === 0 ? (
-          <p className="text-neutral-600 text-sm">ยังไม่มี feedback</p>
+          <p className="text-neutral-600 text-sm">No feedback yet</p>
         ) : (
           <div className="flex flex-col gap-2">
             {stats.recentFeedback.map((f) => (
               <div key={f.id} className="bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3">
                 <p className="text-neutral-200 text-sm line-clamp-2">{f.message}</p>
                 <p className="text-neutral-500 text-xs mt-1.5">
-                  {new Date(f.created_at).toLocaleString('th-TH')}
+                  {new Date(f.created_at).toLocaleString('en-US')}
                 </p>
               </div>
             ))}

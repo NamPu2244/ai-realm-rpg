@@ -33,7 +33,7 @@ function Modal({ onDismiss, children }: Readonly<ModalProps>) {
       <button
         type="button"
         className="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-default animate-modal-backdrop"
-        aria-label="ปิดหน้าต่างแจ้งเตือน"
+        aria-label="Dismiss"
         onClick={onDismiss}
         tabIndex={onDismiss ? 0 : -1}
       />
@@ -57,7 +57,7 @@ export function AlertModal({
   title,
   message,
   variant = "info",
-  buttonText = "รับทราบ",
+  buttonText = "OK",
   onClose,
 }: Readonly<AlertModalProps>) {
   const styles = VARIANT_STYLES[variant];
@@ -67,7 +67,7 @@ export function AlertModal({
       <div className={`flex items-center gap-2 pb-3 border-b ${styles.accent}`}>
         <span className="text-xl">{styles.icon}</span>
         <h2 className="text-sm font-bold tracking-widest uppercase">
-          {title || "แจ้งเตือน"}
+          {title || "Alert"}
         </h2>
       </div>
       <p className="text-sm text-amber-50/80 leading-relaxed whitespace-pre-wrap">
@@ -100,8 +100,8 @@ export function ConfirmModal({
   title,
   message,
   variant = "warning",
-  confirmText = "ยืนยัน",
-  cancelText = "ยกเลิก",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
   onConfirm,
   onCancel,
 }: Readonly<ConfirmModalProps>) {
@@ -112,7 +112,7 @@ export function ConfirmModal({
       <div className={`flex items-center gap-2 pb-3 border-b ${styles.accent}`}>
         <span className="text-xl">{styles.icon}</span>
         <h2 className="text-sm font-bold tracking-widest uppercase">
-          {title || "ยืนยันการทำรายการ"}
+          {title || "Confirm Action"}
         </h2>
       </div>
       <p className="text-sm text-amber-50/80 leading-relaxed whitespace-pre-wrap">

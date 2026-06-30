@@ -23,14 +23,14 @@ export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, on
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="w-full max-w-lg bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">API Key ของคุณ</h2>
+          <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">Your API Key</h2>
           {groqApiKey ? (
             <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 rounded-full px-2.5 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> ใช้ Key ส่วนตัว
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Personal Key
             </span>
           ) : (
             <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-950/50 border border-amber-800/40 rounded-full px-2.5 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> ใช้ Key ส่วนกลาง
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> Shared Key
             </span>
           )}
         </div>
@@ -39,23 +39,23 @@ export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, on
           <div className="flex gap-3">
             <span className="text-amber-500 mt-0.5 shrink-0">⚠</span>
             <div>
-              <p className="text-neutral-300 font-medium mb-1">Key ส่วนกลาง — จำกัด 50 เทิร์น/วัน ต่อ IP</p>
-              <p>เราแชร์ API Key ของเราให้ทุกคนใช้ร่วมกัน แต่มีโควต้าจำกัด 50 เทิร์น/วันต่อ IP Address เพื่อป้องกันไม่ให้ค่าใช้จ่ายบานปลาย โควต้ารีเซตทุกเที่ยงคืน UTC (07:00 น. ตามเวลาไทย)</p>
+              <p className="text-neutral-300 font-medium mb-1">Shared Key — limited to 50 turns/day per IP</p>
+              <p>We share our API key with everyone, but limit usage to 50 turns/day per IP address to keep costs manageable. Quota resets at midnight UTC.</p>
             </div>
           </div>
           <div className="border-t border-neutral-700/50" />
           <div className="flex gap-3">
             <span className="text-emerald-500 mt-0.5 shrink-0">✓</span>
             <div>
-              <p className="text-neutral-300 font-medium mb-1">Key ส่วนตัว — ไม่มีจำกัดจากเรา</p>
-              <p>ถ้ามี Groq API Key ของตัวเอง จะไม่มีการจำกัดเทิร์นจากฝั่งเรา ขึ้นอยู่กับโควต้า Groq ของคุณเอง (Groq มีระดับฟรีให้ใช้งาน) Key ของคุณ<span className="text-neutral-200"> ถูกส่งไปยัง Server เฉพาะตอนเล่นเกม</span> — ไม่ถูกบันทึกหรือเก็บไว้ที่เซิร์ฟเวอร์ของเรา และจะหายไปเมื่อปิด Tab</p>
+              <p className="text-neutral-300 font-medium mb-1">Personal Key — no limit from us</p>
+              <p>With your own Groq API key, there is no turn limit on our side — only your Groq quota applies (Groq offers a free tier). Your key<span className="text-neutral-200"> is sent to the server only during gameplay</span> — it is never stored on our servers and disappears when you close the tab.</p>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
           <label htmlFor="groq-key-input" className="text-xs text-neutral-400 font-medium">
-            ใส่ Groq API Key ของคุณ
+            Enter your Groq API Key
           </label>
           <input
             id="groq-key-input"
@@ -67,7 +67,7 @@ export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, on
             autoFocus
           />
           <p className="text-xs text-neutral-600">
-            สร้าง Key ฟรีได้ที่{" "}
+            Get a free key at{" "}
             <a
               href="https://console.groq.com/keys"
               target="_blank"
@@ -76,7 +76,7 @@ export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, on
             >
               console.groq.com/keys
             </a>
-            {" "}— สมัครฟรี ไม่ต้องใส่บัตรเครดิต
+            {" "}— free sign-up, no credit card required
           </p>
         </div>
 
@@ -87,7 +87,7 @@ export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, on
               onClick={onDelete}
               className="px-3 py-2 text-xs text-red-400/70 hover:text-red-300 transition-colors"
             >
-              ลบ Key ออก
+              Remove Key
             </button>
           )}
           <div className="flex gap-2 ml-auto">
@@ -96,14 +96,14 @@ export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, on
               onClick={onClose}
               className="px-4 py-2 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
             >
-              ยกเลิก
+              Cancel
             </button>
             <button
               type="button"
               onClick={() => onSave(apiKeyDraft.trim())}
               className="px-4 py-2 text-xs bg-amber-800/70 hover:bg-amber-700/70 text-amber-200 rounded-lg transition-colors"
             >
-              บันทึก
+              Save
             </button>
           </div>
         </div>

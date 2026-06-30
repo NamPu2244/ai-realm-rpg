@@ -32,37 +32,37 @@ const ACTION_STYLES: Record<ActionType, ActionStyle> = {
     icon: Sword,
     card: "border-red-800/50 hover:border-red-600/70 hover:bg-red-950/30 text-red-200/80 hover:text-red-100",
     key: "text-red-700/60 group-hover:text-red-500/80",
-    label: "โจมตี",
+    label: "Combat",
   },
   explore: {
     icon: Compass,
     card: "border-emerald-800/40 hover:border-emerald-600/60 hover:bg-emerald-950/25 text-emerald-200/80 hover:text-emerald-100",
     key: "text-emerald-700/60 group-hover:text-emerald-500/80",
-    label: "สำรวจ",
+    label: "Explore",
   },
   talk: {
     icon: MessageCircle,
     card: "border-sky-800/40 hover:border-sky-600/60 hover:bg-sky-950/25 text-sky-200/80 hover:text-sky-100",
     key: "text-sky-700/60 group-hover:text-sky-500/80",
-    label: "พูดคุย",
+    label: "Dialogue",
   },
   magic: {
     icon: Wand2,
     card: "border-purple-800/40 hover:border-purple-600/60 hover:bg-purple-950/25 text-purple-200/80 hover:text-purple-100",
     key: "text-purple-700/60 group-hover:text-purple-500/80",
-    label: "เวทมนตร์",
+    label: "Magic",
   },
   item: {
     icon: Package,
     card: "border-amber-800/40 hover:border-amber-600/60 hover:bg-amber-950/25 text-amber-200/80 hover:text-amber-100",
     key: "text-amber-700/60 group-hover:text-amber-500/80",
-    label: "ไอเทม",
+    label: "Item",
   },
   default: {
     icon: ChevronRight,
     card: "border-theme-border hover:border-theme-accent/50 hover:bg-theme-surface text-theme-text/65 hover:text-theme-text",
     key: "text-theme-accent/60 group-hover:text-theme-accent/80",
-    label: "กระทำ",
+    label: "Action",
   },
 };
 
@@ -83,7 +83,7 @@ function detectActionType(text: string): ActionType {
 
 // ---- Player action type selector ----
 
-type PlayerActionTypeId = "พูด" | "คิด" | "กระทำ" | "ตรวจสอบ";
+type PlayerActionTypeId = "speak" | "think" | "act" | "investigate";
 
 interface PlayerActionType {
   id: PlayerActionTypeId;
@@ -96,34 +96,34 @@ interface PlayerActionType {
 
 const PLAYER_ACTION_TYPES: PlayerActionType[] = [
   {
-    id: "พูด",
+    id: "speak",
     emoji: "💬",
-    label: "พูดตอบ",
-    placeholder: "ตัวละครคุณพูดอะไร?",
+    label: "Speak",
+    placeholder: "What does your character say?",
     activeClass: "bg-sky-950/60 border-sky-500/70 text-sky-200",
     inactiveClass: "border-stone-700/40 text-stone-500 hover:border-sky-800/50 hover:text-sky-400/70",
   },
   {
-    id: "คิด",
+    id: "think",
     emoji: "💭",
-    label: "คิดในใจ",
-    placeholder: "ตัวละครคุณคิดอะไร? (NPC ไม่รับรู้)",
+    label: "Think",
+    placeholder: "What does your character think? (NPCs are unaware)",
     activeClass: "bg-purple-950/60 border-purple-500/70 text-purple-200",
     inactiveClass: "border-stone-700/40 text-stone-500 hover:border-purple-800/50 hover:text-purple-400/70",
   },
   {
-    id: "กระทำ",
+    id: "act",
     emoji: "⚔️",
-    label: "กระทำ",
-    placeholder: "ตัวละครคุณทำอะไร?",
+    label: "Act",
+    placeholder: "What does your character do?",
     activeClass: "bg-theme-surface border-theme-accent/70 text-theme-accent",
     inactiveClass: "border-stone-700/40 text-stone-500 hover:border-theme-accent/50 hover:text-theme-accent/70",
   },
   {
-    id: "ตรวจสอบ",
+    id: "investigate",
     emoji: "🔍",
-    label: "ตรวจสอบ",
-    placeholder: "ตรวจสอบอะไร?",
+    label: "Investigate",
+    placeholder: "What do you investigate?",
     activeClass: "bg-emerald-950/60 border-emerald-500/70 text-emerald-200",
     inactiveClass: "border-stone-700/40 text-stone-500 hover:border-emerald-800/50 hover:text-emerald-400/70",
   },
@@ -137,13 +137,13 @@ function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRe
       <div className="flex flex-col items-center gap-3">
         <div className="flex items-center justify-center gap-2 w-full py-3 bg-neutral-950/80 border border-red-900/60 rounded-xl text-center">
           <Skull size={16} className="text-red-700" />
-          <span className="text-red-600/90 font-bold tracking-widest text-sm uppercase">Permadeath — การเดินทางสิ้นสุดแล้ว</span>
+          <span className="text-red-600/90 font-bold tracking-widest text-sm uppercase">Permadeath — Your Journey Has Ended</span>
         </div>
         <button
           onClick={onRestart}
           className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900/80 hover:bg-stone-800 text-stone-300 border border-stone-700 font-bold rounded-xl tracking-widest transition-colors text-sm"
         >
-          เริ่มการเดินทางใหม่
+          Begin a New Journey
         </button>
       </div>
     );
@@ -153,7 +153,7 @@ function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRe
       onClick={onRestart}
       className="flex items-center justify-center gap-2 w-full py-4 bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-700 font-bold rounded-xl tracking-widest transition-colors shadow-[0_0_30px_rgba(220,38,38,0.5)]"
     >
-      <Skull size={18} /> คุณเสียชีวิตแล้ว — จุติใหม่
+      <Skull size={18} /> You Have Died — Reincarnate
     </button>
   );
 }
@@ -178,7 +178,7 @@ export default function ActionBar({
   const [selectedType, setSelectedType] = useState<PlayerActionTypeId | null>(null);
 
   const activeMeta = selectedType ? PLAYER_ACTION_TYPES.find((t) => t.id === selectedType) : null;
-  const placeholder = activeMeta?.placeholder ?? "ตัวละครคุณทำอะไร? เช่น 'ดูรอบๆ' 'คุยกับเขา' 'เดินไปทางเหนือ'";
+  const placeholder = activeMeta?.placeholder ?? "What does your character do? e.g. 'Look around' 'Talk to them' 'Go north'";
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const hist = inputHistoryRef.current;
@@ -210,7 +210,7 @@ export default function ActionBar({
   };
 
   const handleNoResponse = () => {
-    onSend("[ไม่ตอบสนอง]");
+    onSend("[no response]");
   };
 
   return (
@@ -223,7 +223,7 @@ export default function ActionBar({
             disabled={isLoading}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded-lg text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50"
           >
-            <RotateCcw size={12} /> {isLoading ? "..." : "ลองอีกครั้ง"}
+            <RotateCcw size={12} /> {isLoading ? "..." : "Retry"}
           </button>
         </div>
       )}
@@ -233,7 +233,7 @@ export default function ActionBar({
         <>
           {suggestedActions.length > 0 && (
             <div className="space-y-1.5">
-              <div className="text-xs text-theme-accent/60 font-medium px-1">เลือกสิ่งที่ตัวละครคุณจะทำ</div>
+              <div className="text-xs text-theme-accent/60 font-medium px-1">Choose what your character will do</div>
               <div className="grid grid-cols-1 gap-1.5">
                 {suggestedActions.map((action, i) => {
                   const type = detectActionType(action);
@@ -244,7 +244,7 @@ export default function ActionBar({
                       key={`${i}-${action.slice(0, 12)}`}
                       onClick={() => onSend(action)}
                       disabled={isLoading}
-                      title={`ตัวเลือกที่ AI แนะนำ — กดปุ่ม [${i + 1}] หรือคลิกเพื่อทำทันที`}
+                      title={`AI suggested action — press [${i + 1}] or click to perform`}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-theme-surface/60 border rounded-lg transition-all disabled:opacity-40 group ${style.card}`}
                     >
                       <span className={`shrink-0 transition-colors ${style.key}`}>
@@ -261,7 +261,7 @@ export default function ActionBar({
 
           {/* Action type selector */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] text-theme-muted uppercase tracking-widest shrink-0 mr-0.5">วิธีตอบ</span>
+            <span className="text-[10px] text-theme-muted uppercase tracking-widest shrink-0 mr-0.5">Mode</span>
             {PLAYER_ACTION_TYPES.map((t) => (
               <button
                 key={t.id}
@@ -283,7 +283,7 @@ export default function ActionBar({
               className="flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all disabled:opacity-40 border-stone-700/40 text-stone-500 hover:border-stone-500/60 hover:text-stone-300"
             >
               <span>🚫</span>
-              <span>ไม่ตอบสนอง</span>
+              <span>No Response</span>
             </button>
           </div>
 
@@ -294,7 +294,7 @@ export default function ActionBar({
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isLoading}
-              placeholder={isLoading ? "GM กำลังประมวลผล..." : placeholder}
+              placeholder={isLoading ? "GM is processing..." : placeholder}
               className={`flex-1 bg-theme-surface border ${
                 isLowHp ? "border-red-900/50 focus:border-red-500" : "border-theme-border focus:border-theme-accent/60"
               } rounded-xl px-4 py-3 text-theme-text focus:outline-none disabled:opacity-50 transition-colors placeholder:text-theme-muted/50`}
@@ -304,7 +304,7 @@ export default function ActionBar({
               disabled={isLoading || !input.trim()}
               className="flex items-center gap-2 px-6 py-3 bg-theme-accent text-theme-bg font-bold rounded-xl hover:opacity-90 disabled:opacity-40 transition-all shadow-[0_0_20px_var(--theme-accent-glow)] hover:shadow-[0_0_28px_var(--theme-accent-glow)]"
             >
-              {isLoading ? "..." : <><Send size={15} /> ส่ง</>}
+              {isLoading ? "..." : <><Send size={15} /> Send</>}
             </button>
           </form>
         </>

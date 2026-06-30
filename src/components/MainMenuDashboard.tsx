@@ -19,10 +19,10 @@ const PARTICLES = Array.from({ length: 16 }, (_, i) => ({
 }));
 
 const MENU_ITEMS = [
-  { id: "new",      num: "01", label: "เกมใหม่",     sub: "สร้างโลกแห่งใหม่",          icon: Plus },
-  { id: "load",     num: "02", label: "โหลดเกม",    sub: "ดำเนินต่อจากเดิม",           icon: Play },
-  { id: "settings", num: "03", label: "การตั้งค่า", sub: "Groq API Key และตัวเลือก",   icon: Settings },
-  { id: "exit",     num: "04", label: "ออกจากเกม",  sub: "ออกจากระบบและปิดหน้าต่าง",  icon: Power },
+  { id: "new",      num: "01", label: "New Game",  sub: "Create a brand new world",       icon: Plus },
+  { id: "load",     num: "02", label: "Load Game", sub: "Continue from where you left off", icon: Play },
+  { id: "settings", num: "03", label: "Settings",  sub: "Groq API Key and options",       icon: Settings },
+  { id: "exit",     num: "04", label: "Exit",       sub: "Sign out and close the window",  icon: Power },
 ] as const;
 
 function Ornament() {
@@ -43,7 +43,7 @@ function BackButton({ onClick }: Readonly<{ onClick: () => void }>) {
       className="flex items-center gap-1.5 text-neutral-600 hover:text-neutral-300 text-xs transition-colors duration-200 mb-8"
     >
       <ArrowLeft size={12} />
-      <span className="tracking-wider uppercase">กลับ</span>
+      <span className="tracking-wider uppercase">Back</span>
     </button>
   );
 }
@@ -58,7 +58,7 @@ function SectionLabel({ text }: Readonly<{ text: string }>) {
 
 function formatTimestamp(value: string): string {
   try {
-    return new Date(value).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
+    return new Date(value).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
   } catch {
     return value;
   }
@@ -139,7 +139,7 @@ export default function MainMenuDashboard() {
               className="flex items-center gap-1.5 text-neutral-700 hover:text-neutral-300 text-xs transition-colors duration-200"
             >
               <LogOut size={11} />
-              <span className="tracking-wide">ออกจากระบบ</span>
+              <span className="tracking-wide">Sign out</span>
             </button>
           </div>
 
@@ -169,7 +169,7 @@ export default function MainMenuDashboard() {
             {/* ── MAIN MENU ── */}
             {view === "menu" && (
               <>
-                <SectionLabel text="— เมนูหลัก —" />
+                <SectionLabel text="— Main Menu —" />
                 {MENU_ITEMS.map((item, i) => {
                   const Icon = item.icon;
                   const isDanger = item.id === "exit";
@@ -207,7 +207,7 @@ export default function MainMenuDashboard() {
             {view === "load" && (
               <>
                 <BackButton onClick={() => setView("menu")} />
-                <SectionLabel text={save_slots.length > 0 ? "— ดำเนินการต่อ —" : "— เริ่มต้นการเดินทาง —"} />
+                <SectionLabel text={save_slots.length > 0 ? "— Continue —" : "— Begin Your Journey —"} />
 
                 {is_loading_saves ? (
                   <div className="space-y-5">
@@ -244,13 +244,13 @@ export default function MainMenuDashboard() {
                               className="flex-1 min-w-0 text-left"
                             >
                               <span className={`block text-sm sm:text-base font-semibold tracking-wider uppercase transition-colors duration-200 ${titleColor}`}>
-                                {slot.world_name || "โลกที่ไม่มีชื่อ"}
+                                {slot.world_name || "Unnamed World"}
                               </span>
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                 {slot.is_dead ? (
                                   <span className="flex items-center gap-1 text-[10px] text-red-900/65 uppercase tracking-wider">
                                     <Skull size={9} />
-                                    {slot.tone === "hardcore" ? "Permadeath" : "ตายแล้ว"}
+                                    {slot.tone === "hardcore" ? "Permadeath" : "Deceased"}
                                   </span>
                                 ) : (
                                   slot.character && (
@@ -269,7 +269,7 @@ export default function MainMenuDashboard() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: slot.id, name: slot.world_name }); }}
-                                title="ลบโลกนี้"
+                                title="Delete this world"
                                 className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 p-1 text-red-900/55 hover:text-red-500/80"
                               >
                                 <Trash2 size={12} />
@@ -293,10 +293,10 @@ export default function MainMenuDashboard() {
                         </span>
                         <div className="flex-1 min-w-0">
                           <span className="block text-sm sm:text-base font-semibold tracking-wider uppercase text-neutral-500 group-hover:text-white transition-colors duration-200">
-                            สร้างโลกใหม่
+                            New World
                           </span>
                           <span className="text-[11px] text-neutral-700 group-hover:text-neutral-600 transition-colors duration-200 mt-0.5 block">
-                            เริ่มการผจญภัยครั้งใหม่
+                            Start a new adventure
                           </span>
                         </div>
                         <Plus size={13} className="text-neutral-800/45 group-hover:text-amber-500/60 shrink-0 transition-colors duration-200" />
@@ -305,20 +305,20 @@ export default function MainMenuDashboard() {
 
                     {save_slots.length >= 10 && (
                       <div className="py-3 text-center">
-                        <p className="text-neutral-700 text-xs tracking-wider">ถึงขีดจำกัด 10 โลกแล้ว — ลบโลกเก่าเพื่อสร้างใหม่</p>
+                        <p className="text-neutral-700 text-xs tracking-wider">10-world limit reached — delete an old world to create a new one</p>
                       </div>
                     )}
 
                     {save_slots.length === 0 && (
                       <div className="py-10 flex flex-col items-center gap-3 text-center">
                         <Swords size={28} className="text-neutral-800" />
-                        <p className="text-neutral-700 text-xs tracking-wider">ยังไม่มีโลกที่บันทึกไว้</p>
+                        <p className="text-neutral-700 text-xs tracking-wider">No saved worlds yet</p>
                         <button
                           type="button"
                           onClick={() => setGameState({ game_phase: "Menu" })}
                           className="mt-2 flex items-center gap-1.5 text-amber-700/60 hover:text-amber-400 text-xs tracking-wider transition-colors"
                         >
-                          <Plus size={11} /> สร้างโลกใหม่
+                          <Plus size={11} /> Create a new world
                         </button>
                       </div>
                     )}
@@ -331,7 +331,7 @@ export default function MainMenuDashboard() {
             {view === "settings" && (
               <>
                 <BackButton onClick={() => setView("menu")} />
-                <SectionLabel text="— การตั้งค่า —" />
+                <SectionLabel text="— Settings —" />
 
                 <div className="space-y-6">
                   {/* API key status badge */}
@@ -339,11 +339,11 @@ export default function MainMenuDashboard() {
                     <span className="text-xs text-neutral-500 uppercase tracking-widest">Groq API Key</span>
                     {groq_api_key ? (
                       <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 rounded-full px-2.5 py-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Key ส่วนตัว
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Personal Key
                       </span>
                     ) : (
                       <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-950/50 border border-amber-800/40 rounded-full px-2.5 py-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> Key ส่วนกลาง
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> Shared Key
                       </span>
                     )}
                   </div>
@@ -355,15 +355,15 @@ export default function MainMenuDashboard() {
                     <div className="flex gap-2.5">
                       <span className="text-amber-600/70 shrink-0 mt-0.5">⚠</span>
                       <div>
-                        <p className="text-neutral-400 font-medium mb-0.5">Key ส่วนกลาง — จำกัด 50 เทิร์น/วัน ต่อ IP</p>
-                        <p>รีเซตทุกเที่ยงคืน UTC (07:00 น. ตามเวลาไทย)</p>
+                        <p className="text-neutral-400 font-medium mb-0.5">Shared Key — limited to 50 turns/day per IP</p>
+                        <p>Resets at midnight UTC. Quota shared across all users.</p>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <span className="text-emerald-600/70 shrink-0 mt-0.5">✓</span>
                       <div>
-                        <p className="text-neutral-400 font-medium mb-0.5">Key ส่วนตัว — ไม่มีจำกัดจากเรา</p>
-                        <p>Key เก็บใน Browser เท่านั้น ไม่ถูกส่งไปเซิร์ฟเวอร์</p>
+                        <p className="text-neutral-400 font-medium mb-0.5">Personal Key — no limit from us</p>
+                        <p>Key is stored in your browser only and never sent to our servers.</p>
                       </div>
                     </div>
                   </div>
@@ -373,7 +373,7 @@ export default function MainMenuDashboard() {
                   {/* Input */}
                   <div className="space-y-2">
                     <label htmlFor="settings-groq-key" className="text-[11px] text-neutral-600 uppercase tracking-widest">
-                      ใส่ Groq API Key
+                      Enter your Groq API Key
                     </label>
                     <input
                       id="settings-groq-key"
@@ -384,7 +384,7 @@ export default function MainMenuDashboard() {
                       onChange={(e) => setApiKeyDraft(e.target.value)}
                     />
                     <p className="text-[11px] text-neutral-700">
-                      สร้าง Key ฟรีได้ที่{" "}
+                      Get a free key at{" "}
                       <a
                         href="https://console.groq.com/keys"
                         target="_blank"
@@ -404,7 +404,7 @@ export default function MainMenuDashboard() {
                         onClick={() => { setApiKeyDraft(""); setGameState({ groq_api_key: "" }); }}
                         className="text-xs text-red-800/60 hover:text-red-400/80 transition-colors"
                       >
-                        ลบ Key ออก
+                        Remove Key
                       </button>
                     )}
                     <button
@@ -412,7 +412,7 @@ export default function MainMenuDashboard() {
                       onClick={() => { setGameState({ groq_api_key: apiKeyDraft.trim() }); setView("menu"); }}
                       className="ml-auto flex items-center gap-1.5 text-xs text-amber-700/70 hover:text-amber-300 uppercase tracking-widest transition-colors"
                     >
-                      บันทึก <ChevronRight size={11} />
+                      Save <ChevronRight size={11} />
                     </button>
                   </div>
                 </div>
@@ -470,10 +470,10 @@ export default function MainMenuDashboard() {
       {showLogoutConfirm && (
         <ConfirmModal
           variant="danger"
-          title="ออกจากระบบ?"
-          message="ต้องการออกจากระบบหรือไม่? ความคืบหน้าของคุณถูกบันทึกไว้แล้ว"
-          confirmText="ออกจากระบบ"
-          cancelText="ยกเลิก"
+          title="Sign Out?"
+          message="Are you sure you want to sign out? Your progress has been saved."
+          confirmText="Sign Out"
+          cancelText="Cancel"
           onConfirm={() => { setShowLogoutConfirm(false); signOut(); }}
           onCancel={() => setShowLogoutConfirm(false)}
         />
@@ -483,10 +483,10 @@ export default function MainMenuDashboard() {
       {showExitConfirm && (
         <ConfirmModal
           variant="danger"
-          title="ออกจากเกม?"
-          message="ต้องการออกจากระบบและปิดหน้าต่างหรือไม่? ความคืบหน้าของคุณถูกบันทึกไว้แล้ว"
-          confirmText="ออกจากเกม"
-          cancelText="ยกเลิก"
+          title="Exit Game?"
+          message="Sign out and close the window? Your progress has been saved."
+          confirmText="Exit"
+          cancelText="Cancel"
           onConfirm={() => { setShowExitConfirm(false); handleExit(); }}
           onCancel={() => setShowExitConfirm(false)}
         />
@@ -496,10 +496,10 @@ export default function MainMenuDashboard() {
       {confirmDelete && (
         <ConfirmModal
           variant="danger"
-          title="ลบโลกนี้?"
-          message={`ต้องการลบโลก "${confirmDelete.name}" หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`}
-          confirmText="ลบ"
-          cancelText="ยกเลิก"
+          title="Delete This World?"
+          message={`Delete "${confirmDelete.name}"? This cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
           onConfirm={() => { deleteSaveSlot(confirmDelete.id); setConfirmDelete(null); }}
           onCancel={() => setConfirmDelete(null)}
         />

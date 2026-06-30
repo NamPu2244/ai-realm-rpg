@@ -100,7 +100,7 @@ export default function GameHeader({
           {/* Energy indicator — shown for authenticated users */}
           {authStatus === 'authenticated' && (
             <div
-              title={`พลังงานที่เหลือ ${energy} / 50`}
+              title={`Energy remaining: ${energy} / 50`}
               className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-mono tabular-nums select-none transition-all ${energyChipClass(energy)}`}
             >
               <span>⚡</span>
@@ -112,7 +112,7 @@ export default function GameHeader({
           <button
             type="button"
             onClick={onOpenSettings}
-            title={hasPersonalKey ? "API Key ส่วนตัว — คลิกเพื่อจัดการ" : "ใช้ Key ส่วนกลาง — คลิกเพื่อใส่ Key ของคุณเอง"}
+            title={hasPersonalKey ? "Personal API Key — click to manage" : "Using shared key — click to add your own"}
             className={`relative ${ICON_BTN} ${hasPersonalKey ? "" : "border-amber-700/50 text-amber-400/80"}`}
           >
             <Settings size={13} />
@@ -125,7 +125,7 @@ export default function GameHeader({
           <button
             type="button"
             onClick={handleToggleMute}
-            title={muted ? "เปิดเสียง" : "ปิดเสียง"}
+            title={muted ? "Unmute" : "Mute"}
             className={ICON_BTN}
           >
             {muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
@@ -135,7 +135,7 @@ export default function GameHeader({
           <button
             type="button"
             onClick={onOpenJournal}
-            title="สมุดบันทึกนักเดินทาง"
+            title="Traveler's Journal"
             className={ICON_BTN}
           >
             <BookOpen size={13} />
@@ -145,7 +145,7 @@ export default function GameHeader({
           <button
             type="button"
             onClick={onOpenDossier}
-            title="ทะเบียนตัวละคร"
+            title="Character Registry"
             className={ICON_BTN}
           >
             <Users size={13} />
@@ -156,7 +156,7 @@ export default function GameHeader({
             <button
               type="button"
               onClick={() => setShowMenu((v) => !v)}
-              title="เมนูเพิ่มเติม"
+              title="More options"
               className={`${ICON_BTN} ${showMenu ? "bg-amber-900/30 border-amber-700/50 text-amber-200" : ""}`}
             >
               <MoreHorizontal size={13} />
@@ -165,22 +165,22 @@ export default function GameHeader({
             {showMenu && (
               <div className="absolute right-0 top-full mt-1.5 w-44 bg-stone-900/95 border border-stone-700/80 rounded-xl shadow-2xl backdrop-blur overflow-hidden z-50 animate-[pageFadeIn_0.12s_ease-out]">
                 <button type="button" onClick={() => { onExportSave(); close(); }} className={MENU_ITEM}>
-                  <Save size={13} /> บันทึกเกม
+                  <Save size={13} /> Save Game
                 </button>
                 <button type="button" onClick={() => { onExportStory(); close(); }} className={MENU_ITEM}>
-                  <ScrollText size={13} /> ส่งออกเรื่อง
+                  <ScrollText size={13} /> Export Story
                 </button>
                 <button type="button" onClick={() => { importInputRef.current?.click(); close(); }} className={MENU_ITEM}>
-                  <Upload size={13} /> โหลดเกม
+                  <Upload size={13} /> Load Game
                 </button>
                 <div className="border-t border-stone-800 mx-2 my-1" />
                 {authStatus === "authenticated" ? (
                   <button type="button" onClick={() => { onQuitToDashboard(); close(); }} className={MENU_ITEM}>
-                    <LayoutDashboard size={13} /> กลับแดชบอร์ด
+                    <LayoutDashboard size={13} /> Back to Dashboard
                   </button>
                 ) : (
                   <button type="button" onClick={() => { onNewGame(); close(); }} className={MENU_ITEM}>
-                    <ListRestart size={13} /> เมนูหลัก
+                    <ListRestart size={13} /> Main Menu
                   </button>
                 )}
               </div>

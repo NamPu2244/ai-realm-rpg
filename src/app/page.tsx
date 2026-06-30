@@ -546,7 +546,7 @@ export default function GamePage() {
         applyGameResult(result.data, newHistory, worldConfig, message, isSystemInit, handleSend);
       } else {
         setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
-        setError("AI ตอบกลับมาผิดพลาด ไม่สามารถอ่านข้อมูลได้ ลองอีกครั้ง");
+        setError("AI returned an invalid response. Please try again.");
         setRetryAction({ newHistory, message, worldConfig });
         setStreamingNarrative("");
       }
@@ -556,8 +556,8 @@ export default function GamePage() {
       setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
       setError(
         detail
-          ? `เชื่อมต่อกับ AI ไม่สำเร็จ: ${detail}`
-          : "เชื่อมต่อกับ AI ไม่สำเร็จ กรุณาลองอีกครั้ง",
+          ? `Failed to connect to AI: ${detail}`
+          : "Failed to connect to AI. Please try again.",
       );
       setRetryAction({ newHistory, message, worldConfig });
       setStreamingNarrative("");
@@ -581,12 +581,12 @@ export default function GamePage() {
     const worldConfig = worldConfigOverride || world_config;
     setInput("");
 
-    const isNoResponse = message === "[ไม่ตอบสนอง]";
+    const isNoResponse = message === "[no response]";
     const displayContent =
       message === QTE_TIMEOUT_SIGNAL ? getQteTimeoutDisplay(worldConfig?.language) : message;
 
     const apiMessage = isNoResponse
-      ? "[ไม่ตอบสนอง]: ผู้เล่นยืนนิ่งเงียบและไม่กระทำสิ่งใด เวลาผ่านไปเล็กน้อย กรุณาดำเนินเรื่องต่อโดยไม่มีการกระทำจากผู้เล่น"
+      ? "[no response]: The player character stands completely silent and still, taking no action. Time passes briefly. Please advance the scene without any player action."
       : message;
 
     const newHistory = isSystemInit
@@ -684,7 +684,7 @@ export default function GamePage() {
 
   const handleNewGame = () => {
     setConfirmInfo({
-      message: "ต้องการเริ่มเกมใหม่และกลับไปหน้าสร้างโลกหรือไม่? ความคืบหน้าปัจจุบันจะหายไป",
+      message: "Start a new game and return to the world creation screen? Your current progress will be lost.",
       onConfirm: () => {
         setConfirmInfo(null);
         handleRestart();
@@ -731,29 +731,29 @@ export default function GamePage() {
     const lines: string[] = [
       `═══════════════════════════════════════`,
       `  ${worldName.toUpperCase()}`,
-      `  STORYWEAVE — บันทึกการเดินทาง`,
+      `  STORYWEAVE — Adventure Log`,
       `═══════════════════════════════════════`,
-      `ตัวละคร : ${state.world_config?.character || "-"}`,
-      `แนวเกม  : ${state.world_config?.genre || "-"}`,
-      `โทน     : ${state.world_config?.tone || "-"}`,
-      `ส่งออก  : ${new Date().toLocaleString("th-TH")}`,
+      `Character : ${state.world_config?.character || "-"}`,
+      `Genre     : ${state.world_config?.genre || "-"}`,
+      `Tone      : ${state.world_config?.tone || "-"}`,
+      `Exported  : ${new Date().toLocaleString("en-US")}`,
       `═══════════════════════════════════════`,
       "",
     ];
 
     for (const entry of state.history) {
       if (entry.role === "player") {
-        lines.push(`▶ ผู้เล่น: ${entry.content}`);
+        lines.push(`▶ Player: ${entry.content}`);
       } else {
         if (entry.prologue) {
-          lines.push("", `[บทเปิดเรื่อง]`, entry.prologue, "");
+          lines.push("", `[Prologue]`, entry.prologue, "");
         }
         lines.push(``, `📖 GM:`, entry.content, "");
       }
     }
 
     if (state.story_summary) {
-      lines.push("═══════════════════════════════════════", "", "[สรุปเรื่องราว]", state.story_summary);
+      lines.push("═══════════════════════════════════════", "", "[Story Summary]", state.story_summary);
     }
 
     const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
@@ -807,7 +807,7 @@ export default function GamePage() {
         setError(null);
       } catch (err) {
         console.error("Import Error:", err);
-        setAlertInfo("ไฟล์เซฟไม่ถูกต้อง ไม่สามารถโหลดได้");
+        setAlertInfo("Invalid save file — cannot load.");
       }
     };
     reader.readAsText(file);
@@ -861,10 +861,10 @@ export default function GamePage() {
               <button
                 type="button"
                 onClick={() => importInputRef.current?.click()}
-                title="โหลดเกมจากไฟล์"
+                title="Load Game from File"
                 className="fixed bottom-6 right-6 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors shadow-lg"
               >
-                โหลดเกมจากไฟล์
+                Load Game from File
               </button>
             </>
           )}
@@ -900,8 +900,8 @@ export default function GamePage() {
         {showUpgradeSuccess && (
           <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-level-up-pop">
             <div className="px-6 py-3 bg-emerald-900/90 border border-emerald-400/60 rounded-xl shadow-[0_0_30px_rgba(52,211,153,0.3)] text-center">
-              <p className="text-xs text-emerald-400/80 uppercase tracking-widest mb-0.5">สำเร็จ!</p>
-              <p className="text-base font-bold text-emerald-300">คุณได้รับสิทธิ์ Pro แล้ว ✦</p>
+              <p className="text-xs text-emerald-400/80 uppercase tracking-widest mb-0.5">Success!</p>
+              <p className="text-base font-bold text-emerald-300">You now have Pro access ✦</p>
             </div>
           </div>
         )}
@@ -912,8 +912,8 @@ export default function GamePage() {
               onClick={() => setGameState({ sync_error: null })}
               className="px-5 py-3 bg-rose-950/90 border border-rose-500/50 rounded-xl shadow-[0_0_30px_rgba(244,63,94,0.25)] text-center"
             >
-              <p className="text-xs text-rose-400/80 uppercase tracking-widest mb-0.5">เกิดข้อผิดพลาด</p>
-              <p className="text-sm font-medium text-rose-200">{sync_error} <span className="text-rose-400/60">(แตะเพื่อปิด)</span></p>
+              <p className="text-xs text-rose-400/80 uppercase tracking-widest mb-0.5">Error</p>
+              <p className="text-sm font-medium text-rose-200">{sync_error} <span className="text-rose-400/60">(tap to dismiss)</span></p>
             </button>
           </div>
         )}
@@ -1054,7 +1054,7 @@ export default function GamePage() {
         <button
           type="button"
           onClick={() => setShowMobileStats(true)}
-          aria-label="เปิดสถานะตัวละคร"
+          aria-label="Open character status"
           className={`fixed bottom-24 right-4 z-30 lg:hidden flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl border shadow-lg backdrop-blur transition-colors ${isLowHp ? "bg-red-950/80 border-red-700/60 animate-pulse" : "bg-stone-900/80 border-amber-900/40"}`}
         >
           <Heart size={18} className={isLowHp ? "text-red-400 fill-red-400" : "text-amber-400 fill-amber-400"} />
@@ -1118,10 +1118,10 @@ export default function GamePage() {
       {confirmInfo && (
         <ConfirmModal
           variant="danger"
-          title="เริ่มเกมใหม่?"
+          title="Start New Game?"
           message={confirmInfo.message}
-          confirmText="เริ่มใหม่"
-          cancelText="ยกเลิก"
+          confirmText="Start New"
+          cancelText="Cancel"
           onConfirm={confirmInfo.onConfirm}
           onCancel={() => setConfirmInfo(null)}
         />

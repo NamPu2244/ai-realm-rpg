@@ -74,14 +74,14 @@ export default function SceneBanner({ imagePrompt, tone }: Readonly<{ imagePromp
           <div className="absolute inset-0 bg-stone-800/60">
             <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-stone-800/60 via-stone-600/30 to-stone-800/60 bg-[length:200%_100%]" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xs text-amber-500/40 tracking-widest uppercase animate-pulse">กำลังสร้างฉาก...</span>
+              <span className="text-xs text-amber-500/40 tracking-widest uppercase animate-pulse">Generating scene...</span>
             </div>
           </div>
         )}
 
         {loadFailed && !currentSrc && (
           <div className="absolute inset-0 bg-stone-900/80 flex items-center justify-center">
-            <span className="text-xs text-stone-500 tracking-widest uppercase">ไม่สามารถโหลดรูปภาพได้</span>
+            <span className="text-xs text-stone-500 tracking-widest uppercase">Image could not be loaded</span>
           </div>
         )}
 

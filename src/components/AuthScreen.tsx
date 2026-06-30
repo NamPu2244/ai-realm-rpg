@@ -36,7 +36,7 @@ const PARTICLES: Particle[] = Array.from({ length: 22 }, (_, i) => ({
 
 function SubmitLabel({ mode, isLoading }: Readonly<{ mode: Mode; isLoading: boolean }>) {
   if (isLoading) {
-    const text = mode === "signin" ? "กำลังเข้าสู่ระบบ..." : "กำลังสร้างบัญชี...";
+    const text = mode === "signin" ? "Signing in..." : "Creating account...";
     return (
       <>
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -47,7 +47,7 @@ function SubmitLabel({ mode, isLoading }: Readonly<{ mode: Mode; isLoading: bool
       </>
     );
   }
-  return <>{mode === "signin" ? "เข้าสู่ระบบ" : "สร้างบัญชี"}</>;
+  return <>{mode === "signin" ? "Sign In" : "Sign Up"}</>;
 }
 
 export default function AuthScreen() {
@@ -76,11 +76,11 @@ export default function AuthScreen() {
       } else {
         const { error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
-        setMessage("ส่งลิงก์ยืนยันไปที่อีเมลของคุณแล้ว กรุณาตรวจสอบกล่องจดหมาย (รวมถึง Spam) แล้วคลิกลิงก์เพื่อเข้าสู่ระบบ");
+        setMessage("A confirmation link has been sent to your email. Check your inbox (and spam folder) and click the link to sign in.");
         setMode("signin");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด ลองอีกครั้ง");
+      setError(err instanceof Error ? err.message : "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +188,7 @@ export default function AuthScreen() {
                     mode === m ? "text-amber-300" : "text-neutral-500 hover:text-neutral-300"
                   }`}
                 >
-                  {m === "signin" ? "เข้าสู่ระบบ" : "สร้างบัญชี"}
+                  {m === "signin" ? "Sign In" : "Sign Up"}
                 </button>
               ))}
             </div>
@@ -268,7 +268,7 @@ export default function AuthScreen() {
             {/* ── Divider ── */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-neutral-800/60" />
-              <span className="text-[10px] text-neutral-700 uppercase tracking-widest">หรือ</span>
+              <span className="text-[10px] text-neutral-700 uppercase tracking-widest">or</span>
               <div className="flex-1 h-px bg-neutral-800/60" />
             </div>
 
@@ -287,19 +287,19 @@ export default function AuthScreen() {
               ) : (
                 <GoogleIcon />
               )}
-              {isGoogleLoading ? "กำลังเชื่อมต่อ Google..." : "Continue with Google"}
+              {isGoogleLoading ? "Connecting to Google..." : "Continue with Google"}
             </button>
 
             {/* ── Guest ── */}
             <button
               type="button"
               onClick={() => setGameState({ auth_status: "guest", game_phase: "Menu" })}
-              title="เล่นแบบไม่ login โดยบันทึกเกมไว้ในเครื่องนี้เท่านั้น"
+              title="Play without logging in — progress is saved on this device only"
               className="group flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-neutral-800/40 hover:border-neutral-700/50 text-neutral-600 hover:text-neutral-400 text-xs tracking-wide transition-all duration-200 hover:bg-neutral-900/30"
             >
               <Shield size={13} className="text-neutral-700 group-hover:text-neutral-500 transition-colors" />
-              เล่นแบบไม่ระบุตัวตน
-              <span className="text-neutral-700 group-hover:text-neutral-600 transition-colors">(บันทึกในเครื่องนี้)</span>
+              Play as Guest
+              <span className="text-neutral-700 group-hover:text-neutral-600 transition-colors">(saved on this device only)</span>
             </button>
           </div>
 

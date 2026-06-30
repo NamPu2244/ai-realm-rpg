@@ -32,7 +32,7 @@ export default function AdminFeedbackPage() {
     f.message.toLowerCase().includes(search.toLowerCase())
   )
 
-  if (loading) return <div className="p-8 text-neutral-500 text-sm">กำลังโหลด...</div>
+  if (loading) return <div className="p-8 text-neutral-500 text-sm">Loading...</div>
 
   return (
     <div className="p-8 max-w-3xl">
@@ -43,7 +43,7 @@ export default function AdminFeedbackPage() {
         </h1>
         <input
           type="text"
-          placeholder="ค้นหาในข้อความ..."
+          placeholder="Search messages..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="bg-neutral-800 border border-neutral-700 text-neutral-200 text-sm rounded px-3 py-1.5 w-56 placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500"
@@ -51,7 +51,7 @@ export default function AdminFeedbackPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-neutral-600 text-sm">ไม่พบ feedback</p>
+        <p className="text-neutral-600 text-sm">No feedback found</p>
       ) : (
         <div className="flex flex-col gap-2">
           {filtered.map((f) => (
@@ -62,7 +62,7 @@ export default function AdminFeedbackPage() {
               <p className="text-neutral-200 text-sm whitespace-pre-wrap">{f.message}</p>
               <div className="flex items-center gap-4 mt-2">
                 <span className="text-neutral-500 text-xs">
-                  {new Date(f.created_at).toLocaleString('th-TH')}
+                  {new Date(f.created_at).toLocaleString('en-US')}
                 </span>
                 {f.save_slot_id && (
                   <span className="text-neutral-600 text-xs font-mono">

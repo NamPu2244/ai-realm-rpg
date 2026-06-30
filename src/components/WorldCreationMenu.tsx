@@ -12,13 +12,13 @@ import { generateRandomStart } from "@/utils/randomStarts";
 const LANGUAGES = ["ไทย", "English", "日本語"];
 
 const GENRES: { id: string; icon: LucideIcon; label: string; value: string }[] = [
-  { id: "fantasy",    icon: Sword,     label: "แฟนตาซี",       value: "High fantasy with magic, monsters, and medieval kingdoms" },
+  { id: "fantasy",    icon: Sword,     label: "Fantasy",        value: "High fantasy with magic, monsters, and medieval kingdoms" },
   { id: "scifi",      icon: Rocket,    label: "Sci-Fi",         value: "Science fiction with advanced technology, space travel, and aliens" },
-  { id: "cyberpunk",  icon: Bot,       label: "ไซเบอร์พังก์",   value: "Cyberpunk dystopia with megacorporations, hackers, and neon-lit cities" },
-  { id: "apocalypse", icon: Biohazard, label: "หลังหายนะ",      value: "Post-apocalyptic wasteland with survivors, mutants, and scarce resources" },
-  { id: "horror",     icon: Ghost,     label: "สยองขวัญ",       value: "Cosmic and psychological horror, full of dread and sanity-testing events" },
-  { id: "modern",     icon: Building2, label: "โลกปัจจุบัน",    value: "Modern-day urban setting with hidden supernatural elements" },
-  { id: "wuxia",      icon: Swords,    label: "กำลังภายใน",     value: "Wuxia/Xianxia world of martial arts sects, cultivation, and ancient-China-inspired settings" },
+  { id: "cyberpunk",  icon: Bot,       label: "Cyberpunk",      value: "Cyberpunk dystopia with megacorporations, hackers, and neon-lit cities" },
+  { id: "apocalypse", icon: Biohazard, label: "Post-Apocalypse",value: "Post-apocalyptic wasteland with survivors, mutants, and scarce resources" },
+  { id: "horror",     icon: Ghost,     label: "Horror",         value: "Cosmic and psychological horror, full of dread and sanity-testing events" },
+  { id: "modern",     icon: Building2, label: "Modern",         value: "Modern-day urban setting with hidden supernatural elements" },
+  { id: "wuxia",      icon: Swords,    label: "Wuxia",          value: "Wuxia/Xianxia world of martial arts sects, cultivation, and ancient-China-inspired settings" },
 ];
 
 const OPENING_SEEDS: Record<string, string[]> = {
@@ -82,31 +82,31 @@ const OPENING_SEEDS: Record<string, string[]> = {
 
 
 const TONES: { id: WorldTone; icon: LucideIcon; label: string; desc: string }[] = [
-  { id: "hardcore", icon: Skull,     label: "Hardcore",      desc: "โลกสมจริงเข้มข้น การกระทำโง่ๆ อาจถึงตาย ผลลัพธ์รุนแรงและจริงจัง" },
-  { id: "balanced", icon: Scale,     label: "Balanced",      desc: "ท้าทายแต่ยุติธรรม มีโอกาสแก้ตัวก่อนถึงทางตัน" },
-  { id: "story",    icon: BookOpen,  label: "Story-Focused", desc: "เน้นเนื้อเรื่องและดราม่า โอกาสตายต่ำ" },
-  { id: "sandbox",  icon: Palette,   label: "Sandbox",       desc: "อิสระสุดๆ AI ตามใจผู้เล่น แทบไม่มีข้อจำกัด" },
+  { id: "hardcore", icon: Skull,     label: "Hardcore",      desc: "Brutal realism — stupid choices can get you killed, consequences are severe" },
+  { id: "balanced", icon: Scale,     label: "Balanced",      desc: "Challenging but fair — chances to recover before hitting a dead end" },
+  { id: "story",    icon: BookOpen,  label: "Story-Focused", desc: "Emphasis on narrative and drama — low chance of permadeath" },
+  { id: "sandbox",  icon: Palette,   label: "Sandbox",       desc: "Total freedom — AI follows the player's lead with almost no restrictions" },
 ];
 
 const GENDERS = [
-  { id: "unspecified", label: "ไม่ระบุ / ให้ AI กำหนด" },
-  { id: "male",        label: "ชาย" },
-  { id: "female",      label: "หญิง" },
-  { id: "nonbinary",   label: "นอกบรรทัดฐานทางเพศ" },
+  { id: "unspecified", label: "Unspecified / AI decides" },
+  { id: "male",        label: "Male" },
+  { id: "female",      label: "Female" },
+  { id: "nonbinary",   label: "Non-binary" },
 ];
 
 const ORIENTATIONS = [
-  { id: "unspecified",   label: "ไม่ระบุ" },
-  { id: "heterosexual",  label: "รักต่างเพศ" },
-  { id: "homosexual",    label: "รักเพศเดียวกัน" },
-  { id: "bisexual",      label: "รักสองเพศ" },
-  { id: "asexual",       label: "ไม่ฝักใฝ่ทางเพศ" },
+  { id: "unspecified",   label: "Unspecified" },
+  { id: "heterosexual",  label: "Heterosexual" },
+  { id: "homosexual",    label: "Gay / Lesbian" },
+  { id: "bisexual",      label: "Bisexual" },
+  { id: "asexual",       label: "Asexual" },
 ];
 
 const PERSONALITY_TRAITS = [
-  "กล้าหาญ", "ขี้ขลาด", "ใจดี", "เห็นแก่ตัว", "ฉลาดเป็นกรด", "หุนหันพลันแล่น",
-  "เจ้าเล่ห์", "ซื่อสัตย์", "เย็นชา", "อบอุ่น", "ทะเยอทะยาน", "สันโดษ",
-  "โหดเหี้ยม", "มีเมตตา", "ขี้สงสัย", "มองโลกในแง่ร้าย", "ร่าเริง", "เงียบขรึม",
+  "Brave", "Cowardly", "Kind", "Selfish", "Sharp-witted", "Impulsive",
+  "Cunning", "Honest", "Cold", "Warm", "Ambitious", "Solitary",
+  "Ruthless", "Compassionate", "Curious", "Pessimistic", "Cheerful", "Reserved",
 ];
 
 // Deterministic particles — no Math.random() to avoid hydration mismatch
@@ -165,7 +165,7 @@ function ProGate({ locked, onLock, children }: Readonly<{ locked: boolean; onLoc
         className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-amber-950/30 border border-amber-700/30 hover:bg-amber-950/50 transition-colors w-full"
       >
         <Lock size={13} className="text-amber-400" />
-        <span className="text-xs font-semibold text-amber-300">Pro เท่านั้น</span>
+        <span className="text-xs font-semibold text-amber-300">Pro Only</span>
       </button>
     </div>
   );
@@ -234,7 +234,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
     onStart({ language: resolvedLanguage, genre: resolvedGenre, tone, character: resolvedCharacter, customWorld: customWorld.trim(), openingSeed, worldName: worldName.trim() });
   };
 
-  const ctaPrice = upsellPlan === "monthly" ? "฿99/เดือน" : "฿799/ปี";
+  const ctaPrice = upsellPlan === "monthly" ? "฿99/mo" : "฿799/yr";
 
   return (
     <div className="relative h-screen overflow-y-auto bg-neutral-950 text-neutral-200 font-sans">
@@ -249,7 +249,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           {/* Backdrop button — click to dismiss */}
           <button
             type="button"
-            aria-label="ปิด"
+            aria-label="Close"
             tabIndex={-1}
             className="absolute inset-0 w-full h-full bg-black/70 backdrop-blur-sm cursor-default"
             onClick={() => setShowUpsell(false)}
@@ -262,19 +262,19 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
             {/* Header */}
             <div className="flex items-center gap-2 mb-1">
               <Sparkles size={18} className="text-amber-400" />
-              <h2 className="text-base font-bold text-amber-300">ปลดล็อก Pro</h2>
+              <h2 className="text-base font-bold text-amber-300">Unlock Pro</h2>
             </div>
             <p className="text-sm text-neutral-400 mb-4 leading-relaxed">
-              สร้างโลกและตัวละครในแบบที่คุณจินตนาการได้อย่างไร้ขีดจำกัด
+              Build worlds and characters exactly as you imagine — without limits.
             </p>
 
             {/* Feature list */}
             <ul className="space-y-1.5 text-sm text-neutral-400 mb-5">
               {[
-                "Custom Genre — บรรยายแนวโลกได้อย่างอิสระ",
-                "Custom World — ใส่กฎ ระบบ และแฟกชันของโลกเอง",
-                "Character Concept — เขียนที่มาตัวละครได้ละเอียด",
-                "Save Slots เพิ่มขึ้น",
+                "Custom Genre — describe any world setting freely",
+                "Custom World — add your own rules, systems, and factions",
+                "Character Concept — write a detailed backstory",
+                "More Save Slots",
               ].map((f) => (
                 <li key={f} className="flex items-start gap-2">
                   <span className="text-amber-500 mt-0.5 shrink-0">✦</span>{f}
@@ -296,13 +296,13 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
                   }`}
                 >
                   <div className="text-xs font-semibold uppercase tracking-wider">
-                    {p === "monthly" ? "รายเดือน" : "รายปี"}
+                    {p === "monthly" ? "Monthly" : "Yearly"}
                   </div>
                   <div className="text-base font-bold mt-0.5">
                     {p === "monthly" ? "฿99" : "฿799"}
                   </div>
                   {p === "yearly" && (
-                    <div className="text-[10px] text-emerald-400 mt-0.5">ประหยัด 33%</div>
+                    <div className="text-[10px] text-emerald-400 mt-0.5">Save 33%</div>
                   )}
                 </button>
               ))}
@@ -327,10 +327,10 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
                     body: JSON.stringify({ plan: upsellPlan }),
                   });
                   const data = await res.json() as { url?: string; error?: string };
-                  if (!res.ok || !data.url) throw new Error(data.error ?? "เกิดข้อผิดพลาด");
+                  if (!res.ok || !data.url) throw new Error(data.error ?? "An error occurred");
                   globalThis.location.href = data.url;
                 } catch (err) {
-                  setUpsellError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด ลองอีกครั้ง");
+                  setUpsellError(err instanceof Error ? err.message : "An error occurred. Please try again");
                   setUpsellLoading(false);
                 }
               }}
@@ -342,15 +342,15 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  กำลังเชื่อมต่อ...
+                  Connecting...
                 </>
               ) : (
-                `สมัคร Pro — ${ctaPrice}`
+                `Subscribe to Pro — ${ctaPrice}`
               )}
             </button>
 
             <p className="text-[10px] text-neutral-600 text-center mt-2">
-              ชำระผ่านบัตรเครดิต หรือ PromptPay • ยกเลิกได้ทุกเมื่อ
+              Pay via credit card or PromptPay • Cancel anytime
             </p>
 
             <button
@@ -358,7 +358,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
               onClick={() => setShowUpsell(false)}
               className="mt-2 w-full py-1.5 text-xs text-neutral-600 hover:text-neutral-400 transition-colors"
             >
-              ปิด
+              Close
             </button>
           </div>
           </div>
@@ -393,27 +393,27 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           <h1 className="text-[1.85rem] font-extrabold tracking-[0.35em] bg-gradient-to-r from-amber-300 via-amber-100 to-amber-400 bg-clip-text text-transparent">
             STORYWEAVE
           </h1>
-          <p className="text-sm text-neutral-500">รังสรรค์โลกของคุณเอง แล้วเริ่มการผจญภัย</p>
+          <p className="text-sm text-neutral-500">Craft your own world and begin your adventure</p>
           <div className="h-px w-24 mx-auto bg-gradient-to-r from-transparent via-amber-700/50 to-transparent mt-3" />
         </div>
 
         {/* ── 0. Adventure name ── */}
-        <StepCard title="ชื่อการผจญภัย *">
+        <StepCard title="Adventure Name *">
           <input
             type="text"
             value={worldName}
             onChange={(e) => { setWorldName(e.target.value); if (e.target.value.trim()) setWorldNameError(false); }}
             maxLength={60}
-            placeholder="เช่น ตำนานแห่งดินแดนหิมะ, The Last Outpost..."
+            placeholder="e.g. Legend of the Frozen Land, The Last Outpost..."
             className={`${INPUT} ${worldNameError ? "border-red-600/60 focus:border-red-500" : ""}`}
           />
           {worldNameError && (
-            <p className="text-xs text-red-400">กรุณากรอกชื่อการผจญภัยก่อนเริ่มเกม</p>
+            <p className="text-xs text-red-400">Please enter an adventure name before starting</p>
           )}
         </StepCard>
 
         {/* ── 1. Language ── */}
-        <StepCard num={1} title="ภาษาในการเล่น" tooltip="ภาษาที่ AI จะใช้บรรยายเนื้อเรื่องและข้อความในเกมทั้งหมด">
+        <StepCard num={1} title="Game Language" tooltip="The language the AI will use for all narration and in-game text">
           <div className="flex flex-wrap gap-2">
             {LANGUAGES.map((lang) => (
               <button
@@ -432,13 +432,13 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
             type="text"
             value={customLanguage}
             onChange={(e) => setCustomLanguage(e.target.value)}
-            placeholder="หรือพิมพ์ภาษาอื่น..."
+            placeholder="Or type another language..."
             className={INPUT}
           />
         </StepCard>
 
         {/* ── 2. Genre ── */}
-        <StepCard num={2} title="แนวโลก (Genre)" tooltip="กำหนดบรรยากาศ ธีม และเนื้อเรื่องของโลกที่คุณจะผจญภัย">
+        <StepCard num={2} title="Genre" tooltip="Sets the atmosphere, theme, and setting of the world you will adventure in">
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
             {GENRES.map((g) => {
               const active = genreId === g.id && !customGenre;
@@ -461,7 +461,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
             <textarea
               value={customGenre}
               onChange={(e) => setCustomGenre(e.target.value)}
-              placeholder="หรือบรรยายแนวโลกแบบ Custom เอง..."
+              placeholder="Or describe a custom genre freely..."
               rows={2}
               className={TEXTAREA}
             />
@@ -469,7 +469,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
         </StepCard>
 
         {/* ── 3. Tone ── */}
-        <StepCard num={3} title="โทนความยาก / ความเข้มงวด" tooltip="กำหนดความเข้มงวดของกฎเกมและความเสี่ยงต่อการตาย">
+        <StepCard num={3} title="Tone / Difficulty" tooltip="Sets how strict the game rules are and how high the risk of death is">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {TONES.map((t) => {
               const active = tone === t.id;
@@ -496,12 +496,12 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
         </StepCard>
 
         {/* ── 4. Character ── */}
-        <StepCard num={4} title="สร้างตัวละคร: จิตใจและลักษณะนิสัย" tooltip="กำหนดเพศ รสนิยม บุคลิก และที่มาของตัวละคร AI จะใช้ข้อมูลนี้ในการเล่าเรื่อง">
+        <StepCard num={4} title="Character: Identity & Personality" tooltip="Set your character's gender, orientation, personality, and background — the AI will use this throughout the story">
 
           {/* Gender */}
           <div className="space-y-2">
-            <p title="ใช้เพื่อให้ AI บรรยายและเรียกตัวละครได้ถูกต้อง" className="text-xs text-neutral-500 cursor-help">
-              เพศของตัวละคร
+            <p title="Used so the AI describes and refers to your character correctly" className="text-xs text-neutral-500 cursor-help">
+              Character Gender
             </p>
             <div className="flex flex-wrap gap-2">
               {GENDERS.map((g) => (
@@ -521,15 +521,15 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
               type="text"
               value={customGender}
               onChange={(e) => setCustomGender(e.target.value)}
-              placeholder="หรือระบุเพศแบบอื่นเอง..."
+              placeholder="Or specify another gender..."
               className={INPUT}
             />
           </div>
 
           {/* Orientation */}
           <div className="space-y-2">
-            <p title="มีผลต่อความสัมพันธ์และเนื้อเรื่องโรแมนซ์ที่ AI อาจสร้างขึ้นระหว่างเกม" className="text-xs text-neutral-500 cursor-help">
-              รสนิยมทางเพศ
+            <p title="Affects relationships and romantic storylines the AI may create during the game" className="text-xs text-neutral-500 cursor-help">
+              Sexual Orientation
             </p>
             <div className="flex flex-wrap gap-2">
               {ORIENTATIONS.map((o) => (
@@ -549,7 +549,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
               type="text"
               value={customOrientation}
               onChange={(e) => setCustomOrientation(e.target.value)}
-              placeholder="หรือระบุรสนิยมทางเพศแบบอื่นเอง..."
+              placeholder="Or specify another orientation..."
               className={INPUT}
             />
           </div>
@@ -557,10 +557,10 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           {/* Personality traits */}
           <div className="space-y-2">
             <p
-              title="บุคลิกเหล่านี้จะกำหนดวิธีที่ AI ให้ตัวละครของคุณคิด พูด และตัดสินใจ"
+              title="These traits define how the AI has your character think, speak, and make decisions"
               className="text-xs text-neutral-500 cursor-help"
             >
-              เลือกบุคลิกได้สูงสุด 5 อย่าง{" "}
+              Choose up to 5 personality traits{" "}
               <span className={traits.length > 0 ? "text-amber-500" : ""}>{traits.length}/5</span>
             </p>
             <div className="flex flex-wrap gap-2">
@@ -583,7 +583,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
             <textarea
               value={characterConcept}
               onChange={(e) => setCharacterConcept(e.target.value)}
-              placeholder="อธิบายตัวละครเพิ่มเติม (ไม่บังคับ): เผ่าพันธุ์, อาชีพ, รูปลักษณ์, ที่มา..."
+              placeholder="Describe your character further (optional): race, class, appearance, backstory..."
               rows={2}
               className={TEXTAREA}
             />
@@ -593,14 +593,14 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
         {/* ── 5. Custom world ── */}
         <StepCard
           num={5}
-          title={`รายละเอียดโลกเพิ่มเติม${isPro ? "" : " 🔒 Pro"}`}
-          tooltip="ใส่กฎพิเศษ ระบบเวทมนตร์ แฟกชัน หรือสิ่งที่อยากให้/ไม่อยากให้เกิดขึ้น เพื่อให้ AI รู้ไว้ล่วงหน้า"
+          title={`Additional World Details${isPro ? "" : " 🔒 Pro"}`}
+          tooltip="Add special rules, magic systems, factions, or things you want (or don't want) the AI to include"
         >
           <ProGate locked={!isPro} onLock={() => setShowUpsell(true)}>
             <textarea
               value={customWorld}
               onChange={(e) => setCustomWorld(e.target.value)}
-              placeholder="เช่น กฎพิเศษของโลก, ระบบเวทมนตร์, แฟกชัน/อาณาจักรที่อยากให้มี, สิ่งที่ไม่อยากให้เกิดขึ้น..."
+              placeholder="e.g. special world rules, magic system, factions/kingdoms to include, things to avoid..."
               rows={3}
               className={TEXTAREA}
             />
@@ -617,7 +617,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           <span className="absolute inset-0 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <span className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.18)_50%,transparent_65%)] bg-[length:200%_100%] animate-[shimmer_1.6s_ease-in-out_infinite] transition-opacity duration-300" />
           <span className="relative text-neutral-950 font-bold tracking-[0.2em] text-base">
-            ⚔ เริ่มการผจญภัย
+            ⚔ Begin Adventure
           </span>
         </button>
 
@@ -628,7 +628,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
             className="group flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-neutral-800/50 hover:border-neutral-700/60 text-neutral-500 hover:text-neutral-300 text-sm transition-all duration-250 hover:bg-neutral-900/30"
           >
             <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-            กลับไปแดชบอร์ด
+            Back to Dashboard
           </button>
         )}
       </div>

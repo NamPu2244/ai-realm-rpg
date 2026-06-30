@@ -267,7 +267,7 @@ export const useGameStore = create<GameState>()(
 
         if (error) {
           console.error('fetchUserSaves error:', error);
-          set({ is_loading_saves: false, sync_error: 'โหลดรายการเซฟไม่สำเร็จ' });
+          set({ is_loading_saves: false, sync_error: 'Failed to load save list' });
           return;
         }
 
@@ -322,7 +322,7 @@ export const useGameStore = create<GameState>()(
 
         if (error || !data) {
           console.error('loadSaveSlot error:', error);
-          set({ sync_error: 'โหลดเซฟไม่สำเร็จ' });
+          set({ sync_error: 'Failed to load save' });
           return;
         }
 
@@ -331,7 +331,7 @@ export const useGameStore = create<GameState>()(
         const wc = data.world_config;
         if (!wc || typeof wc !== 'object' || typeof wc.language !== 'string' || typeof wc.genre !== 'string') {
           console.error('loadSaveSlot: invalid world_config in save', slotId, wc);
-          set({ sync_error: 'เซฟนี้เสียหาย (ข้อมูลโลกไม่สมบูรณ์) ไม่สามารถโหลดได้' });
+          set({ sync_error: 'Save is corrupted (world data incomplete) — cannot load' });
           return;
         }
 
@@ -394,7 +394,7 @@ export const useGameStore = create<GameState>()(
 
         if (error || !data) {
           console.error('createNewSaveSlot error:', error);
-          set({ sync_error: 'สร้างเซฟใหม่ไม่สำเร็จ' });
+          set({ sync_error: 'Failed to create new save' });
           return;
         }
 
@@ -441,7 +441,7 @@ export const useGameStore = create<GameState>()(
 
         if (error) {
           console.error('syncCurrentGameToCloud error:', error);
-          set({ sync_error: 'บันทึกเกมขึ้นคลาวด์ไม่สำเร็จ การเล่นล่าสุดอาจไม่ถูกบันทึก' });
+          set({ sync_error: 'Cloud save failed — your latest progress may not be saved' });
         } else if (get().sync_error) {
           set({ sync_error: null });
         }
@@ -453,7 +453,7 @@ export const useGameStore = create<GameState>()(
 
         if (error) {
           console.error('deleteSaveSlot error:', error);
-          set({ sync_error: 'ลบเซฟไม่สำเร็จ' });
+          set({ sync_error: 'Failed to delete save' });
           return;
         }
 

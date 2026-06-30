@@ -22,7 +22,7 @@ const notoSansThai = Noto_Sans_Thai({
 
 export const metadata: Metadata = {
   title: "Storyweave",
-  description: "Storyweave - Text-based RPG ที่ขับเคลื่อนด้วย AI Game Master ผจญภัยในโลกที่คุณสร้างเอง",
+  description: "Storyweave - An AI Game Master-driven text RPG. Adventure in a world you create.",
 };
 
 export default function RootLayout({
