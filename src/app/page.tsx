@@ -1109,12 +1109,13 @@ export default function GamePage() {
     <>
       {renderScreen()}
 
-      <AlertModal
-        variant="danger"
-        message={alertInfo ?? ""}
-        onClose={() => setAlertInfo(null)}
-        // AlertModal should not render when message is empty — handled internally or via conditional
-      />
+      {alertInfo && (
+        <AlertModal
+          variant="danger"
+          message={alertInfo}
+          onClose={() => setAlertInfo(null)}
+        />
+      )}
       {confirmInfo && (
         <ConfirmModal
           variant="danger"
