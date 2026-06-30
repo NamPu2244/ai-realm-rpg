@@ -644,7 +644,7 @@ export default function GamePage() {
   // Countdown timer (extracted hook)
   const { countdownSecondsLeft } = useCountdownTimer(
     active_countdown,
-    (label) => handleSend(`[COUNTDOWN EXPIRED: ${label}]`),
+    (label) => handleSend(`[COUNTDOWN EXPIRED: ${label}]`, true),
   );
 
   const handleStartGame = async (config: WorldConfig) => {
