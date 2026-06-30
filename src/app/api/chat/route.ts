@@ -333,7 +333,7 @@ function validateRequestBody(body: unknown): string | null {
     for (const entry of b.history) {
       if (!entry || typeof entry !== 'object') return "'history' entries must be objects.";
       const e = entry as Record<string, unknown>;
-      if (e.role !== 'player' && e.role !== 'gm') return "'history' entries must have role 'player' or 'gm'.";
+      if (e.role !== 'player' && e.role !== 'gm' && e.role !== 'system') return "'history' entries must have role 'player', 'gm', or 'system'.";
       if (typeof e.content !== 'string' || e.content.length > 5000) return "'history' entry content must be a string (max 5000 chars).";
     }
   }
@@ -456,9 +456,12 @@ export async function POST(req: Request) {
 
     let historyContext = "";
     if (history && history.length > 0) {
-      historyContext = "\n\n[RECENT EVENTS (Last 10 turns)]\n" + history.map((h: { role: string; content: string }) =>
-        h.role === 'player' ? `Player: ${h.content}` : `GM: ${h.content}`
-      ).join("\n");
+      historyContext = "\n\n[RECENT EVENTS (Last 10 turns)]\n" + history.map((h: { role: string; content: string }) => {
+        if (h.role === 'player') return `Player: ${h.content}`;
+        // 'system' = a world-side beat the player did not cause (e.g. a timer running out).
+        if (h.role === 'system') return `[World event — player took no action]: ${h.content}`;
+        return `GM: ${h.content}`;
+      }).join("\n");
     }
 
     const systemPrompt = buildSystemPrompt(worldConfig);

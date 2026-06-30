@@ -25,11 +25,12 @@ import { Heart, MessageSquare } from "lucide-react";
 import WorldLoadingScreen from "@/components/WorldLoadingScreen";
 import {
   extractAndParseJSON,
-  QTE_TIMEOUT_SIGNAL,
   WORLD_EVENT_TYPES,
   buildWorldEventSignal,
   isWorldEventSignal,
-  getQteTimeoutDisplay,
+  buildCountdownExpiredSignal,
+  isWorldSideSignal,
+  getWorldSideDisplay,
   buildSceneImageUrl,
 } from "@/lib/gameText";
 import { playQteSelect, playAmbient } from "@/lib/sounds";
@@ -353,7 +354,7 @@ export default function GamePage() {
       onFirstTurnCompleteRef.current = null;
     }
 
-    const isAmbientOrSystem = isWorldEventSignal(message) || message === QTE_TIMEOUT_SIGNAL;
+    const isAmbientOrSystem = isWorldEventSignal(message) || isWorldSideSignal(message);
     if (isWorldEventSignal(message)) playAmbient();
 
     if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
@@ -588,19 +589,27 @@ export default function GamePage() {
     setInput("");
 
     const isNoResponse = message === "[no response]";
-    const displayContent =
-      message === QTE_TIMEOUT_SIGNAL ? getQteTimeoutDisplay(worldConfig?.language) : message;
+    // A world/GM-side beat the player did NOT cause (QTE / countdown timing out while
+    // the player stood still). It still runs an API turn so the GM narrates the fallout,
+    // but it is logged as a neutral 'system' marker — never a player action bubble.
+    const isWorldSide = isWorldSideSignal(message);
 
     const apiMessage = isNoResponse
       ? "[no response]: The player character stands completely silent and still, taking no action. Time passes briefly. Please advance the scene without any player action."
       : message;
 
-    const newHistory = isSystemInit
-      ? useGameStore.getState().history
-      : [...history, { role: "player" as const, content: displayContent }];
-    if (!isSystemInit) setGameState({ history: newHistory });
+    let newHistory: ChatLog[];
+    if (isWorldSide) {
+      newHistory = [...history, { role: "system" as const, content: getWorldSideDisplay(message, worldConfig?.language) }];
+      setGameState({ history: newHistory });
+    } else if (isSystemInit) {
+      newHistory = useGameStore.getState().history;
+    } else {
+      newHistory = [...history, { role: "player" as const, content: message }];
+      setGameState({ history: newHistory });
+    }
 
-    const canUsePrefetch = !isSystemInit && !isNoResponse && message !== QTE_TIMEOUT_SIGNAL && !isWorldEventSignal(message);
+    const canUsePrefetch = !isSystemInit && !isNoResponse && !isWorldSide && !isWorldEventSignal(message);
     const cached = canUsePrefetch ? prefetchCacheRef.current.get(message) : null;
     cancelPrefetches();
     prefetchCacheRef.current.clear();
@@ -644,7 +653,7 @@ export default function GamePage() {
   // Countdown timer (extracted hook)
   const { countdownSecondsLeft } = useCountdownTimer(
     active_countdown,
-    (label) => handleSend(`[COUNTDOWN EXPIRED: ${label}]`, true),
+    (label) => handleSend(buildCountdownExpiredSignal(label)),
   );
 
   const handleStartGame = async (config: WorldConfig) => {
@@ -750,6 +759,8 @@ export default function GamePage() {
     for (const entry of state.history) {
       if (entry.role === "player") {
         lines.push(`▶ Player: ${entry.content}`);
+      } else if (entry.role === "system") {
+        lines.push(`⏳ ${entry.content}`);
       } else {
         if (entry.prologue) {
           lines.push("", `[Prologue]`, entry.prologue, "");

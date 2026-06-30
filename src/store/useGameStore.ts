@@ -33,7 +33,10 @@ export interface DialogueLine {
 }
 
 export interface ChatLog {
-  role: 'player' | 'gm';
+  // 'system' = a world/GM-side beat the player did NOT cause (e.g. a QTE timing out
+  // or a countdown reaching zero while the player stood still). Rendered as a neutral
+  // centered marker, never as a player action.
+  role: 'player' | 'gm' | 'system';
   content: string;
   prologue?: string;
   scene_image_prompt?: string;

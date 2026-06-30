@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, RefObject } from "react";
-import { Dices, TrendingDown, TrendingUp, Droplets } from "lucide-react";
+import { Dices, TrendingDown, TrendingUp, Droplets, Hourglass } from "lucide-react";
 import { ChatLog } from "@/store/useGameStore";
 import { parseDiceRoll } from "@/lib/gameText";
 import DiceRollBadge from "./DiceRollBadge";
@@ -80,6 +80,19 @@ function StatChangeBadges({ delta }: Readonly<{ delta: StatChange }>) {
 }
 
 
+// World/GM-side beat the player did NOT cause (QTE / countdown timing out while idle).
+// Centered, muted, and visually distinct from both player bubbles and GM narrative.
+function SystemMarker({ content }: Readonly<{ content: string }>) {
+  return (
+    <div className="flex justify-center animate-narrative-in">
+      <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-neutral-900/70 border border-neutral-700/40 rounded-full text-[11px] text-neutral-400 italic tracking-wide shadow-sm">
+        <Hourglass size={12} className="shrink-0 text-neutral-500" />
+        <span className="whitespace-pre-wrap text-center">{content}</span>
+      </div>
+    </div>
+  );
+}
+
 function PlayerBubble({ content }: Readonly<{ content: string }>) {
   const { actionType, text } = parsePlayerContent(content);
   const meta = actionType ? ACTION_TYPE_META[actionType] : null;
@@ -125,6 +138,21 @@ function ChatHistory({
 }: Readonly<ChatHistoryProps>) {
   const lastGmIndex = history.reduce((acc, chat, i) => (chat.role === "gm" ? i : acc), -1);
 
+  const renderRow = (chat: ChatLog, index: number) => {
+    if (chat.role === "gm") {
+      return (
+        <div className="space-y-2">
+          <GMMessage chat={chat} />
+          {!isLoading && !streamingNarrative && index === lastGmIndex && lastStatChange && (
+            <StatChangeBadges delta={lastStatChange} />
+          )}
+        </div>
+      );
+    }
+    if (chat.role === "system") return <SystemMarker content={chat.content} />;
+    return <PlayerBubble content={chat.content} />;
+  };
+
   return (
     <div className="flex-1 overflow-y-auto px-6 md:px-10 py-8 space-y-10">
       {history.length > 0 ? (
@@ -138,16 +166,7 @@ function ChatHistory({
               </div>
             )}
 
-            {chat.role === "gm" ? (
-              <div className="space-y-2">
-                <GMMessage chat={chat} />
-                {!isLoading && !streamingNarrative && index === lastGmIndex && lastStatChange && (
-                  <StatChangeBadges delta={lastStatChange} />
-                )}
-              </div>
-            ) : (
-              <PlayerBubble content={chat.content} />
-            )}
+            {renderRow(chat, index)}
 
             {index < history.length - 1 && chat.role === "gm" && history[index + 1]?.role === "gm" && (
               <div className="border-t border-amber-900/10 w-1/2 mx-auto" />

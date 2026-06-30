@@ -79,6 +79,44 @@ export function getQteTimeoutDisplay(language?: string): string {
   return QTE_TIMEOUT_DISPLAY[language || ""] || QTE_TIMEOUT_DISPLAY.English;
 }
 
+// สัญญาณนับถอยหลังหมดเวลา — system prompt ฝั่ง API จับคู่ prefix "[COUNTDOWN EXPIRED:"
+// แบบ exact เพื่อ narrate ผลที่โลกกระทำต่อผู้เล่นที่ยืนนิ่ง
+export const COUNTDOWN_EXPIRED_PREFIX = "[COUNTDOWN EXPIRED:";
+
+export function buildCountdownExpiredSignal(label: string): string {
+  return `${COUNTDOWN_EXPIRED_PREFIX} ${label}]`;
+}
+
+function parseCountdownLabel(signal: string): string {
+  const m = /^\[COUNTDOWN EXPIRED:\s*([\s\S]*?)\]\s*$/.exec(signal);
+  return m ? m[1].trim() : "";
+}
+
+// ข้อความที่แสดงในแชทเมื่อ countdown หมดเวลาโดยผู้เล่นไม่ทำอะไร ({label} = สิ่งที่นับถอยหลัง)
+const COUNTDOWN_EXPIRED_DISPLAY: Record<string, (label: string) => string> = {
+  "ไทย": (l) => l ? `[หมดเวลา] ${l} — เวลาหมดลงขณะที่คุณยังไม่ทันขยับ...` : "[หมดเวลา] เวลาหมดลงขณะที่คุณยังไม่ทันขยับ...",
+  "English": (l) => l ? `[Time's up] ${l} — the clock runs out before you move...` : "[Time's up] The clock runs out before you move...",
+  "日本語": (l) => l ? `[タイムアウト] ${l} — 動く間もなく時間が尽きた...` : "[タイムアウト] 動く間もなく時間が尽きた...",
+};
+
+export function getCountdownExpiredDisplay(signal: string, language?: string): string {
+  const label = parseCountdownLabel(signal);
+  const fn = COUNTDOWN_EXPIRED_DISPLAY[language || ""] || COUNTDOWN_EXPIRED_DISPLAY.English;
+  return fn(label);
+}
+
+// สัญญาณ "ฝั่งโลก/GM" ที่ผู้เล่นไม่ได้เป็นผู้กระทำ (QTE หมดเวลา / countdown หมดเวลา)
+// แสดงเป็น system marker ไม่ใช่ player bubble
+export function isWorldSideSignal(msg: string): boolean {
+  return msg === QTE_TIMEOUT_SIGNAL || msg.startsWith(COUNTDOWN_EXPIRED_PREFIX);
+}
+
+// ข้อความ system marker สำหรับสัญญาณฝั่งโลก/GM ตามภาษาที่เลือก
+export function getWorldSideDisplay(msg: string, language?: string): string {
+  if (msg === QTE_TIMEOUT_SIGNAL) return getQteTimeoutDisplay(language);
+  return getCountdownExpiredDisplay(msg, language);
+}
+
 // ฟังก์ชันแยกผลทอยเต๋า D20 ออกจากข้อความบรรยาย
 const DICE_ROLL_REGEX = /\[\s*(?:ทอยเต๋า\s*)?D20\s*[:：]\s*(\d+)\s*\]\s*-?\s*/i;
 
