@@ -99,6 +99,8 @@
   --animate-float-particle: floatParticle ease-in-out infinite;
   --animate-auth-card-in: authCardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-glow-pulse: glowPulse 3s ease-in-out infinite;
+  --animate-vignette-pulse: vignettePulse 1.6s ease-in-out infinite;
+  --animate-input-pulse: inputPulse 1.5s ease-in-out infinite;
 }
 
 @keyframes shake {
@@ -189,6 +191,18 @@
   0%   { box-shadow: 0 0 14px 2px rgba(251,191,36,0.5); border-color: rgba(251,191,36,0.7); background-color: rgba(120,53,15,0.4); }
   60%  { box-shadow: 0 0 8px 1px rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.4); }
   100% { box-shadow: none; border-color: rgba(120,53,15,0.2); background-color: rgba(12,10,9,0.4); }
+}
+
+/* Pulsing red vignette: signals critically low HP/energy from the screen edges. */
+@keyframes vignettePulse {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.85; }
+}
+
+/* Theme-aware glow pulse on the input while the GM is processing a turn. */
+@keyframes inputPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--theme-accent-glow); }
+  50%      { box-shadow: 0 0 18px 1px var(--theme-accent-glow); }
 }
 
 @media (prefers-color-scheme: dark) {

@@ -141,6 +141,12 @@ export default function GamePage() {
     [current_image_prompt, world_config?.tone],
   );
   const isLowHp = hpPercent <= 30 && hpPercent > 0 && game_phase === "Playing";
+  // Energy only depletes for authenticated users (the server-side guard is auth-only),
+  // so a guest's static 50 never trips this. MAX_ENERGY is 50, so <10 ≈ below 20%.
+  const isLowEnergy =
+    auth_status === "authenticated" && energy < 10 && game_phase === "Playing";
+  // Critical = HP or energy below ~20%; drives the pulsing red edge vignette.
+  const isCritical = (hpPercent > 0 && hpPercent < 20) || isLowEnergy;
 
   // Extracted hooks
   const { isShaking, isDamageFlash, showLevelUp, levelUpNum } = useGameEffects(
@@ -895,6 +901,13 @@ export default function GamePage() {
 
         {isDamageFlash && (
           <div className="fixed inset-0 z-40 bg-red-700 animate-damage-flash pointer-events-none" />
+        )}
+
+        {isCritical && (
+          <div
+            aria-hidden="true"
+            className="fixed inset-0 z-30 pointer-events-none animate-vignette-pulse shadow-[inset_0_0_160px_30px_rgba(220,38,38,0.55)]"
+          />
         )}
 
         {showUpgradeSuccess && (

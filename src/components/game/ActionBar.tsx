@@ -297,7 +297,7 @@ export default function ActionBar({
               placeholder={isLoading ? "GM is processing..." : placeholder}
               className={`flex-1 bg-theme-surface border ${
                 isLowHp ? "border-red-900/50 focus:border-red-500" : "border-theme-border focus:border-theme-accent/60"
-              } rounded-xl px-4 py-3 text-theme-text focus:outline-none disabled:opacity-50 transition-colors placeholder:text-theme-muted/50`}
+              } ${isLoading ? "animate-input-pulse" : ""} rounded-xl px-4 py-3 text-theme-text focus:outline-none disabled:opacity-50 transition-colors placeholder:text-theme-muted/50`}
             />
             <button
               type="submit"
