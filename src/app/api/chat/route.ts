@@ -57,7 +57,7 @@ const TONE_RULES: Record<string, string> = {
 - Track resources (food, health, items, mana) strictly and let scarcity matter.
 - Do not artificially protect the player from the consequences of the dice and their own choices.
 - BRUTAL CONSEQUENCE VIVIDNESS: Every injury, failure, and setback must be narrated with full physical specificity — not summarized, but lived. The exact moment a handhold crumbles. The punch of impact before pain arrives. The specific thing that tears. The world does not flinch and neither does the prose. A failed roll is a story moment, not a stat update.
-- PERMADEATH: This is a permadeath world. "lives_left" is always 0 and there are NO respawns. When HP drops to 0 or below, immediately set "is_dead": true and keep "hp" at 0 — do NOT restore HP, do NOT narrate a respawn, do NOT decrease "lives_left" (it is already 0 and must stay 0). Death is permanent and final.`,
+- PERMADEATH: This is a permadeath world. When HP drops to 0 or below, immediately set "is_dead": true and keep "hp" at 0 — do NOT restore HP, do NOT narrate a respawn. Ignore the value shown in [LIVES LEFT] — in this world it is always treated as 0 and must stay 0. Death is permanent and final.`,
   balanced: `TONE - BALANCED ADVENTURE:
 - The world is challenging but fair. Mistakes have real consequences, but character death should generally only result from major failures or sustained reckless behavior, not a single unlucky roll.
 - Give the player reasonable opportunities to recover, retreat, or adapt before things become fatal.
@@ -73,6 +73,19 @@ const TONE_RULES: Record<string, string> = {
 - Severe consequences and death should be rare, generally only when the player explicitly seeks out extreme risk.
 - PHYSICAL WEIGHT: Even in permissive mode, the world has texture and resistance. Magic feels like something. Falls hurt before healing. Doors have weight. Keep the world tactile even when it bends generously to the player.`,
 };
+
+function buildDiceSystemPrompt(currentState?: unknown): string {
+  const attrs = (currentState as Record<string, unknown>)?.attributes as Record<string, number> | undefined;
+  const attrsLine = attrs
+    ? `Player attributes: str=${attrs.str} dex=${attrs.dex} int=${attrs.int} con=${attrs.con} wis=${attrs.wis} cha=${attrs.cha}`
+    : "Player attributes unknown — use modifier 0 if unsure.";
+  return `You are a Game Master for a D20 text-based RPG. Your only job right now is to identify every uncertain action in the player's turn that requires a dice roll, then call roll_dice once per action.
+
+${attrsLine}
+Modifier formula: floor((attribute - 10) / 2). Physical/melee → str. Speed/stealth/precision → dex. Magic/puzzles/lore → int. Endurance/resist → con. Perception/survival → wis. Persuasion/deception/intimidation → cha.
+
+If the player's turn is purely narrative or dialogue with no uncertain outcomes, make no tool calls.`;
+}
 
 function buildSystemPrompt(worldConfig?: WorldConfig | null) {
   const language = worldConfig?.language || 'ไทย';
@@ -105,6 +118,7 @@ LANGUAGE:
 D20 SYSTEM:
 - Whenever the player attempts a risky or uncertain action, roll D20 (X is 1-20, where 1 is catastrophic failure and 20 is incredible success) and announce it at the relevant point in the narrative.
 - ATTRIBUTES: Every character has six attributes (set to appropriate values on the first turn based on their class/background; typical range 8-16): str (Strength), dex (Dexterity), int (Intelligence), con (Constitution), wis (Wisdom), cha (Charisma). Apply the relevant modifier to the D20 roll: modifier = floor((attribute - 10) / 2). Physical force/melee → str. Speed/stealth/precision → dex. Magic/puzzles/lore → int. Endurance/resist poison → con. Perception/survival → wis. Persuasion/deception/intimidation → cha. Format: "[ทอยเต๋า D20: X + DEX +2 = 14]". If the resulting total beats the difficulty, succeed; if it fails, fail — the modifier can make the difference.
+- When [DICE RESULTS] are provided in the user prompt, use those exact numbers — reference them in the narrative (e.g. "[ทอยเต๋า D20: 14 + DEX +2 = 16]") and do NOT invent new rolls for actions already covered.
 - Scale the severity of outcomes according to the TONE above.
 
 CONTINUITY RULE:
@@ -157,6 +171,7 @@ GAMEPLAY RULES:
   • [WORLD EVENT: DETAIL] — The player's attention snags on something they hadn't noticed before: an object out of place, a marking on a wall, an expression that doesn't fit the moment, a structural oddity in the environment. One specific, concrete detail that quietly recontextualizes the scene.
   • [WORLD EVENT: SHIFT] — Time moves visibly: the light changes angle, rain begins or stops, a fire burns lower, the crowd thins or thickens, a smell arrives or fades. Make the player feel duration without narrating it abstractly.
   • [WORLD EVENT: DISTANT] — Something is happening far away and the player can witness it without being involved: smoke on the horizon, a column of riders passing a distant road, a sound of impact or breaking glass from another building, a light where there shouldn't be one.
+  On all world event turns: set "dialogue_lines", "character_updates", "quest_updates", "faction_updates", "companion_updates", and "new_locations" to empty arrays unless the event itself directly triggers one of those changes. Do not start or stop countdowns. Do not trigger QTE.
 - QTE RULE (Quick Time Event): If an enemy or hazard launches a sudden, fast, or potentially lethal attack that demands an immediate reaction, set "is_qte_active" to true, set "qte_time_limit" to a number of seconds (2-7) based on how fast the threat is, and provide 2-3 short "qte_options" (in ${language}) describing immediate reactions (e.g. "หลบซ้าย", "ป้องกัน", "反撃"). On all other turns, set "is_qte_active" to false, "qte_time_limit" to 0, and "qte_options" to an empty array. If the player's action was a "[TIME OUT...]" message, narrate the consequence of standing completely still and apply appropriate damage/effects.
 - COUNTDOWN RULE: When the narrative introduces a real, ticking deadline — a bomb about to detonate, a hostage about to be executed, a door sealed for exactly N seconds, poison spreading through the body, a structure collapsing — set "countdown_event" to an object: { "label": "<short description in ${language} of what is counting down>", "seconds": <integer, 15-120> }. Choose seconds to match the urgency (30s = very urgent, 60s = moderate, 120s = slow burn). Once a countdown is active, keep returning it in subsequent turns (you do NOT need to reset the seconds — the client tracks elapsed time). When the countdown threat is resolved, escaped, defused, or no longer relevant, set "countdown_event" to null. Do NOT set "countdown_event" for vague or turn-based threats — only for situations where the player would feel the weight of actual seconds ticking away. If the player's action begins with "[COUNTDOWN EXPIRED:", narrate the full consequence of the timer hitting zero (explosion, death, failure, etc.) and apply appropriate damage/status effects. Do NOT set a new countdown_event in that same turn unless a new distinct timer immediately starts.
 - LIVES & RESPAWN RULE: If "hp" drops to 0 or below: if "lives_left" > 0, decrease "lives_left" by 1, restore "hp" to "max_hp", clear "inventory" to an empty array, and narrate the character's soul/body being returned to the last safe zone or camp (keep "is_dead" false). If "lives_left" is already 0 when "hp" drops to 0 or below, set "is_dead" to true and keep "hp" at 0. Otherwise keep "lives_left" unchanged.
@@ -183,6 +198,7 @@ NARRATIVE CRAFT:
 - CONTRAST IS DRAMA: Dark needs light to register as dark. A ruined place must have one living thing in it — a single flower, a coat hung carefully on a nail, a candle still burning. Tense confrontations need one breath of the mundane — someone's stomach growls; a fly crosses someone's face. A moment of humor before violence makes the violence land harder; a glimpse of beauty inside ugliness makes both more real. Use contrast deliberately and sparingly — it is the sharpest tool.
 - TELEGRAPHING RULE: For any major story beat (boss encounter, faction betrayal, major revelation, trap), plant a concrete foreshadowing signal 1-2 turns before delivering it. Use world pressure (NPC behavior, environmental change, overheard fragment) — never block the player directly or break immersion.
 - BANNED PHRASES — these are dead AI tells, never use them under any circumstances: "you find yourself", "you notice (that)", "you realize (that)", "you feel (that)", "it seems", "it appears", "suddenly", "quickly", "carefully", "you can see", "you observe", "you hear a sound of", "the air (is/smells)", "you decide to", "you begin to", "you manage to", "you take a moment", "you make your way", "you can't help but", "a sense of [noun]", "time seems to", "it would seem", "you are greeted by", "before you stands", "you are met with". If you catch yourself about to write any of these, stop and find the concrete physical fact beneath the abstraction — write that instead.
+- THAI BANNED PHRASES — same prohibition applies when writing in Thai: avoid ทันใดนั้น (suddenly), คุณรู้สึก/รู้สึกว่า (you feel/it feels), ดูเหมือน/ดูเหมือนว่า (it seems), คุณสังเกต (you notice), คุณรู้ตัวว่า (you realize), อย่างระมัดระวัง (carefully), อย่างรวดเร็ว (quickly), คุณตัดสินใจ (you decide to), คุณเริ่ม (you begin to), บรรยากาศ[ที่/นั้น/รอบข้าง] (the atmosphere), อากาศ[ดูเหมือน/รู้สึก] (the air seems). Replace each with the concrete physical fact beneath it.
 - SPECIFICITY RULE: Every sensory or environmental detail must be concrete and specific, never generic. Not "torches light the corridor" — which wall, are the brackets wrought iron or rusted nails, is the flame guttering or steady. Not "the crowd murmurs" — what specific word or fragment cuts through. Precise and unexpected details make a scene real. Vague atmosphere is dead prose.
 - NPC GRIT MANDATE: Friendly, helpful NPCs are the exception — and when they occur, they cost something. Every NPC has one flaw that undermines their surface presentation: the kind healer hoards medicine when supply runs low; the honest merchant falsifies a weight for the taxman; the loyal guard drinks on duty and hates that he does. Every NPC has a hidden want — not a villain's scheme, but a human need: they owe someone, they're afraid of something specific, they want something they won't ask for directly. FORBIDDEN NPC BEHAVIORS: greeting the player warmly without a reason grounded in the story, offering help without a price or ulterior motive, answering questions fully and honestly unless compelled or very well paid, resolving the player's problem neatly. NPCs speak in distinct voices — a dockworker doesn't talk like a merchant, neither talks like a noble. Vocabulary, cadence, sentence length, and what they leave unsaid all signal class, fear, and motive. A reluctant NPC communicates reluctance through body language and evasion, never by explaining they're reluctant. Make the player earn every scrap of useful information. Compliance always costs something.
 - After a player success, introduce a complication or cost. The lock opens — a guard rounds the corner. The negotiation succeeds — the contact wants collateral. Every clean win should open a new problem. Failure is a door to a new situation, not a dead end.
@@ -215,10 +231,14 @@ EXAMPLE OF A CORRECT RESPONSE (the player cuts their own arm with a knife, start
   "lives_left": 3,
   "time_of_day": "ค่ำ",
   "in_world_date": "วันที่ 4 แห่งเดือนลมหนาว",
+  "dialogue_lines": [],
+  "character_updates": [],
   "faction_updates": [],
   "quest_updates": [],
   "companion_updates": [],
-  "new_locations": []
+  "new_locations": [],
+  "open_threads": [],
+  "countdown_event": null
 }
 Notice how "hp" dropped from 10 to 7 and "status_effects" gained two entries describing the wound, matching what "narrative" describes. ALWAYS keep this consistency.
 
@@ -444,7 +464,9 @@ export async function POST(req: Request) {
     const systemPrompt = buildSystemPrompt(worldConfig);
 
     const storySoFar = currentSummary || "The story just began.";
-    const livesDisplay = typeof livesLeft === 'number' ? livesLeft : 3;
+    // Hardcore tone enforces permadeath server-side regardless of what the client sends.
+    const defaultLives = typeof livesLeft === 'number' ? livesLeft : 3;
+    const livesDisplay = worldConfig?.tone === 'hardcore' ? 0 : defaultLives;
     const playerAction = prompt || 'Begin the adventure.';
 
     let knownCharsSection = "";
@@ -467,8 +489,7 @@ export async function POST(req: Request) {
 ${historyContext}
 \n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}
 \n[LIVES LEFT]\n${livesDisplay}
-\n[NEW PLAYER ACTION]\nPlayer: ${playerAction}
-\n[QTE REMINDER] After writing the narrative, ask yourself: did a sudden dangerous attack/hazard just strike the player with no time to think? If YES → is_qte_active: true, set qte_time_limit (2-7s), provide 2-3 short qte_options. If NO → is_qte_active: false, qte_time_limit: 0, qte_options: [].`;
+\n[NEW PLAYER ACTION]\nPlayer: ${playerAction}`;
 
     // Phase 1: Non-streaming tool call to resolve dice rolls deterministically.
     // Skip on the very first turn (world generation) to keep opening latency low.
@@ -486,12 +507,12 @@ ${historyContext}
           body: JSON.stringify({
             model: 'meta-llama/llama-4-scout-17b-16e-instruct',
             messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt + "\n\n[DICE PLANNING PHASE] Before writing the narrative, identify every uncertain action in the player's turn that requires a dice roll and call roll_dice for each one. If this is a purely narrative/dialogue turn with no uncertain outcomes, call no tools." },
+              { role: 'system', content: buildDiceSystemPrompt(currentState) },
+              { role: 'user', content: `[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}\n\n[PLAYER ACTION]\nPlayer: ${playerAction}` },
             ],
             stream: false,
-            temperature: 0.78,
-            max_tokens: 512,
+            temperature: 0.3,
+            max_tokens: 256,
             tools: GM_TOOLS,
             tool_choice: "auto",
           }),
