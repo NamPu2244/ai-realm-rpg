@@ -24,7 +24,7 @@ import EnergyModal from "@/components/game/EnergyModal";
 import { Heart, MessageSquare } from "lucide-react";
 import WorldLoadingScreen from "@/components/WorldLoadingScreen";
 import {
-  extractAndParseJSON,
+  SCENE_DELIM,
   WORLD_EVENT_TYPES,
   buildWorldEventSignal,
   isWorldEventSignal,
@@ -426,8 +426,16 @@ export default function GamePage() {
 
             const reader = res.body.getReader();
             const dec = new TextDecoder();
-            let raw = "";
+            let prefetchedState: Record<string, unknown> | null = null;
             let buf = "";
+
+            const takeLine = (line: string) => {
+              if (!line.trim()) return;
+              try {
+                const p = JSON.parse(line) as { game_state?: Record<string, unknown> };
+                if (p.game_state && typeof p.game_state === "object") prefetchedState = p.game_state;
+              } catch {}
+            };
 
             while (true) {
               const { done, value } = await reader.read();
@@ -435,15 +443,11 @@ export default function GamePage() {
               buf += dec.decode(value, { stream: true });
               const lines = buf.split("\n");
               buf = lines.pop() || "";
-              for (const line of lines) {
-                if (!line.trim()) continue;
-                try { raw += (JSON.parse(line) as { response: string }).response; } catch {}
-              }
+              for (const line of lines) takeLine(line);
             }
-            if (buf.trim()) { try { raw += (JSON.parse(buf) as { response: string }).response; } catch {} }
+            takeLine(buf);
 
-            const r = extractAndParseJSON(raw);
-            if (r.success) prefetchCacheRef.current.set(action, r.data);
+            if (prefetchedState) prefetchCacheRef.current.set(action, prefetchedState);
           } catch (err) {
             if (!(err instanceof Error && err.name === "AbortError")) {
               console.warn("[prefetch]", action, err);
@@ -500,10 +504,20 @@ export default function GamePage() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let rawAiResponse = "";
+      // The stream now carries PURE PROSE in `response` chunks (shown live), and the
+      // structured state arrives once at the end in `game_state`.
+      let narrativeBuf = "";
       let lineBuffer = "";
       let streamError: string | null = null;
       let streamedRemainingEnergy: number | null = null;
+      let finalGameState: Record<string, unknown> | null = null;
+
+      // On the first turn the prose is "prologue [[SCENE]] narrative"; only the part
+      // after the marker is shown in the live chat (the prologue gets its own reveal).
+      const displayNarrative = (buf: string) => {
+        const idx = buf.indexOf(SCENE_DELIM);
+        return idx === -1 ? buf : buf.slice(idx + SCENE_DELIM.length).replace(/^\s+/, "");
+      };
 
       const processLine = (line: string) => {
         if (line.trim() === "") return;
@@ -514,16 +528,14 @@ export default function GamePage() {
             return;
           }
           if (typeof parsed.response === "string") {
-            rawAiResponse += parsed.response;
+            narrativeBuf += parsed.response;
+            setStreamingNarrative(displayNarrative(narrativeBuf));
+          }
+          if (parsed.game_state && typeof parsed.game_state === "object") {
+            finalGameState = parsed.game_state;
           }
           if (typeof parsed.remaining_energy === "number") {
             streamedRemainingEnergy = parsed.remaining_energy;
-          }
-          const narrativeMatch = /"narrative":\s*"([^"\\]*(?:\\.[^"\\]*)*)/.exec(rawAiResponse);
-          if (narrativeMatch) {
-            setStreamingNarrative(
-              narrativeMatch[1].replaceAll("\\n", "\n").replaceAll('\\"', '"'),
-            );
           }
         } catch (e) {
           console.error("Stream line parse error:", e, "Line:", line);
@@ -547,10 +559,8 @@ export default function GamePage() {
         setEnergy(streamedRemainingEnergy);
       }
 
-      const result = extractAndParseJSON(rawAiResponse);
-
-      if (result.success) {
-        applyGameResult(result.data, newHistory, worldConfig, message, isSystemInit, handleSend);
+      if (finalGameState) {
+        applyGameResult(finalGameState, newHistory, worldConfig, message, isSystemInit, handleSend);
       } else {
         setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
         setError("AI returned an invalid response. Please try again.");
