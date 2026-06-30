@@ -15,8 +15,10 @@ export function useCountdownTimer(
       return () => clearTimeout(t);
     }
     countdownTriggeredRef.current = false;
-    const startTime = Date.now();
-    const interval = setInterval(() => {
+    // Anchor on the absolute start time so the clock keeps counting across a reload
+    // (fall back to "now" for legacy countdowns saved before started_at existed).
+    const startTime = activeCountdown.started_at ?? Date.now();
+    const tick = () => {
       const elapsed = (Date.now() - startTime) / 1000;
       const remaining = Math.max(0, activeCountdown.seconds - elapsed);
       setCountdownSecondsLeft(remaining);
@@ -25,7 +27,9 @@ export function useCountdownTimer(
         clearInterval(interval);
         setTimeout(() => onExpire(activeCountdown.label), 0);
       }
-    }, 100);
+    };
+    const interval = setInterval(tick, 100);
+    tick(); // render correct remaining immediately, before the first interval fires
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCountdown]);

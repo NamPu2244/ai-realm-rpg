@@ -89,6 +89,7 @@ export interface OpenThread {
 export interface CountdownEvent {
   label: string;       // what the player is racing against (in game language)
   seconds: number;     // total seconds on the clock when set
+  started_at: number;  // epoch ms when the clock started; lets the timer survive a reload
 }
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
@@ -138,7 +139,6 @@ interface GameState {
   player_status: PlayerStatus;
   is_dead: boolean;
   game_phase: 'Auth' | 'Dashboard' | 'Menu' | 'Playing';
-  current_language: string;
   history: ChatLog[];
   current_image_prompt: string;
   suggested_actions: string[];
@@ -162,7 +162,9 @@ interface GameState {
   // Real-time countdown event (e.g. "bomb will explode in 30 seconds")
   active_countdown: CountdownEvent | null;
 
-  // User-supplied Groq API key (stored locally, never sent to our DB)
+  // User-supplied Groq API key. Kept in memory only for the current tab session:
+  // excluded from persistence (see partialize) and never written to our DB. The user
+  // must re-enter it after a refresh — a deliberate trade-off for maximum key safety.
   groq_api_key: string;
 
   // Auth & cloud save state
@@ -171,6 +173,8 @@ interface GameState {
   save_slots: SaveSlotSummary[];
   current_save_slot_id: string | null;
   is_loading_saves: boolean;
+  // Last cloud save/load failure surfaced to the player; null when the last op succeeded.
+  sync_error: string | null;
 
   // Subscription
   is_pro: boolean;
@@ -195,6 +199,13 @@ interface GameState {
 
 const DEFAULT_ATTRIBUTES: Attributes = { str: 10, dex: 10, int: 10, con: 10, wis: 10, cha: 10 };
 
+/**
+ * Max number of history entries persisted to localStorage. The full history lives
+ * in memory (and in the cloud save for authenticated users); localStorage only needs
+ * enough recent backlog to restore a guest's session without growing past the ~5MB quota.
+ */
+const MAX_PERSISTED_HISTORY = 40;
+
 const initialState = {
   narrative: '',
   story_summary: '',
@@ -206,7 +217,6 @@ const initialState = {
   },
   is_dead: false,
   game_phase: 'Auth' as const,
-  current_language: 'Pending',
   history: [],
   current_image_prompt: '',
   suggested_actions: [],
@@ -231,11 +241,12 @@ const initialState = {
   save_slots: [],
   current_save_slot_id: null,
   is_loading_saves: false,
+  sync_error: null,
   is_pro: false,
   energy: 50,
 };
 
-type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id' | 'groq_api_key' | 'is_pro' | 'energy'>;
+type PersistedState = Omit<GameState, 'user' | 'save_slots' | 'is_loading_saves' | 'current_save_slot_id' | 'groq_api_key' | 'is_pro' | 'energy' | 'sync_error'>;
 
 export const useGameStore = create<GameState>()(
   persist<GameState, [], [], PersistedState>(
@@ -256,7 +267,7 @@ export const useGameStore = create<GameState>()(
 
         if (error) {
           console.error('fetchUserSaves error:', error);
-          set({ is_loading_saves: false });
+          set({ is_loading_saves: false, sync_error: 'โหลดรายการเซฟไม่สำเร็จ' });
           return;
         }
 
@@ -311,6 +322,16 @@ export const useGameStore = create<GameState>()(
 
         if (error || !data) {
           console.error('loadSaveSlot error:', error);
+          set({ sync_error: 'โหลดเซฟไม่สำเร็จ' });
+          return;
+        }
+
+        // A save without a usable world_config can't drive the game (the system prompt and
+        // UI both depend on it). Bail loudly instead of entering Playing with a broken world.
+        const wc = data.world_config;
+        if (!wc || typeof wc !== 'object' || typeof wc.language !== 'string' || typeof wc.genre !== 'string') {
+          console.error('loadSaveSlot: invalid world_config in save', slotId, wc);
+          set({ sync_error: 'เซฟนี้เสียหาย (ข้อมูลโลกไม่สมบูรณ์) ไม่สามารถโหลดได้' });
           return;
         }
 
@@ -321,7 +342,7 @@ export const useGameStore = create<GameState>()(
           user: get().user,
           auth_status: get().auth_status,
           save_slots: get().save_slots,
-          world_config: data.world_config,
+          world_config: wc,
           player_status: {
             ...initialState.player_status,
             ...data.player_status,
@@ -342,6 +363,7 @@ export const useGameStore = create<GameState>()(
           companions: (gs.companions && typeof gs.companions === 'object') ? gs.companions : initialState.companions,
           visited_locations: Array.isArray(gs.visited_locations) ? gs.visited_locations : [],
           open_threads: Array.isArray(gs.open_threads) ? gs.open_threads : [],
+          active_countdown: (gs.active_countdown && typeof gs.active_countdown === 'object') ? gs.active_countdown : null,
           current_save_slot_id: slotId,
           game_phase: 'Playing',
         });
@@ -372,6 +394,7 @@ export const useGameStore = create<GameState>()(
 
         if (error || !data) {
           console.error('createNewSaveSlot error:', error);
+          set({ sync_error: 'สร้างเซฟใหม่ไม่สำเร็จ' });
           return;
         }
 
@@ -411,11 +434,17 @@ export const useGameStore = create<GameState>()(
               companions: state.companions,
               visited_locations: state.visited_locations,
               open_threads: state.open_threads,
+              active_countdown: state.active_countdown,
             },
           })
           .eq('id', state.current_save_slot_id);
 
-        if (error) console.error('syncCurrentGameToCloud error:', error);
+        if (error) {
+          console.error('syncCurrentGameToCloud error:', error);
+          set({ sync_error: 'บันทึกเกมขึ้นคลาวด์ไม่สำเร็จ การเล่นล่าสุดอาจไม่ถูกบันทึก' });
+        } else if (get().sync_error) {
+          set({ sync_error: null });
+        }
       },
 
       deleteSaveSlot: async (slotId) => {
@@ -424,6 +453,7 @@ export const useGameStore = create<GameState>()(
 
         if (error) {
           console.error('deleteSaveSlot error:', error);
+          set({ sync_error: 'ลบเซฟไม่สำเร็จ' });
           return;
         }
 
@@ -461,12 +491,14 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'storyweave-save',
-      version: 4,
+      version: 5,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, is_pro, energy, ...rest } = state;
+        const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, is_pro, energy, sync_error, ...rest } = state;
         return {
           ...rest,
+          // Cap persisted history so a long game can't overflow the localStorage quota.
+          history: rest.history.slice(-MAX_PERSISTED_HISTORY),
           game_phase: state.auth_status === 'authenticated' ? 'Dashboard' : rest.game_phase,
         };
       },
@@ -484,6 +516,7 @@ export const useGameStore = create<GameState>()(
             },
           },
           // Migrate new fields that old saves won't have
+          known_characters: state.known_characters ?? initialState.known_characters,
           time_of_day: state.time_of_day ?? '',
           in_world_date: state.in_world_date ?? '',
           quest_log: state.quest_log ?? [],
@@ -491,6 +524,7 @@ export const useGameStore = create<GameState>()(
           companions: state.companions ?? initialState.companions,
           visited_locations: state.visited_locations ?? [],
           open_threads: state.open_threads ?? [],
+          active_countdown: state.active_countdown ?? null,
           // NOSONAR: cast required because spreading Partial<PersistedState> makes action fields optional
         } as PersistedState;
       },

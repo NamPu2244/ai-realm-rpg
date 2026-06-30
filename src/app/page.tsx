@@ -65,6 +65,7 @@ export default function GamePage() {
     groq_api_key,
     is_pro,
     energy,
+    sync_error,
     setGameState,
     setEnergy,
     resetGame,
@@ -303,7 +304,7 @@ export default function GamePage() {
       typeof data.countdown_event.seconds === "number"
     ) {
       if (!freshState.active_countdown || freshState.active_countdown.label !== data.countdown_event.label) {
-        newCountdown = { label: data.countdown_event.label, seconds: data.countdown_event.seconds };
+        newCountdown = { label: data.countdown_event.label, seconds: data.countdown_event.seconds, started_at: Date.now() };
       }
     }
 
@@ -902,6 +903,18 @@ export default function GamePage() {
               <p className="text-xs text-emerald-400/80 uppercase tracking-widest mb-0.5">สำเร็จ!</p>
               <p className="text-base font-bold text-emerald-300">คุณได้รับสิทธิ์ Pro แล้ว ✦</p>
             </div>
+          </div>
+        )}
+
+        {sync_error && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-level-up-pop">
+            <button
+              onClick={() => setGameState({ sync_error: null })}
+              className="px-5 py-3 bg-rose-950/90 border border-rose-500/50 rounded-xl shadow-[0_0_30px_rgba(244,63,94,0.25)] text-center"
+            >
+              <p className="text-xs text-rose-400/80 uppercase tracking-widest mb-0.5">เกิดข้อผิดพลาด</p>
+              <p className="text-sm font-medium text-rose-200">{sync_error} <span className="text-rose-400/60">(แตะเพื่อปิด)</span></p>
+            </button>
           </div>
         )}
 
