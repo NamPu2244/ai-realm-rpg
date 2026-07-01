@@ -48,6 +48,11 @@ export function extractAndParseJSON(rawAiResponse: string) {
   }
 }
 
+// ตัวคั่นระหว่าง prologue (phase 1) กับ narrative (phase 2) ในเทิร์นแรก
+// สมองนักเล่าเรื่องจะคาย prologue ก่อน แล้วขึ้นบรรทัดใหม่เป็น marker นี้ ตามด้วย narrative
+// ทั้ง route (ฝั่ง server) และ page (ฝั่ง client) ใช้ค่าเดียวกันนี้ในการตัดข้อความ
+export const SCENE_DELIM = "[[SCENE]]";
+
 // สัญญาณที่ส่งให้ AI เมื่อ QTE หมดเวลา (ห้ามแก้ข้อความนี้ เพราะ system prompt ฝั่ง
 // API จับคู่ข้อความนี้แบบ exact เพื่อ narrate ผลของการยืนนิ่งเฉย)
 export const QTE_TIMEOUT_SIGNAL = "[TIME OUT: Player failed to react in time and stood completely still]";
