@@ -59,6 +59,9 @@ const NAV = [
   { id: "creators", label: "Top Creators", icon: Crown },
 ] as const;
 
+// Stable keys for the loading skeleton grid (avoids array-index keys).
+const SKELETON_KEYS = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10"];
+
 // Deterministic gradient fallback for worlds that have no cover_url yet.
 const COVER_FALLBACKS = [
   "from-rose-600/40 via-fuchsia-700/30 to-indigo-900/60",
@@ -71,7 +74,7 @@ const COVER_FALLBACKS = [
 
 function fallbackGradient(id: string): string {
   let h = 0;
-  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  for (const ch of id) h = (h * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
   return COVER_FALLBACKS[h % COVER_FALLBACKS.length];
 }
 
@@ -111,7 +114,10 @@ function PriceBadge({ world }: Readonly<{ world: World }>) {
    SIDEBAR
    ============================================================ */
 
-function Sidebar({ onPublish }: Readonly<{ onPublish: () => void }>) {
+function Sidebar({
+  onPublish,
+  onHome,
+}: Readonly<{ onPublish: () => void; onHome: () => void }>) {
   const [active, setActive] = useState("explore");
   return (
     <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-white/5 bg-white/[0.02] p-5 backdrop-blur-2xl lg:flex">
@@ -132,7 +138,7 @@ function Sidebar({ onPublish }: Readonly<{ onPublish: () => void }>) {
             <button
               key={id}
               type="button"
-              onClick={() => setActive(id)}
+              onClick={() => (id === "dashboard" ? onHome() : setActive(id))}
               className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200 ${
                 isActive
                   ? "bg-gradient-to-r from-fuchsia-500/20 to-transparent text-white ring-1 ring-fuchsia-400/30"
@@ -300,9 +306,10 @@ function WorldCard({
 }: Readonly<{ world: World; onPlay: (w: World) => void }>) {
   const gradient = fallbackGradient(world.id);
   return (
-    <article
+    <button
+      type="button"
       onClick={() => onPlay(world)}
-      className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white/[0.03] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-fuchsia-400/50 hover:shadow-[0_16px_40px_-12px_rgba(217,70,239,0.45)]"
+      className="group relative block w-full cursor-pointer overflow-hidden rounded-2xl bg-white/[0.03] text-left outline-none ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-fuchsia-400/50 hover:shadow-[0_16px_40px_-12px_rgba(217,70,239,0.45)] focus-visible:ring-2 focus-visible:ring-fuchsia-400"
     >
       <div className={`relative aspect-[3/4] overflow-hidden bg-gradient-to-br ${gradient}`}>
         {world.cover_url && (
@@ -352,7 +359,7 @@ function WorldCard({
           </span>
         </div>
       </div>
-    </article>
+    </button>
   );
 }
 
@@ -392,10 +399,14 @@ function PublishModal({ onClose }: Readonly<{ onClose: () => void }>) {
         </div>
 
         <div className="relative mt-6">
-          <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+          <label
+            htmlFor="publish-world-title"
+            className="text-[11px] font-semibold uppercase tracking-widest text-white/40"
+          >
             World Title
           </label>
           <input
+            id="publish-world-title"
             type="text"
             placeholder="e.g. The Villainess Reverses the Hourglass"
             className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition focus:border-fuchsia-400/50 focus:ring-2 focus:ring-fuchsia-500/20"
@@ -566,7 +577,7 @@ export default function StorePage() {
       </div>
 
       <div className="relative flex">
-        <Sidebar onPublish={() => setShowPublish(true)} />
+        <Sidebar onPublish={() => setShowPublish(true)} onHome={() => router.push("/")} />
 
         <main className="min-w-0 flex-1">
           <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-white/5 bg-neutral-950/60 px-5 py-4 backdrop-blur-xl sm:px-8">
@@ -636,8 +647,8 @@ export default function StorePage() {
               {/* Loading */}
               {status === "loading" && (
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <CardSkeleton key={i} />
+                  {SKELETON_KEYS.map((k) => (
+                    <CardSkeleton key={k} />
                   ))}
                 </div>
               )}

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft, LogOut, Plus, Play, Trash2, Clock,
-  Swords, Skull, Settings, Power, ChevronRight,
+  Swords, Skull, Settings, Power, ChevronRight, Compass,
 } from "lucide-react";
 import { useGameStore } from "@/store/useGameStore";
 import { ConfirmModal } from "@/components/ui/Modal";
@@ -19,10 +20,11 @@ const PARTICLES = Array.from({ length: 16 }, (_, i) => ({
 }));
 
 const MENU_ITEMS = [
-  { id: "new",      num: "01", label: "New Game",  sub: "Create a brand new world",       icon: Plus },
-  { id: "load",     num: "02", label: "Load Game", sub: "Continue from where you left off", icon: Play },
-  { id: "settings", num: "03", label: "Settings",  sub: "Groq API Key and options",       icon: Settings },
-  { id: "exit",     num: "04", label: "Exit",       sub: "Sign out and close the window",  icon: Power },
+  { id: "new",      num: "01", label: "New Game",      sub: "Create a brand new world",         icon: Plus },
+  { id: "store",    num: "02", label: "Explore Worlds", sub: "Play worlds from the marketplace", icon: Compass },
+  { id: "load",     num: "03", label: "Load Game",     sub: "Continue from where you left off",  icon: Play },
+  { id: "settings", num: "04", label: "Settings",      sub: "Groq API Key and options",         icon: Settings },
+  { id: "exit",     num: "05", label: "Exit",          sub: "Sign out and close the window",     icon: Power },
 ] as const;
 
 function Ornament() {
@@ -70,6 +72,8 @@ export default function MainMenuDashboard() {
     setGameState, fetchUserSaves, loadSaveSlot, deleteSaveSlot, signOut,
   } = useGameStore();
 
+  const router = useRouter();
+
   const [view, setView] = useState<View>("menu");
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -82,6 +86,7 @@ export default function MainMenuDashboard() {
 
   const handleMenuAction = (id: typeof MENU_ITEMS[number]["id"]) => {
     if (id === "new") setGameState({ game_phase: "Menu" });
+    else if (id === "store") router.push("/store");
     else if (id === "load") setView("load");
     else if (id === "settings") { setApiKeyDraft(groq_api_key); setView("settings"); }
     else if (id === "exit") setShowExitConfirm(true);
