@@ -27,15 +27,18 @@ export function phaseToPath(phase: string): string {
 export function useHasHydrated(): boolean {
   // Persist rehydration is a client-only concern; on the server (prerender)
   // there is no `persist` API and nothing to wait for, so report not-hydrated.
-  // The initializer covers the already-hydrated case; the effect only has to
-  // subscribe for the not-yet-hydrated case (no synchronous setState needed).
-  const [hydrated, setHydrated] = useState(
-    () => globalThis.window !== undefined && !!useGameStore.persist?.hasHydrated?.(),
-  );
+  // The first client render MUST match that server output (false) or React
+  // throws a hydration mismatch — Zustand's persist rehydrates synchronously,
+  // so reading `hasHydrated()` in the initializer would return true and diverge.
+  // Instead always start false and flip in an effect (post-hydration).
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    if (hydrated) return;
+    if (useGameStore.persist?.hasHydrated?.()) {
+      setHydrated(true);
+      return;
+    }
     return useGameStore.persist?.onFinishHydration?.(() => setHydrated(true));
-  }, [hydrated]);
+  }, []);
   return hydrated;
 }
 
