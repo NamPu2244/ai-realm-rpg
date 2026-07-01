@@ -175,6 +175,15 @@ export function buildCharacterPortraitUrl(character: string, genre: string, tone
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=300&height=380&nologo=true&seed=${seed}&model=flux`;
 }
 
+// Portrait cover art for a marketplace world listing (auto-generated from its
+// title + genre). Uses the same Pollinations service as scene/portrait art.
+export function buildWorldCoverUrl(title: string, genre: string): string {
+  const subject = `${title.slice(0, 160)}, ${genre.slice(0, 80)}`;
+  const prompt = `epic key art book cover, ${subject}, dramatic cinematic lighting, painterly, highly detailed, fantasy illustration, no text`;
+  const seed = hashPrompt(prompt);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=768&nologo=true&seed=${seed}&model=flux`;
+}
+
 export function diceRollStyle(roll: number): string {
   if (roll === 20) return "bg-amber-500/20 border-amber-400 text-amber-300";
   if (roll === 1) return "bg-red-950/50 border-red-600 text-red-400";
