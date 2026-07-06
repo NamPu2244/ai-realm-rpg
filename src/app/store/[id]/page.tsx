@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, Star, Users, Play, Coins, Sparkles, Loader2, Ghost, Zap,
+  ArrowLeft, Star, Users, Play, Sparkles, Loader2, Ghost, Zap,
 } from "lucide-react";
 import { useGameStore, WorldConfig, genreToTheme } from "@/store/useGameStore";
 import { buildWorldCoverUrl } from "@/lib/gameText";
@@ -166,12 +166,7 @@ export default function WorldDetailPage() {
                     <Sparkles size={11} /> Premium
                   </span>
                 )}
-                {world.price_coins > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-400/30">
-                    <Coins size={11} /> {world.price_coins}
-                  </span>
-                )}
-                {!world.is_premium && world.price_coins === 0 && (
+                {!world.is_premium && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
                     Free
                   </span>

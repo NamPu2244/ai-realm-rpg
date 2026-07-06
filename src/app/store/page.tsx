@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Compass, Library, Search, Star, Users, Play, X, Wand2, Coins,
+  Compass, Library, Search, Star, Users, Play, X, Wand2,
   Loader2, Ghost, ArrowLeft, Sparkles, Zap, Lock, Trash2,
 } from "lucide-react";
 import { useGameStore } from "@/store/useGameStore";
@@ -66,13 +66,6 @@ function formatCount(n: number): string {
    ============================================================ */
 
 function PriceBadge({ world }: Readonly<{ world: World }>) {
-  if (world.price_coins > 0) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-400/30">
-        <Coins size={11} /> {world.price_coins}
-      </span>
-    );
-  }
   if (world.is_premium) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-300/40">
@@ -255,7 +248,6 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
   const [synopsis, setSynopsis] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isPremium, setIsPremium] = useState(false);
-  const [priceCoins, setPriceCoins] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -293,7 +285,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
           synopsis: synopsis.trim(),
           tropeTags: tags,
           isPremium,
-          priceCoins: isPremium ? 0 : priceCoins,
+          priceCoins: 0,
           coverUrl,
           coverType: "auto",
         }),
@@ -411,25 +403,15 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
               </div>
             </div>
 
-            {/* Pricing */}
-            <div className="relative mt-5 flex items-center gap-3">
+            {/* Visibility — coin pricing is hidden until the economy ships */}
+            <div className="relative mt-5">
               <label className="flex items-center gap-2 text-sm text-neutral-300">
                 <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} className="accent-amber-500" />
-                Premium
+                Mark as Premium
               </label>
-              {!isPremium && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Coins size={14} className="text-amber-400" />
-                  <input
-                    type="number"
-                    min={0}
-                    value={priceCoins}
-                    onChange={(e) => setPriceCoins(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-24 rounded-lg border border-amber-900/30 bg-white/5 px-2.5 py-1.5 text-sm text-white outline-none focus:border-amber-500/50"
-                  />
-                  <span className="text-xs text-neutral-600">coins (0 = free)</span>
-                </div>
-              )}
+              <p className="mt-1.5 text-xs text-neutral-600">
+                {isPremium ? "Highlighted as a premium world." : "Published free for everyone."}
+              </p>
             </div>
 
             {error && <p className="relative mt-4 text-xs text-red-400">{error}</p>}
