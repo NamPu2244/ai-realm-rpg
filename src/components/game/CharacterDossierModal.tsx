@@ -2,6 +2,7 @@
 
 import { X, UserCircle2 } from "lucide-react";
 import { CharacterEntry } from "@/store/useGameStore";
+import { Modal } from "@/components/ui/Modal";
 
 interface CharacterDossierModalProps {
   characters: Record<string, CharacterEntry>;
@@ -54,14 +55,7 @@ export default function CharacterDossierModal({ characters, onClose }: Readonly<
   const entries = Object.values(characters);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-lg max-h-[80vh] flex flex-col bg-stone-950 border border-amber-900/30 rounded-xl shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onDismiss={onClose} size="lg" framed>
         <div className="flex items-center justify-between px-5 py-4 border-b border-amber-900/20">
           <div>
             <h2 className="text-sm font-bold tracking-widest text-amber-300 uppercase">Character Registry</h2>
@@ -76,7 +70,7 @@ export default function CharacterDossierModal({ characters, onClose }: Readonly<
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-4 space-y-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-3">
           {entries.length === 0 ? (
             <p className="text-center text-stone-600 text-sm py-8 italic">
               No characters recorded yet
@@ -87,7 +81,6 @@ export default function CharacterDossierModal({ characters, onClose }: Readonly<
             ))
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

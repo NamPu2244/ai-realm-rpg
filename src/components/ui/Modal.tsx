@@ -26,18 +26,32 @@ interface ModalProps {
   children: ReactNode;
   /** "sm" (default) for alerts/confirms; "md"/"lg" for form dialogs. */
   size?: "sm" | "md" | "lg";
+  /**
+   * Unpadded, height-capped (≤85vh) flex-column panel so the caller can build a
+   * fixed header + its own scrollable body (e.g. Inventory / Character registry).
+   * Give the scrolling section `flex-1 min-h-0 overflow-y-auto`.
+   */
+  framed?: boolean;
 }
 
-const PANEL_BY_SIZE: Record<NonNullable<ModalProps["size"]>, string> = {
+const WIDTH_BY_SIZE: Record<NonNullable<ModalProps["size"]>, string> = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+};
+
+const PADDING_BY_SIZE: Record<NonNullable<ModalProps["size"]>, string> = {
   // "sm" keeps the compact alert spacing; "md"/"lg" hand layout to the caller.
-  sm: "max-w-sm p-6 space-y-4",
-  md: "max-w-md p-6",
-  lg: "max-w-lg p-7",
+  sm: "p-6 space-y-4",
+  md: "p-6",
+  lg: "p-7",
 };
 
 // Backdrop + กล่อง modal กลางจอ พร้อมอนิเมชันเปิด
-export function Modal({ onDismiss, children, size = "sm" }: Readonly<ModalProps>) {
-  const panel = PANEL_BY_SIZE[size];
+export function Modal({ onDismiss, children, size = "sm", framed = false }: Readonly<ModalProps>) {
+  const panel = framed
+    ? `${WIDTH_BY_SIZE[size]} max-h-[85vh] flex flex-col overflow-hidden`
+    : `${WIDTH_BY_SIZE[size]} ${PADDING_BY_SIZE[size]}`;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button

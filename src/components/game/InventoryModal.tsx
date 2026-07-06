@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { X, Backpack, Package } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
 
 interface InventoryModalProps {
   isOpen: boolean;
@@ -18,22 +19,10 @@ export default function InventoryModal({ isOpen, onClose, inventory, newItems }:
     return () => globalThis.removeEventListener("keydown", handleKey);
   }, [isOpen, onClose]);
 
+  if (!isOpen) return null;
+
   return (
-    <>
-      <div
-        className={`fixed inset-0 z-50 bg-black/70 backdrop-blur-sm transition-opacity duration-200 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        className={`fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 transition-all duration-200 ${
-          isOpen ? "-translate-y-1/2 opacity-100" : "-translate-y-[45%] opacity-0 pointer-events-none"
-        }`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Inventory"
-      >
-        <div className="mx-4 bg-stone-950 border border-amber-900/40 rounded-2xl shadow-2xl overflow-hidden">
+    <Modal onDismiss={onClose} size="md" framed>
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-amber-900/25 bg-stone-900/50">
             <div className="flex items-center gap-2">
@@ -52,7 +41,7 @@ export default function InventoryModal({ isOpen, onClose, inventory, newItems }:
           </div>
 
           {/* Body */}
-          <div className="p-4 max-h-[60vh] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {inventory.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {inventory.map((item, i) => {
@@ -91,8 +80,6 @@ export default function InventoryModal({ isOpen, onClose, inventory, newItems }:
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </>
+    </Modal>
   );
 }
