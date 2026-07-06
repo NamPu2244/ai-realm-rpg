@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Compass, Library, Search, Star, Eye, Play, X, Wand2, Coins,
+  Compass, Library, Search, Star, Users, Play, X, Wand2,
   Loader2, Ghost, ArrowLeft, Sparkles, Zap, Lock, Trash2,
 } from "lucide-react";
 import { useGameStore } from "@/store/useGameStore";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { buildWorldCoverUrl } from "@/lib/gameText";
-import { ConfirmModal } from "@/components/ui/Modal";
+import { ConfirmModal, Modal } from "@/components/ui/Modal";
 
 /* ============================================================
    TYPES — mirror public.worlds columns (world_config omitted here)
@@ -66,13 +66,6 @@ function formatCount(n: number): string {
    ============================================================ */
 
 function PriceBadge({ world }: Readonly<{ world: World }>) {
-  if (world.price_coins > 0) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-400/30">
-        <Coins size={11} /> {world.price_coins}
-      </span>
-    );
-  }
   if (world.is_premium) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-300/40">
@@ -121,7 +114,7 @@ function HeroBanner({ world, onOpen }: Readonly<{ world: World; onOpen: (w: Worl
               <Star size={14} className="fill-amber-300" /> {world.rating.toFixed(1)}
             </span>
             <span className="flex items-center gap-1 text-neutral-500">
-              <Eye size={14} /> {formatCount(world.player_count)}
+              <Users size={14} /> {formatCount(world.player_count)}
             </span>
             {world.trope_tags.slice(0, 3).map((t) => (
               <span key={t} className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-neutral-300 ring-1 ring-amber-900/30">
@@ -222,7 +215,7 @@ function WorldCard({ world, onOpen, onDelete }: Readonly<{ world: World; onOpen:
               <Star size={12} className="fill-amber-300" /> {world.rating.toFixed(1)}
             </span>
             <span className="flex items-center gap-1 text-neutral-500">
-              <Eye size={12} /> {formatCount(world.player_count)}
+              <Users size={12} /> {formatCount(world.player_count)}
             </span>
           </div>
         </div>
@@ -255,7 +248,6 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
   const [synopsis, setSynopsis] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isPremium, setIsPremium] = useState(false);
-  const [priceCoins, setPriceCoins] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -293,7 +285,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
           synopsis: synopsis.trim(),
           tropeTags: tags,
           isPremium,
-          priceCoins: isPremium ? 0 : priceCoins,
+          priceCoins: 0,
           coverUrl,
           coverType: "auto",
         }),
@@ -315,12 +307,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
   const noSlots = save_slots.length === 0;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" />
-
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-amber-900/40 bg-[#0b0806]/95 p-7 shadow-2xl backdrop-blur-2xl animate-[popIn_0.28s_cubic-bezier(0.16,1,0.3,1)]">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-amber-500/15 blur-3xl" />
-
+    <Modal onDismiss={onClose} size="lg">
         <div className="relative flex items-start justify-between">
           <div>
             <h2 className="text-xl font-black tracking-wide text-white">Publish a World</h2>
@@ -416,25 +403,15 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
               </div>
             </div>
 
-            {/* Pricing */}
-            <div className="relative mt-5 flex items-center gap-3">
+            {/* Visibility — coin pricing is hidden until the economy ships */}
+            <div className="relative mt-5">
               <label className="flex items-center gap-2 text-sm text-neutral-300">
                 <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} className="accent-amber-500" />
-                Premium
+                Mark as Premium
               </label>
-              {!isPremium && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Coins size={14} className="text-amber-400" />
-                  <input
-                    type="number"
-                    min={0}
-                    value={priceCoins}
-                    onChange={(e) => setPriceCoins(Math.max(0, Number(e.target.value) || 0))}
-                    className="w-24 rounded-lg border border-amber-900/30 bg-white/5 px-2.5 py-1.5 text-sm text-white outline-none focus:border-amber-500/50"
-                  />
-                  <span className="text-xs text-neutral-600">coins (0 = free)</span>
-                </div>
-              )}
+              <p className="mt-1.5 text-xs text-neutral-600">
+                {isPremium ? "Highlighted as a premium world." : "Published free for everyone."}
+              </p>
             </div>
 
             {error && <p className="relative mt-4 text-xs text-red-400">{error}</p>}
@@ -455,8 +432,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -486,6 +462,7 @@ export default function StorePage() {
 
   const [tab, setTab] = useState<Tab>("explore");
   const [showPublish, setShowPublish] = useState(false);
+  const [query, setQuery] = useState("");
 
   const [worlds, setWorlds] = useState<World[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -566,20 +543,31 @@ export default function StorePage() {
 
   const initials = useMemo(() => (user?.email ?? "?").slice(0, 2).toUpperCase(), [user]);
 
-  const showHero = tab === "explore";
-  const hero = showHero ? worlds[0] : undefined;
-  const grid = hero ? worlds.slice(1) : worlds;
+  // Live client-side search over the already-loaded worlds (title + trope tags).
+  const q = query.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!q) return worlds;
+    return worlds.filter(
+      (w) =>
+        w.title.toLowerCase().includes(q) ||
+        w.trope_tags.some((t) => t.toLowerCase().includes(q)),
+    );
+  }, [worlds, q]);
+
+  // Hero only makes sense for an unfiltered Explore listing.
+  const showHero = tab === "explore" && !q;
+  const hero = showHero ? filtered[0] : undefined;
+  const grid = hero ? filtered.slice(1) : filtered;
 
   let emptyHint: string;
-  if (tab === "library") emptyHint = "Publish one of your saved worlds to see it here.";
+  if (q) emptyHint = `No worlds match "${query.trim()}".`;
+  else if (tab === "library") emptyHint = "Publish one of your saved worlds to see it here.";
   else if (trope) emptyHint = `Be the first to publish a ${trope} world.`;
   else emptyHint = "Be the first to publish a world.";
 
   return (
     <div className="relative min-h-screen bg-[#07050a] text-neutral-200">
       <style>{`
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes popIn { from { opacity: 0; transform: translateY(12px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
         @keyframes floatGlow { 0%, 100% { opacity: 0.4; transform: translateY(0) } 50% { opacity: 0.7; transform: translateY(-14px) } }
       `}</style>
 
@@ -663,9 +651,21 @@ export default function StorePage() {
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-600" />
               <input
                 type="text"
-                placeholder="Search worlds, tropes, creators…"
-                className="w-full rounded-xl border border-amber-900/25 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-neutral-600 outline-none transition focus:border-amber-500/40 focus:ring-2 focus:ring-amber-500/15"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search worlds or tropes…"
+                className="w-full rounded-xl border border-amber-900/25 bg-white/5 py-2.5 pl-10 pr-9 text-sm text-white placeholder-neutral-600 outline-none transition focus:border-amber-500/40 focus:ring-2 focus:ring-amber-500/15"
               />
+              {query && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full text-neutral-500 transition hover:bg-white/10 hover:text-neutral-200"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
             <button
               type="button"
