@@ -1,0 +1,19 @@
+# Repo-level ignore for the .claude/ tooling.
+# The rest of .claude/ (commands, agents, dev, conventions, memory docs + templates)
+# IS committed and team-shared. These entries keep machine-local and transient files out
+# — regardless of anyone's global git config.
+
+# Machine-local Claude Code settings (per-developer permissions, model, etc.)
+settings.local.json
+
+# Any local secrets/config dropped into .claude (MCP creds, db-query env, etc.)
+.env
+.env.*
+!.env.example
+
+# Transient per-run artifact workspace (working files, not the permanent record —
+# the durable record is flow-runs/ + reports/*.md). May contain code/data snippets.
+memory/runs/
+
+# Screenshot binaries (also ignored by memory/reports/.gitignore) — local evidence only.
+memory/reports/assets/
