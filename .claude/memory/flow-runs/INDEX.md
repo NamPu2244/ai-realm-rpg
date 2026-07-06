@@ -6,4 +6,5 @@ Open a full `YYYY-MM-DD-slug.md` only when a line below clearly matches the curr
 
 | Date | Slug | Tier | Hook (what it was + status) |
 |------|------|------|------|
+| 2026-07-06 | market-ui-polish | T2 | UI audit → fixed store search(dead input)/detail-parity/PublishModal→shared Modal. tsc+lint clean, ui-verifier PASS. |
 | — | (no runs yet) | — | The `/dev` system was set up 2026-07-06; first run pending. |
