@@ -1,5 +1,7 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
+
 interface EnergyModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -9,8 +11,8 @@ export default function EnergyModal({ isOpen, onClose }: EnergyModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-neutral-900 border border-amber-800/50 rounded-2xl shadow-[0_0_60px_rgba(217,119,6,0.15)] p-7 flex flex-col gap-5">
+    <Modal onDismiss={onClose} size="md">
+      <div className="flex flex-col gap-5">
         <div className="flex flex-col items-center gap-2 text-center">
           <span className="text-5xl leading-none">⚡</span>
           <h2 className="text-amber-300 font-bold text-lg tracking-wide mt-1">Out of Energy!</h2>
@@ -39,6 +41,6 @@ export default function EnergyModal({ isOpen, onClose }: EnergyModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

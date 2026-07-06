@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Compass, Library, Search, Star, Eye, Play, X, Wand2, Coins,
+  Compass, Library, Search, Star, Users, Play, X, Wand2, Coins,
   Loader2, Ghost, ArrowLeft, Sparkles, Zap, Lock, Trash2,
 } from "lucide-react";
 import { useGameStore } from "@/store/useGameStore";
@@ -121,7 +121,7 @@ function HeroBanner({ world, onOpen }: Readonly<{ world: World; onOpen: (w: Worl
               <Star size={14} className="fill-amber-300" /> {world.rating.toFixed(1)}
             </span>
             <span className="flex items-center gap-1 text-neutral-500">
-              <Eye size={14} /> {formatCount(world.player_count)}
+              <Users size={14} /> {formatCount(world.player_count)}
             </span>
             {world.trope_tags.slice(0, 3).map((t) => (
               <span key={t} className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-neutral-300 ring-1 ring-amber-900/30">
@@ -222,7 +222,7 @@ function WorldCard({ world, onOpen, onDelete }: Readonly<{ world: World; onOpen:
               <Star size={12} className="fill-amber-300" /> {world.rating.toFixed(1)}
             </span>
             <span className="flex items-center gap-1 text-neutral-500">
-              <Eye size={12} /> {formatCount(world.player_count)}
+              <Users size={12} /> {formatCount(world.player_count)}
             </span>
           </div>
         </div>

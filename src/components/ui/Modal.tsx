@@ -24,14 +24,20 @@ const VARIANT_STYLES: Record<ModalVariant, { icon: ReactNode; accent: string; bu
 interface ModalProps {
   onDismiss?: () => void;
   children: ReactNode;
-  /** "sm" (default) for alerts/confirms; "lg" for form dialogs like Publish. */
-  size?: "sm" | "lg";
+  /** "sm" (default) for alerts/confirms; "md"/"lg" for form dialogs. */
+  size?: "sm" | "md" | "lg";
 }
+
+const PANEL_BY_SIZE: Record<NonNullable<ModalProps["size"]>, string> = {
+  // "sm" keeps the compact alert spacing; "md"/"lg" hand layout to the caller.
+  sm: "max-w-sm p-6 space-y-4",
+  md: "max-w-md p-6",
+  lg: "max-w-lg p-7",
+};
 
 // Backdrop + กล่อง modal กลางจอ พร้อมอนิเมชันเปิด
 export function Modal({ onDismiss, children, size = "sm" }: Readonly<ModalProps>) {
-  // "lg" hands layout/spacing to the caller; "sm" keeps the compact alert spacing.
-  const panel = size === "lg" ? "max-w-lg p-7" : "max-w-sm p-6 space-y-4";
+  const panel = PANEL_BY_SIZE[size];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Modal } from "@/components/ui/Modal";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -20,8 +21,8 @@ export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-5">
+    <Modal onDismiss={onClose} size="lg">
+      <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between">
           <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">Your API Key</h2>
           {groqApiKey ? (
@@ -108,6 +109,6 @@ export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, on
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

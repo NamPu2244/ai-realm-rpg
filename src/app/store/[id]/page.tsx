@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, Star, Eye, Play, Coins, Sparkles, Loader2, Ghost, Zap,
+  ArrowLeft, Star, Users, Play, Coins, Sparkles, Loader2, Ghost, Zap,
 } from "lucide-react";
 import { useGameStore, WorldConfig, genreToTheme } from "@/store/useGameStore";
 import { buildWorldCoverUrl } from "@/lib/gameText";
@@ -187,7 +187,7 @@ export default function WorldDetailPage() {
                   <Star size={14} className="fill-amber-300" /> {world.rating.toFixed(1)}
                 </span>
                 <span className="flex items-center gap-1 text-neutral-500">
-                  <Eye size={14} /> {formatCount(world.player_count)} players
+                  <Users size={14} /> {formatCount(world.player_count)} players
                 </span>
                 {world.world_config?.genre && (
                   <span className="text-neutral-500">{world.world_config.genre}</span>

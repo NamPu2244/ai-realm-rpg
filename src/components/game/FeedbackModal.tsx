@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useGameStore } from "@/store/useGameStore";
+import { Modal } from "@/components/ui/Modal";
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -40,8 +41,8 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 flex flex-col gap-4">
+    <Modal onDismiss={handleClose} size="md">
+      <div className="flex flex-col gap-4">
         <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">Send Feedback</h2>
         {feedbackSent ? (
           <p className="text-emerald-400 text-sm text-center py-4">Thank you for your feedback!</p>
@@ -76,6 +77,6 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           </>
         )}
       </div>
-    </div>
+    </Modal>
   );
 }
