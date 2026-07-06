@@ -24,10 +24,14 @@ const VARIANT_STYLES: Record<ModalVariant, { icon: ReactNode; accent: string; bu
 interface ModalProps {
   onDismiss?: () => void;
   children: ReactNode;
+  /** "sm" (default) for alerts/confirms; "lg" for form dialogs like Publish. */
+  size?: "sm" | "lg";
 }
 
 // Backdrop + กล่อง modal กลางจอ พร้อมอนิเมชันเปิด
-function Modal({ onDismiss, children }: Readonly<ModalProps>) {
+export function Modal({ onDismiss, children, size = "sm" }: Readonly<ModalProps>) {
+  // "lg" hands layout/spacing to the caller; "sm" keeps the compact alert spacing.
+  const panel = size === "lg" ? "max-w-lg p-7" : "max-w-sm p-6 space-y-4";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
@@ -37,7 +41,7 @@ function Modal({ onDismiss, children }: Readonly<ModalProps>) {
         onClick={onDismiss}
         tabIndex={onDismiss ? 0 : -1}
       />
-      <div className="relative w-full max-w-sm bg-stone-950/95 border border-amber-900/30 rounded-2xl shadow-2xl p-6 space-y-4 animate-modal-pop">
+      <div className={`relative w-full ${panel} bg-stone-950/95 border border-amber-900/30 rounded-2xl shadow-2xl animate-modal-pop`}>
         {children}
       </div>
     </div>

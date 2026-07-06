@@ -35,7 +35,7 @@ export default function WorldDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
-  const { auth_status, setGameState, createNewSaveSlot } = useGameStore();
+  const { auth_status, energy, setGameState, createNewSaveSlot } = useGameStore();
 
   const [world, setWorld] = useState<WorldDetail | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -89,20 +89,37 @@ export default function WorldDetailPage() {
 
   return (
     <div className="relative min-h-screen bg-[#07050a] text-neutral-200">
-      {/* Atmospheric background */}
+      <style>{`
+        @keyframes floatGlow { 0%, 100% { opacity: 0.4; transform: translateY(0) } 50% { opacity: 0.7; transform: translateY(-14px) } }
+      `}</style>
+
+      {/* Atmospheric background — matches the store listing */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_80%_0%,rgba(180,83,9,0.16),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_65%_at_88%_5%,rgba(180,83,9,0.16),transparent_70%)]" />
+        <div className="absolute -left-40 top-10 h-[32rem] w-[32rem] rounded-full bg-amber-700/[0.07] blur-3xl [animation:floatGlow_10s_ease-in-out_infinite]" />
+        <div className="absolute right-0 top-1/3 h-[28rem] w-[28rem] rounded-full bg-orange-800/[0.06] blur-3xl [animation:floatGlow_13s_ease-in-out_infinite_1s]" />
       </div>
 
       <div className="relative mx-auto max-w-5xl px-5 py-6 sm:px-8">
-        <button
-          type="button"
-          onClick={() => router.push("/store")}
-          className="mb-6 flex items-center gap-2 text-neutral-600 transition-colors hover:text-amber-300"
-        >
-          <ArrowLeft size={14} />
-          <span className="text-xs uppercase tracking-[0.3em]">Back to Store</span>
-        </button>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/store")}
+            className="flex items-center gap-2 text-neutral-600 transition-colors hover:text-amber-300"
+          >
+            <ArrowLeft size={14} />
+            <span className="text-xs uppercase tracking-[0.3em]">Back to Store</span>
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="hidden text-right leading-tight sm:block">
+              <p className="text-xs font-black tracking-[0.15em] text-white">STORYWEAVE</p>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-amber-800/70">World Store</p>
+            </div>
+            <span className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3.5 py-2 text-sm font-semibold text-amber-300 ring-1 ring-amber-900/25">
+              <Zap size={15} className="fill-amber-300" /> {energy}
+            </span>
+          </div>
+        </div>
 
         {status === "loading" && (
           <div className="grid gap-8 md:grid-cols-[280px_1fr]">
