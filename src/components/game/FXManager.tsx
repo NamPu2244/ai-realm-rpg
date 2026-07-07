@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { playBoom, playThunder, setAmbientLoops, stopAllAmbient } from "@/lib/sounds";
 
 // Renders the fixed, non-interactive cinematic overlays driven by the extraction model:
 // ambient weather (rain/snow/fog/embers), the poisoned green vignette, and the one-shot
@@ -19,8 +20,15 @@ export default function FXManager({ environmentFx, playerCondition, impactFx }: 
   // mounted harmlessly between flashes.
   const [flashKey, setFlashKey] = useState(0);
   useEffect(() => {
-    if (impactFx.includes("flash")) setFlashKey((k) => k + 1);
+    if (impactFx.includes("flash")) { setFlashKey((k) => k + 1); playThunder(); }
+    if (impactFx.includes("shake")) playBoom();
   }, [impactFx]);
+
+  // Ambient weather loops follow environment_fx; stop them all when leaving the game.
+  useEffect(() => {
+    setAmbientLoops(environmentFx);
+  }, [environmentFx]);
+  useEffect(() => stopAllAmbient, []);
 
   return (
     <>
