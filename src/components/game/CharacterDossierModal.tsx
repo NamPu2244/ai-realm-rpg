@@ -28,13 +28,13 @@ function CharacterCard({ entry }: Readonly<{ entry: CharacterEntry }>) {
       <div className="pl-6 space-y-1">
         {entry.relationship && (
           <div className="text-xs text-stone-500">
-            <span className="text-stone-600 mr-1">Relationship:</span>
+            <span className="text-stone-600 mr-1">ความสัมพันธ์:</span>
             {entry.relationship}
           </div>
         )}
         {entry.status && (
           <div className="text-xs text-stone-500">
-            <span className="text-stone-600 mr-1">Status:</span>
+            <span className="text-stone-600 mr-1">สถานะ:</span>
             <span className={entry.status.includes("ตาย") || entry.status.includes("dead") ? "text-red-700" : "text-stone-400"}>
               {entry.status}
             </span>
@@ -42,7 +42,7 @@ function CharacterCard({ entry }: Readonly<{ entry: CharacterEntry }>) {
         )}
         {entry.last_seen && (
           <div className="text-xs text-stone-600">
-            <span className="mr-1">Last seen:</span>
+            <span className="mr-1">พบล่าสุด:</span>
             {entry.last_seen}
           </div>
         )}
@@ -58,8 +58,8 @@ export default function CharacterDossierModal({ characters, onClose }: Readonly<
     <Modal onDismiss={onClose} size="lg" framed>
         <div className="flex items-center justify-between px-5 py-4 border-b border-amber-900/20">
           <div>
-            <h2 className="text-sm font-bold tracking-widest text-amber-300 uppercase">Character Registry</h2>
-            <p className="text-[10px] text-stone-600 mt-0.5">{entries.length} character{entries.length !== 1 ? "s" : ""} encountered</p>
+            <h2 className="text-sm font-bold tracking-widest text-amber-300 uppercase">ทำเนียบตัวละคร</h2>
+            <p className="text-[10px] text-stone-600 mt-0.5">พบตัวละคร {entries.length} คน</p>
           </div>
           <button
             type="button"
@@ -73,7 +73,7 @@ export default function CharacterDossierModal({ characters, onClose }: Readonly<
         <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-3">
           {entries.length === 0 ? (
             <p className="text-center text-stone-600 text-sm py-8 italic">
-              No characters recorded yet
+              ยังไม่มีตัวละครที่บันทึกไว้
             </p>
           ) : (
             entries.map((entry) => (

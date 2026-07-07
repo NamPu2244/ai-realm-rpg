@@ -500,8 +500,8 @@ export default function PlayScreen() {
       setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
       setError(
         detail
-          ? `Failed to connect to AI: ${detail}`
-          : "Failed to connect to AI. Please try again.",
+          ? `เชื่อมต่อ AI ไม่สำเร็จ: ${detail}`
+          : "เชื่อมต่อ AI ไม่สำเร็จ กรุณาลองอีกครั้ง",
       );
       setRetryAction({ newHistory, message, worldConfig });
       setStreamingNarrative("");
@@ -629,7 +629,7 @@ export default function PlayScreen() {
 
   const handleNewGame = () => {
     setConfirmInfo({
-      message: "Start a new game and return to the world creation screen? Your current progress will be lost.",
+      message: "เริ่มเกมใหม่และกลับไปหน้าสร้างโลก? ความคืบหน้าปัจจุบันจะหายทั้งหมด",
       onConfirm: () => {
         setConfirmInfo(null);
         handleRestart();
@@ -757,7 +757,7 @@ export default function PlayScreen() {
         router.replace("/play");
       } catch (err) {
         console.error("Import Error:", err);
-        setAlertInfo("Invalid save file — cannot load.");
+        setAlertInfo("ไฟล์เซฟไม่ถูกต้อง — โหลดไม่ได้");
       }
     };
     reader.readAsText(file);
@@ -818,7 +818,7 @@ export default function PlayScreen() {
               onClick={() => setGameState({ sync_error: null })}
               className="px-5 py-3 bg-rose-950/90 border border-rose-500/50 rounded-xl shadow-[0_0_30px_rgba(244,63,94,0.25)] text-center"
             >
-              <p className="text-xs text-rose-400/80 uppercase tracking-widest mb-0.5">Error</p>
+              <p className="text-xs text-rose-400/80 uppercase tracking-widest mb-0.5">ข้อผิดพลาด</p>
               <p className="text-sm font-medium text-rose-200">{sync_error} <span className="text-rose-400/60">(tap to dismiss)</span></p>
             </button>
           </div>
@@ -827,7 +827,7 @@ export default function PlayScreen() {
         {showLevelUp && (
           <div className="fixed top-8 left-1/2 -translate-x-1/2 z-40 pointer-events-none animate-level-up-pop">
             <div className="px-8 py-3 bg-amber-900/90 border border-amber-400/60 rounded-xl shadow-[0_0_30px_rgba(251,191,36,0.4)] text-center">
-              <p className="text-xs text-amber-400/80 uppercase tracking-widest mb-0.5">Level Up!</p>
+              <p className="text-xs text-amber-400/80 uppercase tracking-widest mb-0.5">เลเวลอัพ!</p>
               <p className="text-2xl font-bold text-amber-300">Level {levelUpNum}</p>
             </div>
           </div>
@@ -960,7 +960,7 @@ export default function PlayScreen() {
         <button
           type="button"
           onClick={() => setShowMobileStats(true)}
-          aria-label="Open character status"
+          aria-label="เปิดสถานะตัวละคร"
           className={`fixed bottom-24 right-4 z-30 lg:hidden flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl border shadow-lg backdrop-blur transition-colors ${isLowHp ? "bg-red-950/80 border-red-700/60 animate-pulse" : "bg-stone-900/80 border-amber-900/40"}`}
         >
           <Heart size={18} className={isLowHp ? "text-red-400 fill-red-400" : "text-amber-400 fill-amber-400"} />

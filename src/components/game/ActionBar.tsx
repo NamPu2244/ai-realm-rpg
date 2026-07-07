@@ -98,32 +98,32 @@ const PLAYER_ACTION_TYPES: PlayerActionType[] = [
   {
     id: "speak",
     emoji: "💬",
-    label: "Speak",
-    placeholder: "What does your character say?",
+    label: "พูด",
+    placeholder: "ตัวละครของคุณจะพูดว่าอะไร?",
     activeClass: "bg-sky-950/60 border-sky-500/70 text-sky-200",
     inactiveClass: "border-stone-700/40 text-stone-500 hover:border-sky-800/50 hover:text-sky-400/70",
   },
   {
     id: "think",
     emoji: "💭",
-    label: "Think",
-    placeholder: "What does your character think? (NPCs are unaware)",
+    label: "คิด",
+    placeholder: "ตัวละครของคุณคิดอะไรอยู่? (NPC ไม่รับรู้)",
     activeClass: "bg-purple-950/60 border-purple-500/70 text-purple-200",
     inactiveClass: "border-stone-700/40 text-stone-500 hover:border-purple-800/50 hover:text-purple-400/70",
   },
   {
     id: "act",
     emoji: "⚔️",
-    label: "Act",
-    placeholder: "What does your character do?",
+    label: "ทำ",
+    placeholder: "ตัวละครของคุณจะทำอะไร?",
     activeClass: "bg-theme-surface border-theme-accent/70 text-theme-accent",
     inactiveClass: "border-stone-700/40 text-stone-500 hover:border-theme-accent/50 hover:text-theme-accent/70",
   },
   {
     id: "investigate",
     emoji: "🔍",
-    label: "Investigate",
-    placeholder: "What do you investigate?",
+    label: "สำรวจ",
+    placeholder: "คุณจะตรวจสอบอะไร?",
     activeClass: "bg-emerald-950/60 border-emerald-500/70 text-emerald-200",
     inactiveClass: "border-stone-700/40 text-stone-500 hover:border-emerald-800/50 hover:text-emerald-400/70",
   },
@@ -137,13 +137,13 @@ function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRe
       <div className="flex flex-col items-center gap-3">
         <div className="flex items-center justify-center gap-2 w-full py-3 bg-neutral-950/80 border border-red-900/60 rounded-xl text-center">
           <Skull size={16} className="text-red-700" />
-          <span className="text-red-600/90 font-bold tracking-widest text-sm uppercase">Permadeath — Your Journey Has Ended</span>
+          <span className="text-red-600/90 font-bold tracking-widest text-sm">ตายถาวร — การเดินทางของเจ้าจบลง</span>
         </div>
         <button
           onClick={onRestart}
           className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900/80 hover:bg-stone-800 text-stone-300 border border-stone-700 font-bold rounded-xl tracking-widest transition-colors text-sm"
         >
-          Begin a New Journey
+          เริ่มการเดินทางใหม่
         </button>
       </div>
     );
@@ -153,7 +153,7 @@ function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRe
       onClick={onRestart}
       className="flex items-center justify-center gap-2 w-full py-4 bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-700 font-bold rounded-xl tracking-widest transition-colors shadow-[0_0_30px_rgba(220,38,38,0.5)]"
     >
-      <Skull size={18} /> You Have Died — Reincarnate
+      <Skull size={18} /> เจ้าได้ตายแล้ว — เกิดใหม่
     </button>
   );
 }
@@ -201,11 +201,11 @@ export default function ActionBar({
   }, [isLoading, isDead, showHints, suggestedActions, onSend]);
 
   const activeMeta = selectedType ? PLAYER_ACTION_TYPES.find((t) => t.id === selectedType) : null;
-  const placeholder = activeMeta?.placeholder ?? "What does your character do? e.g. 'Look around' 'Talk to them' 'Go north'";
+  const placeholder = activeMeta?.placeholder ?? "ตัวละครของคุณจะทำอะไร? เช่น 'มองไปรอบๆ' 'คุยกับเขา' 'มุ่งหน้าไปทางเหนือ'";
 
   // Input is gated on a mode being chosen; reflect that in the placeholder.
   let inputPlaceholder = "เลือกโหมด (พูด/คิด/ทำ/สำรวจ) ด้านบนก่อนถึงจะพิมพ์ได้";
-  if (isLoading) inputPlaceholder = "GM is processing...";
+  if (isLoading) inputPlaceholder = "GM กำลังประมวลผล...";
   else if (selectedType) inputPlaceholder = placeholder;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -253,7 +253,7 @@ export default function ActionBar({
             disabled={isLoading}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded-lg text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50"
           >
-            <RotateCcw size={12} /> {isLoading ? "..." : "Retry"}
+            <RotateCcw size={12} /> {isLoading ? "..." : "ลองใหม่"}
           </button>
         </div>
       )}
@@ -275,7 +275,7 @@ export default function ActionBar({
           {suggestedActions.length > 0 && showHints && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs text-theme-accent/60 font-medium">Choose what your character will do</span>
+                <span className="text-xs text-theme-accent/60 font-medium">เลือกสิ่งที่ตัวละครจะทำ</span>
                 <button
                   type="button"
                   onClick={() => setShowHints(false)}
@@ -311,7 +311,7 @@ export default function ActionBar({
 
           {/* Action type selector */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] text-theme-muted uppercase tracking-widest shrink-0 mr-0.5">Mode</span>
+            <span className="text-[10px] text-theme-muted uppercase tracking-widest shrink-0 mr-0.5">โหมด</span>
             {PLAYER_ACTION_TYPES.map((t) => (
               <button
                 key={t.id}
@@ -333,7 +333,7 @@ export default function ActionBar({
               className="flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all disabled:opacity-40 border-stone-700/40 text-stone-500 hover:border-stone-500/60 hover:text-stone-300"
             >
               <span>🚫</span>
-              <span>No Response</span>
+              <span>นิ่งเฉย</span>
             </button>
           </div>
 
@@ -354,7 +354,7 @@ export default function ActionBar({
               disabled={isLoading || !selectedType || !input.trim()}
               className="flex items-center gap-2 px-6 py-3 bg-theme-accent text-theme-bg font-bold rounded-xl hover:opacity-90 disabled:opacity-40 transition-all shadow-[0_0_20px_var(--theme-accent-glow)] hover:shadow-[0_0_28px_var(--theme-accent-glow)]"
             >
-              {isLoading ? "..." : <><Send size={15} /> Send</>}
+              {isLoading ? "..." : <><Send size={15} /> ส่ง</>}
             </button>
           </form>
         </>

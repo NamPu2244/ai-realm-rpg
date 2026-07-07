@@ -27,14 +27,14 @@ export default function InventoryModal({ isOpen, onClose, inventory, newItems }:
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-amber-900/25 bg-stone-900/50">
             <div className="flex items-center gap-2">
               <Backpack size={14} className="text-amber-500/70" />
-              <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-amber-400/80">Inventory</h2>
-              <span className="text-[10px] tabular-nums text-stone-600 ml-1">{inventory.length} items</span>
+              <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-amber-400/80">สัมภาระ</h2>
+              <span className="text-[10px] tabular-nums text-stone-600 ml-1">{inventory.length} ชิ้น</span>
             </div>
             <button
               type="button"
               onClick={onClose}
               className="text-stone-600 hover:text-stone-300 transition-colors p-0.5"
-              aria-label="Close"
+              aria-label="ปิด"
             >
               <X size={15} />
             </button>
@@ -66,7 +66,7 @@ export default function InventoryModal({ isOpen, onClose, inventory, newItems }:
                       >
                         {item}
                         {isNew && (
-                          <span className="ml-1 text-[9px] font-bold uppercase tracking-wider text-amber-500/80">new</span>
+                          <span className="ml-1 text-[9px] font-bold tracking-wider text-amber-500/80">ใหม่</span>
                         )}
                       </span>
                     </div>
@@ -76,7 +76,7 @@ export default function InventoryModal({ isOpen, onClose, inventory, newItems }:
             ) : (
               <div className="flex flex-col items-center justify-center py-10 gap-3 text-stone-700">
                 <Backpack size={28} />
-                <p className="text-xs italic">Your pack is empty</p>
+                <p className="text-xs italic">กระเป๋าว่างเปล่า</p>
               </div>
             )}
           </div>
