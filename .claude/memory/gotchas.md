@@ -142,6 +142,10 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   **Sound (v2):** each FX also has synthesized Web Audio in `src/lib/sounds.ts` (no files) —
   `playBoom`/`playThunder` one-shots + `setAmbientLoops`/`stopAllAmbient` looping weather (`LOOP_SPECS`).
   FXManager fires them; muting stops loops. So a new effect means updating `sounds.ts` too (5th sync place).
+  **environment_fx expanded to 12 ambiences (2026-07-07)**: rain/snow/fog/embers (visual + sound) +
+  sound-only wind/water/ocean/underwater/cave/crowd/machinery/magic. The `AMBIENTS` registry in
+  `sounds.ts` (per-effect synth builders) must have a key for every ENVIRONMENT_FX value; the 8 sound-only
+  ones deliberately have NO CSS/visual (FXManager only renders overlays for rain/snow/fog/embers).
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
