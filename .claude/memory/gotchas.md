@@ -113,6 +113,13 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   KEYS matched against Supabase — the marketplace TROPE tags in `src/app/store/page.tsx` (translating
   breaks filtering vs. already-published worlds; migrate the DB first). Admin pages are internal — skip
   unless asked.**
+- **`/store` (and `/store/[id]`) do NOT mount `usePhaseSync` — navigate with `router.push`, not
+  `game_phase`.** `usePhaseSync` (which mirrors `game_phase` → URL) is only mounted on `/` (page.tsx),
+  `/create`, and `/play` (PlayScreen). On the store routes, `setGameState({ game_phase })` updates state
+  but does NOT change the URL, so a button relying on it does nothing. Symptom: store's "back to main
+  menu" did nothing. Fix: call `router.push("/")` explicitly (keep the `game_phase: "Dashboard"` so the
+  landing renders MainMenuDashboard). The play button in `store/[id]` already does this
+  (`router.push("/play")`). Path: `src/app/store/page.tsx`.
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
