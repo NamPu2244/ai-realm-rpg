@@ -607,6 +607,21 @@ ${historyContext}
 
     const narrativeLanguage = worldConfig?.language || 'ไทย';
 
+    // The narrative (storyteller) call can optionally target a SEPARATE OpenAI-compatible
+    // endpoint — e.g. Typhoon (opentyphoon.ai), which handles Thai prose far better than any
+    // Groq general model. Extraction + dice stay on Groq. Enabled by NARRATIVE_BASE_URL
+    // (+ NARRATIVE_API_KEY); unset → narrative stays on the Groq/Ollama endpoint (no change).
+    const narrativeBaseUrl = process.env.NARRATIVE_BASE_URL?.replace(/\/$/, '');
+    const useNarrativeOverride = !useOllama && !!narrativeBaseUrl;
+
+    // Sampling is endpoint-aware. The Groq general models were tuned hot (0.85–0.95) for prose
+    // variety. Typhoon (a3b MoE) instead OBEYS the show-don't-tell / banned-phrase rules and stops
+    // garbling words only at its recommended low temp (~0.6, top_p 0.6); hot sampling makes it write
+    // "คุณรู้สึก" and glitch. So drop temperature + pin top_p when routed to the Typhoon override.
+    const groqTemperature = isFirstTurn ? 0.95 : 0.85;
+    const typhoonTemperature = isFirstTurn ? 0.7 : 0.6;
+    const narrativeTemperature = useNarrativeOverride ? typhoonTemperature : groqTemperature;
+
     const requestBody = JSON.stringify({
       model: narrativeModel,
       messages: [
@@ -614,9 +629,9 @@ ${historyContext}
         { role: 'user', content: finalUserPrompt },
       ],
       stream: true,
-      // Higher temperature now that this call ONLY writes prose — no JSON to keep rigid.
-      temperature: isFirstTurn ? 0.95 : 0.85,
+      temperature: narrativeTemperature,
       max_tokens: 1600,
+      ...(useNarrativeOverride ? { top_p: 0.6 } : {}),
       // Qwen3 models think by default and would stream <think> reasoning into the
       // prose. Disable it so the storyteller emits prose only (and stays fast).
       ...(narrativeModel.includes('qwen') ? { reasoning_effort: 'none' } : {}),
@@ -628,13 +643,20 @@ ${historyContext}
       'Authorization': useOllama ? 'Bearer ollama' : `Bearer ${groqKey}`,
     };
 
-    let groqResponse = await fetch(inferenceUrl, {
+    const narrativeUrl = useNarrativeOverride
+      ? `${narrativeBaseUrl}/chat/completions`
+      : inferenceUrl;
+    const narrativeHeaders = useNarrativeOverride
+      ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NARRATIVE_API_KEY ?? ''}` }
+      : requestHeaders;
+
+    let groqResponse = await fetch(narrativeUrl, {
       method: 'POST',
-      headers: requestHeaders,
+      headers: narrativeHeaders,
       body: requestBody,
     });
 
-    // On TPM rate limit, wait the specified time and retry once — Groq only.
+    // On TPM/rate limit, wait the specified time and retry once (cloud endpoints only).
     if (!useOllama && groqResponse.status === 429) {
       const errText = await groqResponse.text().catch(() => "");
       const retryMatch = /try again in ([\d.]+)(ms|s)/i.exec(errText);
@@ -645,9 +667,9 @@ ${historyContext}
       }
       if (waitMs <= 28000) {
         await new Promise<void>(resolve => setTimeout(resolve, waitMs));
-        groqResponse = await fetch(inferenceUrl, {
+        groqResponse = await fetch(narrativeUrl, {
           method: 'POST',
-          headers: requestHeaders,
+          headers: narrativeHeaders,
           body: requestBody,
         });
       }
@@ -656,7 +678,7 @@ ${historyContext}
     if (!groqResponse.ok || !groqResponse.body) {
       const errText = await groqResponse.text().catch(() => "");
       return NextResponse.json(
-        { error: `Groq API returned an error (${groqResponse.status}): ${errText}` },
+        { error: `Narrative API returned an error (${groqResponse.status}): ${errText}` },
         { status: 502 }
       );
     }
