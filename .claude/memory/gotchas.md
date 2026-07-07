@@ -92,6 +92,11 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   merely incoming (impact not yet shown), while staying false for decision cliffhangers (those →
   suggested_actions). Diagnose QTE/countdown/qte-option gaps by testing the REAL `buildExtractionPrompt`
   against a sample narrative via API before touching code. Path: `src/app/api/chat/route.ts`.
+- **`eslint-config-next` errors on synchronous `setState` inside a `useEffect` (`set-state-in-effect`).**
+  To reset local component state when a prop changes (e.g. re-hide ActionBar hints each turn when
+  `suggestedActions` changes), use React's render-phase pattern —
+  `const [prev,setPrev]=useState(prop); if (prop!==prev){ setPrev(prop); setState(...) }` — not an
+  effect. Path: `src/components/game/ActionBar.tsx`.
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 

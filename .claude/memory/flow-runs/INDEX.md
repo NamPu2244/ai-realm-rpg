@@ -6,6 +6,7 @@ Open a full `YYYY-MM-DD-slug.md` only when a line below clearly matches the curr
 
 | Date | Slug | Tier | Hook (what it was + status) |
 |------|------|------|------|
+| 2026-07-07 | actionbar-opt-in-hints | T2 | Suggested actions now opt-in behind a hint toggle (re-hides each turn); free-text input gated on a chosen mode; 1-N shortcut moved to ActionBar. tsc/lint clean, user-tested OK. |
 | 2026-07-07 | inline-markdown-emphasis | T2 | Deferred "step 2": `renderInline` in NarrativeRenderer for **bold**/*italic* + sparing EMPHASIS prompt rule. Fixes raw `*คราง*`. Regex + live verified. |
 | 2026-07-07 | qte-never-fires | T1 | "QTE ไม่ขึ้น" — NOT a code bug (plumbing correct, scout can trigger). Cause: narrative writes menace not reflex-attacks. Fixed both prompts (narrative REFLEX-ATTACK BEATS + broadened extraction trigger). API-verified. Live-play pending. |
 | 2026-07-06 | typhoon-narrative | T2 | Routed narrative call to Typhoon (Thai-specialized) via new `NARRATIVE_BASE_URL`/`NARRATIVE_API_KEY` decouple in `route.ts`; extraction stays Groq. API smoke-test PASS (fluent Thai, no garble). tsc clean. Live in-app turn pending. |
