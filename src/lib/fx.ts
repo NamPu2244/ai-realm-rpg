@@ -6,7 +6,14 @@
 // FXManager (renders). Keep the three lists in sync with the CSS in globals.css and the
 // extraction prompt schema.
 
-export const ENVIRONMENT_FX = ['rain', 'snow', 'fog', 'embers'] as const; // ambient, persistent
+// Ambient, persistent. rain/snow/fog/embers have a visual overlay AND sound; the rest are
+// sound-only (FXManager renders no overlay for them, but @/lib/sounds plays a loop). Keep in
+// sync with AMBIENTS in @/lib/sounds and the extraction prompt.
+export const ENVIRONMENT_FX = [
+  'rain', 'snow', 'fog', 'embers',                       // + visual overlay
+  'wind', 'water', 'ocean', 'underwater',                // sound-only
+  'cave', 'crowd', 'machinery', 'magic',                 // sound-only
+] as const;
 export const PLAYER_CONDITIONS = ['dizzy', 'poisoned', 'drunk'] as const;  // screen overlay, persistent
 export const IMPACT_FX = ['shake', 'flash'] as const;                      // one-shot, fires this turn
 
