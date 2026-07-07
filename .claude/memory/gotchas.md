@@ -131,6 +131,14 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   They were leaking into the sidebar, mobile stats, journal, and header (e.g. "แนว: High fantasy…",
   "โทน: balanced", "BALANCED"). Use `genreLabelTH()` / `toneLabelTH()` from `src/lib/gameText.ts` at
   every DISPLAY site (custom Pro genres fall through and show as typed). Verified via a screenshot pass.
+- **Cinematic FX vocabulary is a closed set in `src/lib/fx.ts` — keep 4 places in sync.** The extraction
+  model emits `environment_fx` (rain/snow/fog/embers), `player_condition` (dizzy/poisoned/drunk), and
+  `impact_fx` (shake/flash). Adding/renaming an effect means updating ALL of: (1) the lists+sanitizers in
+  `@/lib/fx`, (2) the CINEMATIC FX rule + schema in `buildExtractionPrompt` (`route.ts`), (3) the CSS
+  classes/keyframes in `globals.css`, (4) the render switch in `FXManager.tsx` (and `sceneConditionClass`
+  for condition transforms). environment_fx/player_condition persist; impact_fx is forced to `[]` in the
+  store's partialize (one-shot, must not re-fire on reload). This is part of the extraction↔store↔
+  applyGameResult danger-zone contract. See flow-run `2026-07-07-cinematic-fx`.
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
