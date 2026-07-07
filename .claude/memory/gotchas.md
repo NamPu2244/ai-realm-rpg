@@ -97,6 +97,16 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   `suggestedActions` changes), use React's render-phase pattern —
   `const [prev,setPrev]=useState(prop); if (prop!==prev){ setPrev(prop); setState(...) }` — not an
   effect. Path: `src/components/game/ActionBar.tsx`.
+- **In-game UI is Thai — keep the localization glossary consistent for any NEW string.** The whole
+  `src/components/game/` chrome was localized to Thai (2026-07-07). No i18n framework — direct Thai
+  strings. Reuse these terms so the UI stays uniform: STR/DEX/INT/CON/WIS/CHA → พลัง/ว่องไว/ปัญญา/อึด/
+  สติ/เสน่ห์; HP→พลังชีวิต, Mana→พลังเวท, Gold→ทอง, EXP→ปสก., Level→เลเวล, Lives→ชีวิต; Vitals→ค่าชีพ,
+  Attributes→ค่าพลัง, Progression→ความก้าวหน้า, Objective→เป้าหมาย, Companions→เพื่อนร่วมทาง, Factions→ฝ่าย,
+  Conditions→สภาวะ, Skills→ทักษะ, Inventory→สัมภาระ, Quests→ภารกิจ, Active Threads→เรื่องค้างคา;
+  modes Speak/Think/Act/Investigate/No Response → พูด/คิด/ทำ/สำรวจ/นิ่งเฉย; Send→ส่ง, Cancel→ยกเลิก,
+  Save→บันทึก, Close→ปิด, Retry→ลองใหม่. Keep the STORYWEAVE brand + AI-facing signals
+  (`[[SCENE]]`, `[ทอยเต๋า]`, `Begin the adventure.`) in their original form. Full list in flow-run
+  `2026-07-07-thai-localization`.
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
