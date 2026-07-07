@@ -31,10 +31,10 @@ export default function QTEOverlay({
     <div className="fixed inset-0 z-30 pointer-events-none border-[6px] border-red-600 animate-pulse shadow-[inset_0_0_80px_rgba(220,38,38,0.6)]">
       <div className="absolute top-0 left-0 right-0 flex flex-col items-center pt-4 px-6 pointer-events-auto">
         <p
-          title="Quick Time Event: Choose an option before time runs out, or you'll stand frozen and suffer consequences"
+          title="Quick Time Event: เลือกตัวเลือกก่อนหมดเวลา ไม่งั้นจะยืนนิ่งและรับผลที่ตามมา"
           className="flex items-center gap-2 text-red-400 font-bold tracking-[0.3em] uppercase text-sm mb-2 animate-pulse cursor-help"
         >
-          <AlertTriangle size={16} /> React Now! <AlertTriangle size={16} />
+          <AlertTriangle size={16} /> ตอบโต้เดี๋ยวนี้! <AlertTriangle size={16} />
         </p>
         <div className="w-full max-w-md flex items-center gap-2 mb-3">
           <div className="flex-1 bg-neutral-900/80 border border-red-700 rounded-full h-3 overflow-hidden">

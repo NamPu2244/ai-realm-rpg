@@ -22,11 +22,11 @@ interface ChatHistoryProps {
 
 // ---- Action type metadata (mirrors ActionBar definitions) ----
 const ACTION_TYPE_META: Record<string, { label: string; colorClass: string }> = {
-  speak: { label: "💬 Speak", colorClass: "text-sky-300 bg-sky-950/50 border-sky-700/50" },
-  think: { label: "💭 Think", colorClass: "text-purple-300 bg-purple-950/50 border-purple-700/50" },
-  act: { label: "⚔️ Act", colorClass: "text-amber-300 bg-amber-950/50 border-amber-700/50" },
-  investigate: { label: "🔍 Investigate", colorClass: "text-emerald-300 bg-emerald-950/50 border-emerald-700/50" },
-  "no response": { label: "🚫 No Response", colorClass: "text-neutral-400 bg-neutral-900/60 border-neutral-700/40" },
+  speak: { label: "💬 พูด", colorClass: "text-sky-300 bg-sky-950/50 border-sky-700/50" },
+  think: { label: "💭 คิด", colorClass: "text-purple-300 bg-purple-950/50 border-purple-700/50" },
+  act: { label: "⚔️ ทำ", colorClass: "text-amber-300 bg-amber-950/50 border-amber-700/50" },
+  investigate: { label: "🔍 สำรวจ", colorClass: "text-emerald-300 bg-emerald-950/50 border-emerald-700/50" },
+  "no response": { label: "🚫 นิ่งเฉย", colorClass: "text-neutral-400 bg-neutral-900/60 border-neutral-700/40" },
 };
 
 function parsePlayerContent(content: string): { actionType: string | null; text: string } {
@@ -106,7 +106,7 @@ function PlayerBubble({ content }: Readonly<{ content: string }>) {
               {meta.label}
             </span>
           ) : (
-            <span className="text-[10px] text-amber-400/40 uppercase tracking-widest font-semibold">You</span>
+            <span className="text-[10px] text-amber-400/40 uppercase tracking-widest font-semibold">คุณ</span>
           )}
         </div>
         {text && <div className="whitespace-pre-wrap leading-relaxed">{text}</div>}

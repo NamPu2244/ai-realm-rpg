@@ -43,15 +43,15 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   return (
     <Modal onDismiss={handleClose} size="md">
       <div className="flex flex-col gap-4">
-        <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">Send Feedback</h2>
+        <h2 className="text-amber-300 font-semibold text-sm uppercase tracking-widest">ส่งความคิดเห็น</h2>
         {feedbackSent ? (
-          <p className="text-emerald-400 text-sm text-center py-4">Thank you for your feedback!</p>
+          <p className="text-emerald-400 text-sm text-center py-4">ขอบคุณสำหรับความคิดเห็น!</p>
         ) : (
           <>
             <textarea
               className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-sm text-neutral-200 placeholder-neutral-500 resize-none focus:outline-none focus:border-amber-700/60"
               rows={5}
-              placeholder="Report a bug, suggest an idea, or share what you love..."
+              placeholder="แจ้งบั๊ก เสนอไอเดีย หรือบอกสิ่งที่ชอบ..."
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               maxLength={2000}
@@ -63,7 +63,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 onClick={handleClose}
                 className="px-4 py-2 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
               >
-                Cancel
+                ยกเลิก
               </button>
               <button
                 type="button"
@@ -71,7 +71,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 disabled={feedbackSubmitting || feedbackText.trim().length < 5}
                 className="px-4 py-2 text-xs bg-amber-800/70 hover:bg-amber-700/70 disabled:opacity-40 text-amber-200 rounded-lg transition-colors"
               >
-                {feedbackSubmitting ? "Sending..." : "Send"}
+                {feedbackSubmitting ? "กำลังส่ง..." : "ส่ง"}
               </button>
             </div>
           </>

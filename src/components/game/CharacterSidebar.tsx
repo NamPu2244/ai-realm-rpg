@@ -61,7 +61,7 @@ function SectionLabel({ children }: Readonly<{ children: React.ReactNode }>) {
 
 function LivesDisplay({ tone, livesLeft }: Readonly<{ tone?: string; livesLeft: number }>) {
   if (tone === "hardcore") {
-    return <span className="text-[9px] tracking-widest uppercase text-red-900/80 border border-red-900/40 px-1.5 py-0.5">permadeath</span>;
+    return <span className="text-[9px] tracking-widest text-red-900/80 border border-red-900/40 px-1.5 py-0.5">ตายถาวร</span>;
   }
   return (
     <span className="text-stone-300 tabular-nums">
@@ -74,12 +74,12 @@ function LivesDisplay({ tone, livesLeft }: Readonly<{ tone?: string; livesLeft: 
 }
 
 const ATTR_META: { key: keyof PlayerStatus["attributes"]; label: string; icon: typeof Swords; color: string }[] = [
-  { key: "str", label: "STR", icon: Swords,       color: "text-red-400" },
-  { key: "dex", label: "DEX", icon: Eye,           color: "text-emerald-400" },
-  { key: "int", label: "INT", icon: Brain,         color: "text-sky-400" },
-  { key: "con", label: "CON", icon: Shield,        color: "text-orange-400" },
-  { key: "wis", label: "WIS", icon: Eye,           color: "text-purple-400" },
-  { key: "cha", label: "CHA", icon: MessageCircle, color: "text-pink-400" },
+  { key: "str", label: "พลัง",   icon: Swords,       color: "text-red-400" },
+  { key: "dex", label: "ว่องไว", icon: Eye,           color: "text-emerald-400" },
+  { key: "int", label: "ปัญญา",  icon: Brain,         color: "text-sky-400" },
+  { key: "con", label: "อึด",    icon: Shield,        color: "text-orange-400" },
+  { key: "wis", label: "สติ",    icon: Eye,           color: "text-purple-400" },
+  { key: "cha", label: "เสน่ห์", icon: MessageCircle, color: "text-pink-400" },
 ];
 
 function attrMod(val: number) {
@@ -125,10 +125,10 @@ function urgencyColor(urgency: OpenThread['urgency']): string {
 
 function urgencyLabel(urgency: OpenThread['urgency']): string {
   switch (urgency) {
-    case 'critical': return 'CRITICAL';
-    case 'high':     return 'HIGH';
-    case 'medium':   return 'MED';
-    default:         return 'LOW';
+    case 'critical': return 'วิกฤต';
+    case 'high':     return 'สูง';
+    case 'medium':   return 'ปานกลาง';
+    default:         return 'ต่ำ';
   }
 }
 
@@ -237,7 +237,7 @@ export default function CharacterSidebar({
 
             {currentObjective && (
               <div className="mb-5 border-l-2 border-amber-900/50 pl-3">
-                <SectionLabel>Objective</SectionLabel>
+                <SectionLabel>เป้าหมาย</SectionLabel>
                 <p className="text-xs text-amber-200/70 leading-relaxed">{currentObjective}</p>
               </div>
             )}
@@ -250,7 +250,7 @@ export default function CharacterSidebar({
                   className="flex items-center justify-between w-full mb-2 group"
                 >
                   <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-stone-600 group-hover:text-stone-400 transition-colors">
-                    Active Threads
+                    เรื่องค้างคา
                   </p>
                   <span className="text-[9px] text-stone-700 group-hover:text-stone-500 transition-colors">
                     {threadsExpanded ? '▲' : '▼'}
@@ -306,11 +306,11 @@ export default function CharacterSidebar({
             )}
 
             <div className="mb-5">
-              <SectionLabel>Vitals</SectionLabel>
+              <SectionLabel>ค่าชีพ</SectionLabel>
               <div className="space-y-2.5">
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className={isLowHp ? "text-red-600" : "text-stone-500"}>HP</span>
+                    <span className={isLowHp ? "text-red-600" : "text-stone-500"}>พลังชีวิต</span>
                     <span className={`tabular-nums ${isLowHp ? "text-red-500" : "text-stone-300"}`}>
                       {playerStatus.hp} / {playerStatus.max_hp}
                     </span>
@@ -319,7 +319,7 @@ export default function CharacterSidebar({
                 </div>
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-stone-500">Mana</span>
+                    <span className="text-stone-500">พลังเวท</span>
                     <span className="text-stone-300 tabular-nums">{playerStatus.mana} / {playerStatus.max_mana}</span>
                   </div>
                   <StatBar value={playerStatus.mana} max={playerStatus.max_mana} color="bg-indigo-900" />
@@ -329,7 +329,7 @@ export default function CharacterSidebar({
 
             {playerStatus.gold > 0 && (
               <div className="mb-5">
-                <SectionLabel>Gold</SectionLabel>
+                <SectionLabel>ทอง</SectionLabel>
                 <div className="flex items-center gap-1.5">
                   <Coins size={12} className="text-amber-600" />
                   <span className="text-sm text-amber-300 font-bold tabular-nums">{playerStatus.gold.toLocaleString()}</span>
@@ -339,7 +339,7 @@ export default function CharacterSidebar({
 
             {attrs && hasAttrs && (
               <div className="mb-5">
-                <SectionLabel>Attributes</SectionLabel>
+                <SectionLabel>ค่าพลัง</SectionLabel>
                 <div className="grid grid-cols-3 gap-1.5">
                   {ATTR_META.map(({ key, label, color }) => (
                     <div key={key} className="flex flex-col items-center py-1.5 bg-stone-900/60 rounded border border-stone-800/60">
@@ -353,21 +353,21 @@ export default function CharacterSidebar({
             )}
 
             <div className="mb-5">
-              <SectionLabel>Progression</SectionLabel>
+              <SectionLabel>ความก้าวหน้า</SectionLabel>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-stone-500">Lv {playerStatus.level}</span>
-                <span className="text-stone-400 tabular-nums">{playerStatus.exp} / 100 exp</span>
+                <span className="text-stone-500">เลเวล {playerStatus.level}</span>
+                <span className="text-stone-400 tabular-nums">{playerStatus.exp} / 100 ปสก.</span>
               </div>
               <StatBar value={playerStatus.exp} max={100} color="bg-amber-900" />
               <div className="flex justify-between items-center text-xs mt-2.5">
-                <span className="text-stone-500">Lives</span>
+                <span className="text-stone-500">ชีวิต</span>
                 <LivesDisplay tone={worldConfig?.tone} livesLeft={livesLeft} />
               </div>
             </div>
 
             {activeCompanions.length > 0 && (
               <div className="mb-5">
-                <SectionLabel>Companions</SectionLabel>
+                <SectionLabel>เพื่อนร่วมทาง</SectionLabel>
                 <div className="space-y-2">
                   {activeCompanions.map((c) => (
                     <div key={c.name} className="space-y-1">
@@ -387,7 +387,7 @@ export default function CharacterSidebar({
 
             {factionStandings.length > 0 && (
               <div className="mb-5">
-                <SectionLabel>Factions</SectionLabel>
+                <SectionLabel>ฝ่าย</SectionLabel>
                 <div className="space-y-2">
                   {factionStandings.map((f) => (
                     <div key={f.name} className="space-y-1">
@@ -406,7 +406,7 @@ export default function CharacterSidebar({
 
             {playerStatus.status_effects.length > 0 && (
               <div className="mb-5">
-                <SectionLabel>Conditions</SectionLabel>
+                <SectionLabel>สภาวะ</SectionLabel>
                 <div className="flex flex-col gap-1">
                   {playerStatus.status_effects.map((effect) => (
                     <span
@@ -426,7 +426,7 @@ export default function CharacterSidebar({
 
             {playerStatus.skills.length > 0 && (
               <div className="mb-5">
-                <SectionLabel>Skills</SectionLabel>
+                <SectionLabel>ทักษะ</SectionLabel>
                 <div className="flex flex-col gap-1">
                   {playerStatus.skills.map((skill) => (
                     <span key={skill} className="text-xs text-stone-500">— {skill}</span>
@@ -436,7 +436,7 @@ export default function CharacterSidebar({
             )}
 
             <div className="flex-1">
-              <SectionLabel>Inventory</SectionLabel>
+              <SectionLabel>สัมภาระ</SectionLabel>
               <button
                 type="button"
                 onClick={() => setInventoryOpen(true)}
@@ -445,11 +445,11 @@ export default function CharacterSidebar({
                 <div className="flex items-center gap-2">
                   <Backpack size={12} className="text-stone-600 group-hover:text-amber-600 transition-colors" />
                   <span className="text-xs text-stone-500 group-hover:text-stone-300 transition-colors">
-                    {playerStatus.inventory.length > 0 ? `${playerStatus.inventory.length} items` : "empty"}
+                    {playerStatus.inventory.length > 0 ? `${playerStatus.inventory.length} ชิ้น` : "ว่างเปล่า"}
                   </span>
                 </div>
                 {newItems.size > 0 && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-amber-500 animate-pulse">new</span>
+                  <span className="text-[9px] font-bold tracking-wider text-amber-500 animate-pulse">ใหม่</span>
                 )}
               </button>
             </div>

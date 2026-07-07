@@ -81,7 +81,7 @@ export default function SceneBanner({ imagePrompt, tone }: Readonly<{ imagePromp
 
         {loadFailed && !currentSrc && (
           <div className="absolute inset-0 bg-stone-900/80 flex items-center justify-center">
-            <span className="text-xs text-stone-500 tracking-widest uppercase">Image could not be loaded</span>
+            <span className="text-xs text-stone-500 tracking-widest">โหลดรูปไม่สำเร็จ</span>
           </div>
         )}
 

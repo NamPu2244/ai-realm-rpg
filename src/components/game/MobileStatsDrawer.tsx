@@ -19,12 +19,12 @@ interface MobileStatsDrawerProps {
 }
 
 const ATTR_META: { key: keyof PlayerStatus["attributes"]; label: string; icon: typeof Swords; color: string }[] = [
-  { key: "str", label: "STR", icon: Swords,       color: "text-red-400" },
-  { key: "dex", label: "DEX", icon: Eye,           color: "text-emerald-400" },
-  { key: "int", label: "INT", icon: Brain,         color: "text-sky-400" },
-  { key: "con", label: "CON", icon: Shield,        color: "text-orange-400" },
-  { key: "wis", label: "WIS", icon: Eye,           color: "text-purple-400" },
-  { key: "cha", label: "CHA", icon: MessageCircle, color: "text-pink-400" },
+  { key: "str", label: "พลัง",   icon: Swords,       color: "text-red-400" },
+  { key: "dex", label: "ว่องไว", icon: Eye,           color: "text-emerald-400" },
+  { key: "int", label: "ปัญญา",  icon: Brain,         color: "text-sky-400" },
+  { key: "con", label: "อึด",    icon: Shield,        color: "text-orange-400" },
+  { key: "wis", label: "สติ",    icon: Eye,           color: "text-purple-400" },
+  { key: "cha", label: "เสน่ห์", icon: MessageCircle, color: "text-pink-400" },
 ];
 
 function attrMod(val: number) {
@@ -84,7 +84,7 @@ export default function MobileStatsDrawer({
         className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-stone-950/98 border-t border-amber-900/30 rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out max-h-[80vh] overflow-y-auto ${isOpen ? "translate-y-0" : "translate-y-full"}`}
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-amber-900/20 sticky top-0 bg-stone-950/98">
-          <h2 className="text-sm font-bold text-amber-400/80 uppercase tracking-widest">Character Status</h2>
+          <h2 className="text-sm font-bold text-amber-400/80 tracking-widest">สถานะตัวละคร</h2>
           <button type="button" onClick={onClose} className="text-amber-100/40 hover:text-amber-200 text-sm px-2 py-1 transition-colors">
             <X size={16} />
           </button>
@@ -94,25 +94,25 @@ export default function MobileStatsDrawer({
 
           {/* Character info */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><UserRound size={11} /> Character</p>
-            <p className="text-xs text-amber-50/70 leading-relaxed">{worldConfig?.character || "Unknown"}</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><UserRound size={11} /> ตัวละคร</p>
+            <p className="text-xs text-amber-50/70 leading-relaxed">{worldConfig?.character || "ไม่ทราบ"}</p>
             <p className="text-xs text-amber-100/30 mt-0.5">{worldConfig?.genre}</p>
           </div>
 
           {/* Objective */}
           {currentObjective && (
             <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-3">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><Crosshair size={11} /> Objective</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><Crosshair size={11} /> เป้าหมาย</p>
               <p className="text-sm text-amber-200/90 leading-relaxed">{currentObjective}</p>
             </div>
           )}
 
           {/* Vitals */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-3">
-            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Heart size={11} /> Vitals</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Heart size={11} /> ค่าชีพ</p>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-rose-400 font-medium">HP</span>
+                <span className="text-rose-400 font-medium">พลังชีวิต</span>
                 <span className="text-amber-50/70">{playerStatus.hp} / {playerStatus.max_hp}</span>
               </div>
               <div className={`w-full bg-stone-950/60 rounded-full h-2.5 border overflow-hidden ${isLowHp ? "border-red-800/50" : "border-amber-900/20"}`}>
@@ -124,7 +124,7 @@ export default function MobileStatsDrawer({
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-sky-400 font-medium">Mana</span>
+                <span className="text-sky-400 font-medium">พลังเวท</span>
                 <span className="text-amber-50/70">{playerStatus.mana} / {playerStatus.max_mana}</span>
               </div>
               <div className="w-full bg-stone-950/60 rounded-full h-2.5 border border-amber-900/20 overflow-hidden">
@@ -139,7 +139,7 @@ export default function MobileStatsDrawer({
           {/* Gold */}
           {playerStatus.gold > 0 && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><Coins size={11} /> Gold</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><Coins size={11} /> ทอง</p>
               <p className="text-lg font-bold text-amber-300 tabular-nums">{playerStatus.gold.toLocaleString()}</p>
             </div>
           )}
@@ -147,7 +147,7 @@ export default function MobileStatsDrawer({
           {/* Attributes */}
           {attrs && hasAttrs && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-3"><Shield size={11} /> Attributes</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-3"><Shield size={11} /> ค่าพลัง</p>
               <div className="grid grid-cols-3 gap-2">
                 {ATTR_META.map(({ key, label, color }) => (
                   <div key={key} className="flex flex-col items-center py-1.5 bg-stone-950/60 rounded border border-stone-800/60">
@@ -162,10 +162,10 @@ export default function MobileStatsDrawer({
 
           {/* Progression */}
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-2">
-            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><TrendingUp size={11} /> Progression</p>
+            <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><TrendingUp size={11} /> ความก้าวหน้า</p>
             <div className="flex justify-between text-sm">
-              <span className="text-amber-400 font-medium">Level {playerStatus.level}</span>
-              <span className="text-amber-50/70">EXP: {playerStatus.exp}/100</span>
+              <span className="text-amber-400 font-medium">เลเวล {playerStatus.level}</span>
+              <span className="text-amber-50/70">ปสก. {playerStatus.exp}/100</span>
             </div>
             <div className="w-full bg-stone-950/60 rounded-full h-2 border border-amber-900/20 overflow-hidden">
               <div
@@ -175,12 +175,12 @@ export default function MobileStatsDrawer({
             </div>
             {worldConfig?.tone === "hardcore" ? (
               <div className="flex justify-between text-sm">
-                <span className="text-red-700/80">Lives</span>
-                <span className="text-[10px] font-bold text-red-800/70 uppercase tracking-widest border border-red-900/40 px-2 py-0.5 rounded-full">Permadeath</span>
+                <span className="text-red-700/80">ชีวิต</span>
+                <span className="text-[10px] font-bold text-red-800/70 uppercase tracking-widest border border-red-900/40 px-2 py-0.5 rounded-full">ตายถาวร</span>
               </div>
             ) : (
               <div className="flex justify-between text-sm">
-                <span className="text-pink-400">Lives</span>
+                <span className="text-pink-400">ชีวิต</span>
                 <span className="flex items-center gap-0.5">
                   {Array.from({ length: Math.max(0, livesLeft) }, (_, i) => (
                     <Heart key={`life-${i}`} size={11} className="text-pink-400 fill-pink-400" />
@@ -193,7 +193,7 @@ export default function MobileStatsDrawer({
           {/* Companions */}
           {activeCompanions.length > 0 && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-3">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Users size={11} /> Companions</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Users size={11} /> เพื่อนร่วมทาง</p>
               {activeCompanions.map((c) => (
                 <div key={c.name} className="space-y-1">
                   <div className="flex justify-between text-sm">
@@ -217,7 +217,7 @@ export default function MobileStatsDrawer({
           {/* Factions */}
           {factionStandings.length > 0 && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3 space-y-2">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Flag size={11} /> Factions</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest"><Flag size={11} /> ฝ่าย</p>
               {factionStandings.map((f) => (
                 <div key={f.name} className="space-y-1">
                   <div className="flex justify-between text-xs">
@@ -238,7 +238,7 @@ export default function MobileStatsDrawer({
           {/* Status Effects */}
           {playerStatus.status_effects.length > 0 && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Sparkles size={11} /> Conditions</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Sparkles size={11} /> สภาวะ</p>
               <div className="flex flex-wrap gap-2">
                 {playerStatus.status_effects.map((effect) => (
                   <span
@@ -255,7 +255,7 @@ export default function MobileStatsDrawer({
           {/* Skills */}
           {playerStatus.skills.length > 0 && (
             <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
-              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Wand2 size={11} /> Skills</p>
+              <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-2"><Wand2 size={11} /> ทักษะ</p>
               <div className="flex flex-wrap gap-2">
                 {playerStatus.skills.map((skill) => (
                   <span key={skill} className="px-2.5 py-1 text-xs bg-purple-900/20 border border-purple-700/40 text-purple-300 rounded-full">
@@ -274,9 +274,9 @@ export default function MobileStatsDrawer({
           >
             <div className="flex items-center gap-1.5">
               <Backpack size={11} className="text-amber-400/60 group-hover:text-amber-400/90 transition-colors" />
-              <span className="text-xs text-amber-400/60 uppercase tracking-widest group-hover:text-amber-400/90 transition-colors">Inventory</span>
+              <span className="text-xs text-amber-400/60 uppercase tracking-widest group-hover:text-amber-400/90 transition-colors">สัมภาระ</span>
               <span className="text-xs text-stone-600 ml-1">
-                {playerStatus.inventory.length > 0 ? `${playerStatus.inventory.length} items` : "empty"}
+                {playerStatus.inventory.length > 0 ? `${playerStatus.inventory.length} ชิ้น` : "ว่างเปล่า"}
               </span>
             </div>
             <ChevronRight size={14} className="text-stone-600 group-hover:text-stone-400 transition-colors" />
