@@ -30,8 +30,11 @@
 - Re-ran the full extraction prompt via API after the edit: menace cliffhanger → `false` (no false
   positive); "attack in motion, impact not shown" → `true`, limit 3, threat-fitting options. tsc +
   route.ts lint clean.
-- **Pending:** live play — reach a combat/ambush beat and confirm Typhoon now writes the reflex ending
-  and the QTE overlay fires. (Needs GROQ + Typhoon keys; qualitative.)
+- **LIVE E2E VERIFIED (2026-07-07):** sent a real combat turn through the running dev server's
+  `/api/chat` (full pipeline: Typhoon narrative → dice → Groq extraction). Typhoon wrote the reflex
+  ending ("ยักษ์กระโดด / เขี้ยวแหลมพุ่งเข้าหาลำคอของเจ้าแล้ว—") and extraction returned
+  `is_qte_active: true`, limit 3, threat-fitting options, empty suggested_actions. Dice + clean Thai +
+  pacing + `*ครืด*` emphasis all confirmed in the same turn. QTE fix works end-to-end.
 
 ## Danger zones touched
 - `/api/chat` two-brain prompts (narrative + extraction). No JSON schema / store / applyGameResult /

@@ -6,6 +6,7 @@ Open a full `YYYY-MM-DD-slug.md` only when a line below clearly matches the curr
 
 | Date | Slug | Tier | Hook (what it was + status) |
 |------|------|------|------|
+| 2026-07-07 | inline-markdown-emphasis | T2 | Deferred "step 2": `renderInline` in NarrativeRenderer for **bold**/*italic* + sparing EMPHASIS prompt rule. Fixes raw `*คราง*`. Regex + live verified. |
 | 2026-07-07 | qte-never-fires | T1 | "QTE ไม่ขึ้น" — NOT a code bug (plumbing correct, scout can trigger). Cause: narrative writes menace not reflex-attacks. Fixed both prompts (narrative REFLEX-ATTACK BEATS + broadened extraction trigger). API-verified. Live-play pending. |
 | 2026-07-06 | typhoon-narrative | T2 | Routed narrative call to Typhoon (Thai-specialized) via new `NARRATIVE_BASE_URL`/`NARRATIVE_API_KEY` decouple in `route.ts`; extraction stays Groq. API smoke-test PASS (fluent Thai, no garble). tsc clean. Live in-app turn pending. |
 | 2026-07-06 | double-submit-guard | T1 | Fixed suggested-action double-submit (async `isLoading` race) with a synchronous `inFlightRef` lock in `handleSend`. tsc+lint clean. Live-confirm pending. Also: gpt-oss-120b narrative A/B FAILED → reverted to qwen. |
