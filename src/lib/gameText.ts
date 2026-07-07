@@ -53,6 +53,32 @@ export function extractAndParseJSON(rawAiResponse: string) {
 // ทั้ง route (ฝั่ง server) และ page (ฝั่ง client) ใช้ค่าเดียวกันนี้ในการตัดข้อความ
 export const SCENE_DELIM = "[[SCENE]]";
 
+// world_config.genre stores the AI-facing English description and world_config.tone stores
+// the raw tone id — never show those raw in the UI. Map them to Thai labels for display.
+// A custom (Pro) free-text genre falls through and is shown as typed.
+export function genreLabelTH(genre?: string | null): string {
+  if (!genre) return "";
+  const g = genre.toLowerCase();
+  if (g.includes("cyberpunk")) return "ไซเบอร์พังก์";
+  if (g.includes("fantasy")) return "แฟนตาซี";
+  if (g.includes("science") || g.includes("space") || g.includes("sci-fi") || g.includes("scifi")) return "ไซไฟ";
+  if (g.includes("horror")) return "สยองขวัญ";
+  if (g.includes("apocalyp")) return "หลังวันสิ้นโลก";
+  if (g.includes("wuxia") || g.includes("xianxia") || g.includes("martial") || g.includes("cultivation")) return "กำลังภายใน";
+  if (g.includes("modern") || g.includes("urban")) return "ยุคปัจจุบัน";
+  return genre;
+}
+
+export function toneLabelTH(tone?: string | null): string {
+  switch (tone) {
+    case "hardcore": return "โหดจริง";
+    case "balanced": return "สมดุล";
+    case "story": return "เน้นเนื้อเรื่อง";
+    case "sandbox": return "อิสระ";
+    default: return tone || "";
+  }
+}
+
 // สัญญาณที่ส่งให้ AI เมื่อ QTE หมดเวลา (ห้ามแก้ข้อความนี้ เพราะ system prompt ฝั่ง
 // API จับคู่ข้อความนี้แบบ exact เพื่อ narrate ผลของการยืนนิ่งเฉย)
 export const QTE_TIMEOUT_SIGNAL = "[TIME OUT: Player failed to react in time and stood completely still]";

@@ -130,7 +130,7 @@ function HeroBanner({ world, onOpen }: Readonly<{ world: World; onOpen: (w: Worl
               className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-3 text-sm font-bold text-white shadow-[0_8px_30px_-6px_rgba(217,119,6,0.5)] transition-all duration-300 hover:scale-[1.03] hover:brightness-110"
             >
               <Play size={16} className="fill-white transition-transform group-hover:scale-110" />
-              View World
+              เข้าเล่นโลก
             </button>
           </div>
         </div>
@@ -161,7 +161,7 @@ function TropeTags({ selected, onSelect }: Readonly<{ selected: string | null; o
 
   return (
     <div className="flex gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {pill("All", selected === null, () => onSelect(null))}
+      {pill("ทั้งหมด", selected === null, () => onSelect(null))}
       {TROPES.map((trope) => pill(trope, selected === trope, () => onSelect(trope)))}
     </div>
   );

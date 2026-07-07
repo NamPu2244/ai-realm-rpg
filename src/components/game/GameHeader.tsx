@@ -2,6 +2,7 @@ import { RefObject, useState, useRef, useEffect } from "react";
 import { Swords, BookOpen, AlertTriangle, LayoutDashboard, Save, Upload, ListRestart, Volume2, VolumeX, ScrollText, Users, Settings, MoreHorizontal } from "lucide-react";
 import { AuthStatus, WorldConfig } from "@/store/useGameStore";
 import { isSoundMuted, setSoundMuted } from "@/lib/sounds";
+import { toneLabelTH } from "@/lib/gameText";
 
 interface GameHeaderProps {
   worldConfig: WorldConfig | null;
@@ -82,7 +83,7 @@ export default function GameHeader({
             <Swords size={20} className="text-amber-400" /> STORYWEAVE
           </h1>
           <p className="text-xs text-amber-100/40 uppercase tracking-wider mt-0.5">
-            {worldConfig?.language} · {worldConfig?.tone}
+            {worldConfig?.language} · {toneLabelTH(worldConfig?.tone)}
             {(timeOfDay || inWorldDate) && (
               <span className="text-amber-100/30 ml-2 normal-case tracking-normal">
                 {[timeOfDay, inWorldDate].filter(Boolean).join(" · ")}

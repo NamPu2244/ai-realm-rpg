@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, UserRound, Crosshair, Heart, TrendingUp, Sparkles, Wand2, Backpack, ChevronRight, Coins, Shield, Swords, Brain, Eye, MessageCircle, Users, Flag } from "lucide-react";
 import { PlayerStatus, WorldConfig, Companion, FactionStanding } from "@/store/useGameStore";
+import { genreLabelTH } from "@/lib/gameText";
 import InventoryModal from "./InventoryModal";
 
 interface MobileStatsDrawerProps {
@@ -96,7 +97,7 @@ export default function MobileStatsDrawer({
           <div className="bg-stone-900/60 border border-amber-900/20 rounded-xl p-3">
             <p className="flex items-center gap-1.5 text-xs text-amber-400/60 uppercase tracking-widest mb-1"><UserRound size={11} /> ตัวละคร</p>
             <p className="text-xs text-amber-50/70 leading-relaxed">{worldConfig?.character || "ไม่ทราบ"}</p>
-            <p className="text-xs text-amber-100/30 mt-0.5">{worldConfig?.genre}</p>
+            <p className="text-xs text-amber-100/30 mt-0.5">{genreLabelTH(worldConfig?.genre)}</p>
           </div>
 
           {/* Objective */}
