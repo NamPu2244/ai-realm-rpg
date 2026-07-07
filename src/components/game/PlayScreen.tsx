@@ -95,6 +95,10 @@ export default function PlayScreen() {
 
   const prefetchCacheRef = useRef<Map<string, unknown>>(new Map());
   const prefetchControllersRef = useRef<AbortController[]>([]);
+  // Synchronous in-flight lock for handleSend. `isLoading` (React state) only disables the
+  // buttons after a re-render, leaving a race window where a fast second click/keypress fires
+  // a duplicate turn. A ref flips synchronously and closes that window.
+  const inFlightRef = useRef(false);
   const onFirstTurnCompleteRef = useRef<((prologue?: string) => void) | null>(null);
   const lastWorldEventTypeRef = useRef<string | null>(null);
   const [showMobileStats, setShowMobileStats] = useState(false);
@@ -512,47 +516,57 @@ export default function PlayScreen() {
     worldConfigOverride?: WorldConfig,
   ) => {
     if (!message.trim() && !isSystemInit) return;
+    // Reject a reentrant send while a turn is already in flight. This closes the race that
+    // `isLoading` (async state) can't: a fast double-click/keypress on a not-yet-disabled
+    // button would otherwise fire the same action twice. Cleared in the finally below, in
+    // lockstep with runTurn's setIsLoading(false).
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
 
-    if (ambientTimerRef.current) {
-      clearTimeout(ambientTimerRef.current);
-      ambientTimerRef.current = null;
+    try {
+      if (ambientTimerRef.current) {
+        clearTimeout(ambientTimerRef.current);
+        ambientTimerRef.current = null;
+      }
+
+      const worldConfig = worldConfigOverride || world_config;
+      setInput("");
+
+      const isNoResponse = message === "[no response]";
+      // A world/GM-side beat the player did NOT cause (QTE / countdown timing out while
+      // the player stood still). It still runs an API turn so the GM narrates the fallout,
+      // but it is logged as a neutral 'system' marker — never a player action bubble.
+      const isWorldSide = isWorldSideSignal(message);
+
+      const apiMessage = isNoResponse
+        ? "[no response]: The player character stands completely silent and still, taking no action. Time passes briefly. Please advance the scene without any player action."
+        : message;
+
+      let newHistory: ChatLog[];
+      if (isWorldSide) {
+        newHistory = [...history, { role: "system" as const, content: getWorldSideDisplay(message, worldConfig?.language) }];
+        setGameState({ history: newHistory });
+      } else if (isSystemInit) {
+        newHistory = useGameStore.getState().history;
+      } else {
+        newHistory = [...history, { role: "player" as const, content: message }];
+        setGameState({ history: newHistory });
+      }
+
+      const canUsePrefetch = !isSystemInit && !isNoResponse && !isWorldSide && !isWorldEventSignal(message);
+      const cached = canUsePrefetch ? prefetchCacheRef.current.get(message) : null;
+      cancelPrefetches();
+      prefetchCacheRef.current.clear();
+
+      if (cached) {
+        applyGameResult(cached, newHistory, worldConfig, message, false, handleSend);
+        return;
+      }
+
+      await runTurn(newHistory, apiMessage, worldConfig, isSystemInit);
+    } finally {
+      inFlightRef.current = false;
     }
-
-    const worldConfig = worldConfigOverride || world_config;
-    setInput("");
-
-    const isNoResponse = message === "[no response]";
-    // A world/GM-side beat the player did NOT cause (QTE / countdown timing out while
-    // the player stood still). It still runs an API turn so the GM narrates the fallout,
-    // but it is logged as a neutral 'system' marker — never a player action bubble.
-    const isWorldSide = isWorldSideSignal(message);
-
-    const apiMessage = isNoResponse
-      ? "[no response]: The player character stands completely silent and still, taking no action. Time passes briefly. Please advance the scene without any player action."
-      : message;
-
-    let newHistory: ChatLog[];
-    if (isWorldSide) {
-      newHistory = [...history, { role: "system" as const, content: getWorldSideDisplay(message, worldConfig?.language) }];
-      setGameState({ history: newHistory });
-    } else if (isSystemInit) {
-      newHistory = useGameStore.getState().history;
-    } else {
-      newHistory = [...history, { role: "player" as const, content: message }];
-      setGameState({ history: newHistory });
-    }
-
-    const canUsePrefetch = !isSystemInit && !isNoResponse && !isWorldSide && !isWorldEventSignal(message);
-    const cached = canUsePrefetch ? prefetchCacheRef.current.get(message) : null;
-    cancelPrefetches();
-    prefetchCacheRef.current.clear();
-
-    if (cached) {
-      applyGameResult(cached, newHistory, worldConfig, message, false, handleSend);
-      return;
-    }
-
-    await runTurn(newHistory, apiMessage, worldConfig, isSystemInit);
   };
 
   const handleRetry = () => {
