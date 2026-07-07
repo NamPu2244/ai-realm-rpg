@@ -47,6 +47,51 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   per-genre look of `/play` (PlayScreen/ActionBar) only. Menu, create, auth, and store deliberately
   share the near-black `#07050a` + amber/orange palette. Paths: `src/app/globals.css`,
   `src/components/{AuthScreen,MainMenuDashboard,WorldCreationMenu}.tsx`, `src/app/store/`.
+- **The narrative renderer honors newlines but NOT markdown.** `NarrativeRenderer` renders prose in a
+  `whitespace-pre-wrap` block, so `\n` / blank-line paragraph breaks from the model display correctly —
+  a prompt rule telling the storyteller to break paragraphs works with zero client change. But `**bold**`
+  / `*italic*` (or any markdown/HTML) render as **literal characters** — there is no inline parser. To
+  add emphasis you must first add a small inline parser to `src/components/game/NarrativeRenderer.tsx`,
+  THEN add the prompt rule; a prompt-only markdown rule just leaks raw asterisks to the player. Dialogue
+  is already split out and styled separately via `dialogue_lines` (don't re-handle quotes in prose rules).
+  Paths: `src/components/game/NarrativeRenderer.tsx`, `src/app/api/chat/route.ts`.
+- **Disabling a button on async `isLoading` state does NOT prevent double-submit.** `handleSend`
+  (`PlayScreen.tsx`) only reaches `setIsLoading(true)` deep inside `runTurn`, so the suggested-action
+  buttons / 1-4 keyboard shortcut stay clickable until React re-renders — a fast double-click fires the
+  same turn twice (two history entries + two `/api/chat` calls). Symptom: a player action bubble appears
+  back-to-back. Fix: guard the async handler with a SYNCHRONOUS ref lock (`inFlightRef`) acquired at the
+  top of `handleSend` and released in a `finally` in lockstep with `runTurn`'s `setIsLoading(false)` —
+  state-based guards can't close this race. Path: `src/components/game/PlayScreen.tsx`.
+- **Narrative model: neither Groq general model nails Thai — Typhoon is the intended fix.** A/B on
+  2026-07-06: `openai/gpt-oss-120b` looked good on the short opening turn but FELL APART at length/combat
+  (repeats whole words "คอยคอย"/"พายุพายุ", misspells "ศากาศ", invents nonsense "ครีบไม้", rambles until it
+  hits `max_tokens` and truncates mid-word, and skips the dice bracket). `qwen/qwen3.6-27b` (current) is
+  better but still garbles rare words ("ยิคมด"). Root cause: Thai fluency is a base-model limit prompts
+  can't fix. Plan: route the narrative call to a Thai-specialized model (Typhoon / opentyphoon.ai,
+  OpenAI-compatible) — needs a `route.ts` change to decouple the narrative endpoint from Groq + an API
+  key + a context-window check (free tier is only 8K; our prompt is ~6.4K). Swap via `NARRATIVE_MODEL`
+  in `.env.local`. See user memory `narrative-model-choice`.
+  **UPDATE 2026-07-06: DONE.** `route.ts` now decouples the narrative endpoint via `NARRATIVE_BASE_URL`
+  + `NARRATIVE_API_KEY` (unset → Groq fallback); `.env.local` points narrative at
+  `typhoon-v2.5-30b-a3b-instruct` @ opentyphoon.ai, extraction/dice stay on Groq.
+- **Typhoon obeys the prose rules ONLY at low temperature.** The narrative temp was tuned hot for Groq
+  (0.95 first turn / 0.85 after). At that temp Typhoon (`typhoon-v2.5-30b-a3b-instruct`, a 3B-active MoE)
+  IGNORES the banned-phrase / show-don't-tell rules (writes "คุณรู้สึก", dictates feelings) and garbles
+  words ("เอควันควัน", wrong classifier "30 เรื่อง"). At its recommended temp 0.6 + top_p 0.6 it obeys
+  perfectly (zero banned words, shows emotion through the body) and stops garbling. Fix: narrative
+  sampling in `route.ts` is now endpoint-aware (`useNarrativeOverride` → temp 0.7/0.6 + top_p 0.6; Groq
+  path unchanged). Lesson: per-model sampling matters — a temp tuned for one model can break another's
+  instruction-following. Path: `src/app/api/chat/route.ts`.
+- **QTE not firing is almost never broken plumbing — it's the narrative not writing reflex-attack beats.**
+  `is_qte_active` flows correctly extraction → `applyGameResult` (PlayScreen.tsx ~252) → store → render
+  gate `is_qte_active && !isLoading` (~883). scout-17b DOES set QTE for an in-motion attack (verified on
+  the full extraction prompt). It never fires in play because the narrative writes tension/menace/decision
+  cliffhangers, not a lethal strike already in motion — so extraction correctly finds no QTE. The two
+  brains must be tuned together: the narrative prompt needs a rule to COMMIT to an in-motion attack and
+  cut before impact (REFLEX-ATTACK BEATS), and the extraction QTE rule must trigger on an attack that is
+  merely incoming (impact not yet shown), while staying false for decision cliffhangers (those →
+  suggested_actions). Diagnose QTE/countdown/qte-option gaps by testing the REAL `buildExtractionPrompt`
+  against a sample narrative via API before touching code. Path: `src/app/api/chat/route.ts`.
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
