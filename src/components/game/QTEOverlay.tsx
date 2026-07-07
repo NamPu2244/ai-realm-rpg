@@ -32,7 +32,7 @@ export default function QTEOverlay({
       <div className="absolute top-0 left-0 right-0 flex flex-col items-center pt-4 px-6 pointer-events-auto">
         <p
           title="Quick Time Event: เลือกตัวเลือกก่อนหมดเวลา ไม่งั้นจะยืนนิ่งและรับผลที่ตามมา"
-          className="flex items-center gap-2 text-red-400 font-bold tracking-[0.3em] uppercase text-sm mb-2 animate-pulse cursor-help"
+          className="flex items-center gap-2 text-red-400 font-bold tracking-widest uppercase text-sm mb-2 animate-pulse cursor-help"
         >
           <AlertTriangle size={16} /> ตอบโต้เดี๋ยวนี้! <AlertTriangle size={16} />
         </p>

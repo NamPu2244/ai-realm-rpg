@@ -616,7 +616,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           <span className="absolute inset-0 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700" />
           <span className="absolute inset-0 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <span className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.18)_50%,transparent_65%)] bg-[length:200%_100%] animate-[shimmer_1.6s_ease-in-out_infinite] transition-opacity duration-300" />
-          <span className="relative text-neutral-950 font-bold tracking-[0.2em] text-base">
+          <span className="relative text-neutral-950 font-bold tracking-widest text-base">
             ⚔ เริ่มการผจญภัย
           </span>
         </button>

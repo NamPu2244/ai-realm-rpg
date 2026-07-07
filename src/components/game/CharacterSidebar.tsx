@@ -53,7 +53,7 @@ function StatBar({ value, max, color }: Readonly<{ value: number; max: number; c
 
 function SectionLabel({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-stone-600 mb-2">
+    <p className="text-[9px] font-bold tracking-widest uppercase text-stone-600 mb-2">
       {children}
     </p>
   );
@@ -249,7 +249,7 @@ export default function CharacterSidebar({
                   onClick={() => setThreadsExpanded((v) => !v)}
                   className="flex items-center justify-between w-full mb-2 group"
                 >
-                  <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-stone-600 group-hover:text-stone-400 transition-colors">
+                  <p className="text-[9px] font-bold tracking-widest uppercase text-stone-600 group-hover:text-stone-400 transition-colors">
                     เรื่องค้างคา
                   </p>
                   <span className="text-[9px] text-stone-700 group-hover:text-stone-500 transition-colors">

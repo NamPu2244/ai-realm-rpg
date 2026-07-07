@@ -27,7 +27,7 @@ export default function InventoryModal({ isOpen, onClose, inventory, newItems }:
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-amber-900/25 bg-stone-900/50">
             <div className="flex items-center gap-2">
               <Backpack size={14} className="text-amber-500/70" />
-              <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-amber-400/80">สัมภาระ</h2>
+              <h2 className="text-xs font-bold tracking-widest uppercase text-amber-400/80">สัมภาระ</h2>
               <span className="text-[10px] tabular-nums text-stone-600 ml-1">{inventory.length} ชิ้น</span>
             </div>
             <button

@@ -110,7 +110,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
       <div className="relative z-10 max-w-lg w-full mx-auto px-8 flex flex-col items-center gap-8 text-center">
         {/* Title */}
         <div className="space-y-1">
-          {tag && <p className={`text-[10px] tracking-[0.5em] uppercase ${s.accent}`}>{tag}</p>}
+          {tag && <p className={`text-[10px] tracking-widest uppercase ${s.accent}`}>{tag}</p>}
           <h1 className="text-2xl font-bold text-neutral-200 tracking-widest">{title}</h1>
         </div>
 
@@ -135,7 +135,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
                   />
                 ))}
               </div>
-              <p className="text-xs text-neutral-600 tracking-[0.4em] uppercase">กำลังสร้างโลก</p>
+              <p className="text-xs text-neutral-600 tracking-widest uppercase">กำลังสร้างโลก</p>
               {config.openingSeed && (
                 <p className="text-sm text-neutral-500 italic leading-relaxed mt-3 max-w-sm">
                   {config.openingSeed}
@@ -167,7 +167,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
           <button
             type="button"
             onClick={handleEnter}
-            className={`text-[11px] tracking-[0.5em] uppercase transition-opacity hover:opacity-100 opacity-60 animate-pulse ${s.accent}`}
+            className={`text-[11px] tracking-widest uppercase transition-opacity hover:opacity-100 opacity-60 animate-pulse ${s.accent}`}
           >
             เข้าสู่โลก &rarr;
           </button>
