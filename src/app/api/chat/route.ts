@@ -629,7 +629,9 @@ ${historyContext}
     // garbling words only at its recommended low temp (~0.6, top_p 0.6); hot sampling makes it write
     // "คุณรู้สึก" and glitch. So drop temperature + pin top_p when routed to the Typhoon override.
     const groqTemperature = isFirstTurn ? 0.95 : 0.85;
-    const typhoonTemperature = isFirstTurn ? 0.7 : 0.6;
+    // Typhoon obeys the show-don't-tell / banned-phrase / opening-trope rules only at low temp —
+    // even the opening turn (a hot 0.7 let it slip into "คุณรู้สึก" + amnesia openings), so pin 0.6.
+    const typhoonTemperature = 0.6;
     const narrativeTemperature = useNarrativeOverride ? typhoonTemperature : groqTemperature;
 
     const requestBody = JSON.stringify({
