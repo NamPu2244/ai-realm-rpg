@@ -81,7 +81,7 @@ export default function CreateRoute() {
         });
       } catch (err) {
         console.error("Import Error:", err);
-        setAlertInfo("Invalid save file — cannot load.");
+        setAlertInfo("ไฟล์เซฟไม่ถูกต้อง — โหลดไม่ได้");
       }
     };
     reader.readAsText(file);
@@ -108,10 +108,10 @@ export default function CreateRoute() {
           <button
             type="button"
             onClick={() => importInputRef.current?.click()}
-            title="Load Game from File"
+            title="โหลดเกมจากไฟล์"
             className="fixed bottom-6 right-6 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/50 rounded text-xs whitespace-nowrap transition-colors shadow-lg"
           >
-            Load Game from File
+            โหลดเกมจากไฟล์
           </button>
         </>
       )}

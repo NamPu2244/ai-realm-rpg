@@ -19,13 +19,13 @@ const TONE_STYLES: Record<string, { line: string; accent: string; glow: string; 
 
 function toGenreLabel(genre: string): string {
   const g = genre.toLowerCase();
-  if (g.includes("cyberpunk")) return "CYBERPUNK";
-  if (g.includes("fantasy")) return "HIGH FANTASY";
-  if (g.includes("science") || g.includes("space") || g.includes("sci-fi")) return "SCIENCE FICTION";
-  if (g.includes("horror")) return "HORROR";
-  if (g.includes("apocalypse")) return "POST-APOCALYPTIC";
-  if (g.includes("wuxia") || g.includes("martial")) return "WUXIA";
-  if (g.includes("modern") || g.includes("urban")) return "MODERN";
+  if (g.includes("cyberpunk")) return "ไซเบอร์พังก์";
+  if (g.includes("fantasy")) return "แฟนตาซีชั้นสูง";
+  if (g.includes("science") || g.includes("space") || g.includes("sci-fi")) return "ไซไฟ";
+  if (g.includes("horror")) return "สยองขวัญ";
+  if (g.includes("apocalypse")) return "หลังวันสิ้นโลก";
+  if (g.includes("wuxia") || g.includes("martial")) return "กำลังภายใน";
+  if (g.includes("modern") || g.includes("urban")) return "ยุคปัจจุบัน";
   return "RPG";
 }
 
@@ -135,7 +135,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
                   />
                 ))}
               </div>
-              <p className="text-xs text-neutral-600 tracking-[0.4em] uppercase">Creating World</p>
+              <p className="text-xs text-neutral-600 tracking-[0.4em] uppercase">กำลังสร้างโลก</p>
               {config.openingSeed && (
                 <p className="text-sm text-neutral-500 italic leading-relaxed mt-3 max-w-sm">
                   {config.openingSeed}
@@ -147,7 +147,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
                   onClick={onRetry}
                   className="mt-2 text-xs text-amber-700/70 hover:text-amber-400 border border-amber-900/40 hover:border-amber-700/50 px-4 py-2 rounded-lg transition-all"
                 >
-                  Taking too long? Try again
+                  ใช้เวลานานเกินไป? ลองอีกครั้ง
                 </button>
               )}
             </div>
@@ -169,7 +169,7 @@ export default function WorldLoadingScreen({ config, prologue, onEnter, onRetry 
             onClick={handleEnter}
             className={`text-[11px] tracking-[0.5em] uppercase transition-opacity hover:opacity-100 opacity-60 animate-pulse ${s.accent}`}
           >
-            Enter World &rarr;
+            เข้าสู่โลก &rarr;
           </button>
         )}
       </div>
