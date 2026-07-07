@@ -53,7 +53,7 @@ function StatBar({ value, max, color }: Readonly<{ value: number; max: number; c
 
 function SectionLabel({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <p className="text-[9px] font-bold tracking-widest uppercase text-stone-600 mb-2">
+    <p className="text-[9px] font-bold tracking-widest uppercase text-stone-600 mb-1.5">
       {children}
     </p>
   );
@@ -230,7 +230,7 @@ export default function CharacterSidebar({
 
           <div className="flex flex-col gap-0 px-4 py-4 flex-1 overflow-y-auto">
 
-            <div className="mb-5">
+            <div className="mb-4">
               <p className="text-xs text-stone-300 leading-relaxed line-clamp-3">{worldConfig?.character || "—"}</p>
               <p className="text-[10px] text-stone-700 mt-1 leading-snug">{genreLabelTH(worldConfig?.genre)}</p>
             </div>
@@ -243,7 +243,7 @@ export default function CharacterSidebar({
             )}
 
             {openThreads.length > 0 && (
-              <div className="mb-5">
+              <div className="mb-4">
                 <button
                   type="button"
                   onClick={() => setThreadsExpanded((v) => !v)}
@@ -305,7 +305,7 @@ export default function CharacterSidebar({
               </div>
             )}
 
-            <div className="mb-5">
+            <div className="mb-4">
               <SectionLabel>ค่าชีพ</SectionLabel>
               <div className="space-y-2.5">
                 <div>
@@ -328,7 +328,7 @@ export default function CharacterSidebar({
             </div>
 
             {playerStatus.gold > 0 && (
-              <div className="mb-5">
+              <div className="mb-4">
                 <SectionLabel>ทอง</SectionLabel>
                 <div className="flex items-center gap-1.5">
                   <Coins size={12} className="text-amber-600" />
@@ -338,7 +338,7 @@ export default function CharacterSidebar({
             )}
 
             {attrs && hasAttrs && (
-              <div className="mb-5">
+              <div className="mb-4">
                 <SectionLabel>ค่าพลัง</SectionLabel>
                 <div className="grid grid-cols-3 gap-1.5">
                   {ATTR_META.map(({ key, label, color }) => (
@@ -352,7 +352,7 @@ export default function CharacterSidebar({
               </div>
             )}
 
-            <div className="mb-5">
+            <div className="mb-4">
               <SectionLabel>ความก้าวหน้า</SectionLabel>
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-stone-500">เลเวล {playerStatus.level}</span>
@@ -366,7 +366,7 @@ export default function CharacterSidebar({
             </div>
 
             {activeCompanions.length > 0 && (
-              <div className="mb-5">
+              <div className="mb-4">
                 <SectionLabel>เพื่อนร่วมทาง</SectionLabel>
                 <div className="space-y-2">
                   {activeCompanions.map((c) => (
@@ -386,7 +386,7 @@ export default function CharacterSidebar({
             )}
 
             {factionStandings.length > 0 && (
-              <div className="mb-5">
+              <div className="mb-4">
                 <SectionLabel>ฝ่าย</SectionLabel>
                 <div className="space-y-2">
                   {factionStandings.map((f) => (
@@ -405,7 +405,7 @@ export default function CharacterSidebar({
             )}
 
             {playerStatus.status_effects.length > 0 && (
-              <div className="mb-5">
+              <div className="mb-4">
                 <SectionLabel>สภาวะ</SectionLabel>
                 <div className="flex flex-col gap-1">
                   {playerStatus.status_effects.map((effect) => (
@@ -425,7 +425,7 @@ export default function CharacterSidebar({
             )}
 
             {playerStatus.skills.length > 0 && (
-              <div className="mb-5">
+              <div className="mb-4">
                 <SectionLabel>ทักษะ</SectionLabel>
                 <div className="flex flex-col gap-1">
                   {playerStatus.skills.map((skill) => (
