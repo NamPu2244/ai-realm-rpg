@@ -261,13 +261,14 @@ body:has(.theme-survival) {
    ═══════════════════════════════════════════════════════════════════════════ */
 .fx-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 30; overflow: hidden; }
 
-/* Rain — two diagonal streak layers moving at different speeds for depth */
-.fx-rain { opacity: 0.55; mix-blend-mode: screen;
-  background-image: repeating-linear-gradient(101deg, transparent 0 9px, rgba(190,212,255,0.30) 9px 10px);
-  background-size: 13px 130px; animation: fx-rain 0.55s linear infinite; }
+/* Rain — two diagonal streak layers moving at different speeds for depth. Kept subtle
+   (low opacity, sparse streaks) so it reads as atmosphere without obscuring the prose. */
+.fx-rain { opacity: 0.5; mix-blend-mode: screen;
+  background-image: repeating-linear-gradient(101deg, transparent 0 17px, rgba(190,212,255,0.13) 17px 18px);
+  background-size: 22px 150px; animation: fx-rain 0.6s linear infinite; }
 .fx-rain::after { content: ''; position: absolute; inset: 0;
-  background-image: repeating-linear-gradient(99deg, transparent 0 15px, rgba(205,222,255,0.18) 15px 16px);
-  background-size: 22px 200px; animation: fx-rain 0.95s linear infinite; }
+  background-image: repeating-linear-gradient(99deg, transparent 0 26px, rgba(205,222,255,0.08) 26px 27px);
+  background-size: 34px 220px; animation: fx-rain 1s linear infinite; }
 @keyframes fx-rain { to { background-position: -46px 380px; } }
 
 /* Snow — drifting dot fields */
