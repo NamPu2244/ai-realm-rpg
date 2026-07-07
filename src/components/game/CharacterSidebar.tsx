@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { ImageOff, RefreshCw, Backpack, Coins, Shield, Swords, Brain, Eye, MessageCircle, ChevronRight, ChevronLeft } from "lucide-react";
 import { PlayerStatus, WorldConfig, Companion, FactionStanding, OpenThread } from "@/store/useGameStore";
-import { buildCharacterPortraitUrl } from "@/lib/gameText";
+import { buildCharacterPortraitUrl, genreLabelTH } from "@/lib/gameText";
 import InventoryModal from "./InventoryModal";
 
 function CharacterPortrait({ character, genre, tone }: Readonly<{ character: string; genre: string; tone?: string }>) {
@@ -232,7 +232,7 @@ export default function CharacterSidebar({
 
             <div className="mb-5">
               <p className="text-xs text-stone-300 leading-relaxed line-clamp-3">{worldConfig?.character || "—"}</p>
-              <p className="text-[10px] text-stone-700 mt-1 leading-snug">{worldConfig?.genre}</p>
+              <p className="text-[10px] text-stone-700 mt-1 leading-snug">{genreLabelTH(worldConfig?.genre)}</p>
             </div>
 
             {currentObjective && (

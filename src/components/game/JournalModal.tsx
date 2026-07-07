@@ -1,5 +1,6 @@
 import { ScrollText, Crosshair, X, CheckCircle2, XCircle, Clock, MapPin } from "lucide-react";
 import { Quest, VisitedLocation, WorldConfig } from "@/store/useGameStore";
+import { genreLabelTH, toneLabelTH } from "@/lib/gameText";
 
 interface JournalModalProps {
   currentObjective: string;
@@ -138,11 +139,11 @@ export default function JournalModal({
             </div>
             <div>
               <span className="text-amber-400/60">โทน: </span>
-              <span className="text-amber-50/80">{worldConfig?.tone}</span>
+              <span className="text-amber-50/80">{toneLabelTH(worldConfig?.tone)}</span>
             </div>
             <div className="col-span-2">
               <span className="text-amber-400/60">แนว: </span>
-              <span className="text-amber-50/80">{worldConfig?.genre}</span>
+              <span className="text-amber-50/80">{genreLabelTH(worldConfig?.genre)}</span>
             </div>
           </div>
           {worldConfig?.character && (

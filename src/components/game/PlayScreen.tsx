@@ -985,7 +985,7 @@ export default function PlayScreen() {
         <button
           type="button"
           onClick={() => setShowFeedback(true)}
-          className="fixed bottom-6 left-6 z-30 flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/80 hover:bg-stone-800/90 text-neutral-500 hover:text-amber-300 border border-neutral-700/40 hover:border-amber-800/50 rounded-full text-xs transition-all shadow-lg backdrop-blur hover:-translate-y-0.5"
+          className="fixed bottom-24 left-4 lg:bottom-6 lg:left-6 z-30 flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/80 hover:bg-stone-800/90 text-neutral-500 hover:text-amber-300 border border-neutral-700/40 hover:border-amber-800/50 rounded-full text-xs transition-all shadow-lg backdrop-blur hover:-translate-y-0.5"
         >
           <MessageSquare size={12} /> Feedback
         </button>
