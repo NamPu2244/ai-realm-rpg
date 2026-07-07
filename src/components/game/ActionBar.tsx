@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight, Lightbulb } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface ActionBarProps {
@@ -176,9 +176,37 @@ export default function ActionBar({
   const inputHistoryRef = useRef<string[]>([]);
   const historyIdxRef = useRef(-1);
   const [selectedType, setSelectedType] = useState<PlayerActionTypeId | null>(null);
+  // Suggested actions are an opt-in "hint" now, not always-on hand-holding. Hidden by
+  // default and re-hidden each new turn. Reset during render (React's "adjust state when a
+  // prop changes" pattern) when the suggestions change — avoids a setState-in-effect.
+  const [showHints, setShowHints] = useState(false);
+  const [prevSuggestions, setPrevSuggestions] = useState(suggestedActions);
+  if (suggestedActions !== prevSuggestions) {
+    setPrevSuggestions(suggestedActions);
+    setShowHints(false);
+  }
+
+  // Number keys 1-N pick a hint — but only while the hints are actually revealed, so the
+  // shortcut stays consistent with what's on screen (and never collides with the QTE keys,
+  // since a QTE turn clears suggestions / re-hides hints).
+  useEffect(() => {
+    if (isLoading || isDead || !showHints || suggestedActions.length === 0) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const idx = Number.parseInt(e.key) - 1;
+      if (idx >= 0 && idx < suggestedActions.length) onSend(suggestedActions[idx]);
+    };
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
+  }, [isLoading, isDead, showHints, suggestedActions, onSend]);
 
   const activeMeta = selectedType ? PLAYER_ACTION_TYPES.find((t) => t.id === selectedType) : null;
   const placeholder = activeMeta?.placeholder ?? "What does your character do? e.g. 'Look around' 'Talk to them' 'Go north'";
+
+  // Input is gated on a mode being chosen; reflect that in the placeholder.
+  let inputPlaceholder = "เลือกโหมด (พูด/คิด/ทำ/สำรวจ) ด้านบนก่อนถึงจะพิมพ์ได้";
+  if (isLoading) inputPlaceholder = "GM is processing...";
+  else if (selectedType) inputPlaceholder = placeholder;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const hist = inputHistoryRef.current;
@@ -197,6 +225,8 @@ export default function ActionBar({
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
+    // A mode must be chosen before free-text is allowed (the input is disabled otherwise).
+    if (!selectedType) return;
     const text = input.trim();
     if (!text) return;
     inputHistoryRef.current.push(text);
@@ -231,9 +261,29 @@ export default function ActionBar({
         <DeadPanel worldTone={worldTone} onRestart={onRestart} />
       ) : (
         <>
-          {suggestedActions.length > 0 && (
+          {suggestedActions.length > 0 && !showHints && (
+            <button
+              type="button"
+              onClick={() => setShowHints(true)}
+              disabled={isLoading}
+              className="self-start flex items-center gap-2 px-3 py-1.5 text-xs text-theme-muted hover:text-theme-accent border border-theme-border/60 hover:border-theme-accent/40 rounded-lg transition-all disabled:opacity-40"
+            >
+              <Lightbulb size={13} /> นึกไม่ออก? ดูคำใบ้
+            </button>
+          )}
+
+          {suggestedActions.length > 0 && showHints && (
             <div className="space-y-1.5">
-              <div className="text-xs text-theme-accent/60 font-medium px-1">Choose what your character will do</div>
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs text-theme-accent/60 font-medium">Choose what your character will do</span>
+                <button
+                  type="button"
+                  onClick={() => setShowHints(false)}
+                  className="text-[11px] text-theme-muted hover:text-theme-text transition-colors"
+                >
+                  ซ่อน
+                </button>
+              </div>
               <div className="grid grid-cols-1 gap-1.5">
                 {suggestedActions.map((action, i) => {
                   const type = detectActionType(action);
@@ -293,15 +343,15 @@ export default function ActionBar({
               value={input}
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isLoading}
-              placeholder={isLoading ? "GM is processing..." : placeholder}
+              disabled={isLoading || !selectedType}
+              placeholder={inputPlaceholder}
               className={`flex-1 bg-theme-surface border ${
                 isLowHp ? "border-red-900/50 focus:border-red-500" : "border-theme-border focus:border-theme-accent/60"
               } ${isLoading ? "animate-input-pulse" : ""} rounded-xl px-4 py-3 text-theme-text focus:outline-none disabled:opacity-50 transition-colors placeholder:text-theme-muted/50`}
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !selectedType || !input.trim()}
               className="flex items-center gap-2 px-6 py-3 bg-theme-accent text-theme-bg font-bold rounded-xl hover:opacity-90 disabled:opacity-40 transition-all shadow-[0_0_20px_var(--theme-accent-glow)] hover:shadow-[0_0_28px_var(--theme-accent-glow)]"
             >
               {isLoading ? "..." : <><Send size={15} /> Send</>}

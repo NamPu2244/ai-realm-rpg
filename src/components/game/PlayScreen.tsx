@@ -574,20 +574,8 @@ export default function PlayScreen() {
     runTurn(retryAction.newHistory, retryAction.message, retryAction.worldConfig);
   };
 
-  // Keyboard shortcuts: 1-4 to select suggested actions
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (is_qte_active || isLoading || is_dead) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      const idx = Number.parseInt(e.key) - 1;
-      if (idx >= 0 && idx < suggested_actions.length) {
-        handleSend(suggested_actions[idx]);
-      }
-    };
-    globalThis.addEventListener("keydown", handleKeyDown);
-    return () => globalThis.removeEventListener("keydown", handleKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [is_qte_active, isLoading, is_dead, suggested_actions]);
+  // (The 1-N suggested-action shortcut now lives in ActionBar, gated on the hints being
+  // revealed, so it stays consistent with what's actually on screen.)
 
   // QTE timer (extracted hook)
   const { qteTimeLeft } = useQteTimer(
