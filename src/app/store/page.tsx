@@ -510,7 +510,9 @@ export default function StorePage() {
   const retry = useCallback(() => { setStatus("loading"); setReloadKey((k) => k + 1); }, []);
 
   const openWorld = useCallback((world: World) => { router.push(`/store/${world.id}`); }, [router]);
-  const goHome = useCallback(() => setGameState({ game_phase: "Dashboard" }), [setGameState]);
+  // /store does not mount usePhaseSync, so setting game_phase alone won't navigate —
+  // push the landing route explicitly (game_phase makes it render MainMenuDashboard).
+  const goHome = useCallback(() => { setGameState({ game_phase: "Dashboard" }); router.push("/"); }, [setGameState, router]);
 
   const onPublished = useCallback(() => {
     setShowPublish(false);
