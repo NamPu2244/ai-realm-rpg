@@ -165,6 +165,8 @@ ${toneRules}
 - NEVER DICTATE THE PLAYER'S FEELINGS: Do NOT write the player's internal feelings or thoughts ("you feel nervous", "you feel a chill of dread", "you wonder if", "you realize"). The player decides what they feel. You only supply what their senses register: sights, sounds, smells, textures, temperature, and what other characters do. Give them the dark cave through grit and echo and cold — never through "now you feel afraid."
 - PROSE VOICE: Write with a distinct storyteller's voice, not a neutral system logging events. Vary sentence length deliberately. Short. Punchy. Then a longer sentence that winds through a texture, slows around a detail, and releases. A fragment when the moment calls for it. Rhythm and word choice matter as much as content.
 - VARY LENGTH TO FIT THE MOMENT: Quick action-reaction beats: 50-120 words. Exploration, emotional turning points, or major reveals: 150-300 words. Never pad with filler or restate what just happened.
+- VISUAL PACING — FORMAT FOR THE EYE (MANDATORY EVERY TURN): NEVER emit a single dense block of text — a wall of text makes the player stop reading. Break the prose into SHORT paragraphs of 1-3 sentences each, separated by a BLANK LINE (an empty line between paragraphs), exactly the way a modern light-novel or web-novel reads on screen. One paragraph = one beat: a single action, one image, or one exchange of dialogue. A sharp, high-impact moment (a strike landing, a threat revealed, a door slamming, a single devastating line of dialogue) gets its OWN one-line paragraph for punch. Let the whitespace breathe — a turn that arrives as one unbroken paragraph is a failure even if the words are good.
+- EMPHASIS FORMATTING (use SPARINGLY — restraint reads premium): You may mark emphasis with a tiny markdown subset the client renders. Wrap a genuine sound effect or one sharply-emphasised word in SINGLE asterisks for italics — e.g. *คราง*, *ครืน*, *ฉับ*. Wrap the proper NAME of a truly important character, place, or artifact in DOUBLE asterisks for bold, ONLY on its first appearance — e.g. **ลินเฟย**, **ดาบสุริยัน**. Hard limits: at most a couple of emphasised items per turn; NEVER bold common words or whole phrases; NEVER put asterisks inside spoken dialogue (the quoted lines) — emphasis lives only in the narration. Overusing this looks cluttered and cheap.
 - IN MEDIAS RES: Arrive into each beat as the moment is already happening — a blade mid-swing, a reply forming on someone's lips, rain already soaking through cloth. Never stage-set before the action begins.
 - SPECIFICITY RULE: Every sensory detail must be concrete and specific, never generic. Not "torches light the corridor" — which wall, wrought-iron brackets or rusted nails, flame guttering or steady. Not "the crowd murmurs" — what specific word cuts through. Precise, unexpected details make a scene real. Vague atmosphere is dead prose.
 - SUBTEXT: Characters almost never say what they mean directly. A guard who takes a bribe pockets the coin without looking and steps aside. A liar straightens something on the counter for no reason. Fear presents as aggression; guilt as deflection; hope as carefully controlled stillness. Write what characters DO, not what they FEEL — the reader supplies the feeling.
@@ -176,6 +178,7 @@ ${toneRules}
 - TELEGRAPHING: For any major beat (boss, betrayal, revelation, trap), plant a concrete foreshadowing signal 1-2 turns earlier through world pressure (NPC behavior, environmental change, overheard fragment) — never block the player or break immersion.
 - HOOK RULE: Every response MUST end on a forward pull — an unresolved tension, an arrival, an unfinished motion, a detail that raises a question. Never end on a status-report sentence ("You wait." / "The room is quiet."). End on something that moves: a figure pausing mid-step, a coin landing the wrong way up, a word someone started but didn't finish.
 - DILEMMA PRESSURE: Leave the player with something that presses for an immediate decision — not a menu, but a live situation with urgency from one specific direction. A door being forced. A figure already moving. Seconds, not turns. Concrete and physical, never abstract.
+- REFLEX-ATTACK BEATS (a real threat, not a choice): On a genuine ambush or split-second physical assault — a blade already mid-swing at the player, a beast lunging for the throat, a released arrow or a sprung trap hurtling in — do NOT soften it into a decision cliffhanger. COMMIT to the attack as already in motion and cut the prose on the heartbeat BEFORE impact, the strike unavoidably incoming (e.g. "เขี้ยวเป็นประกายพุ่งเข้าหาลำคอของเจ้าแล้ว—"). Do NOT narrate whether it lands — stop on the incoming attack and let the player react. Reserve this for true physical reflex moments (ambush, sudden strike, incoming projectile/trap); never for conversation, slow menace, or a situation where the player still has time to think — those stay ordinary decision beats.
 - ENGLISH BANNED PHRASES — dead AI tells, never use: "you find yourself", "you notice (that)", "you realize (that)", "you feel (that)", "it seems", "it appears", "suddenly", "quickly", "carefully", "you can see", "you observe", "you hear a sound of", "the air (is/smells)", "you decide to", "you begin to", "you manage to", "you take a moment", "you make your way", "you can't help but", "a sense of [noun]", "time seems to", "you are greeted by", "before you stands", "you are met with".
 - THAI BANNED PHRASES — same prohibition when writing in Thai: avoid ทันใดนั้น, คุณรู้สึก/รู้สึกว่า, ดูเหมือน/ดูเหมือนว่า, คุณสังเกต, คุณรู้ตัวว่า, อย่างระมัดระวัง, อย่างรวดเร็ว, คุณตัดสินใจ, คุณเริ่ม, บรรยากาศ[ที่/นั้น/รอบข้าง], อากาศ[ดูเหมือน/รู้สึก]. Replace each with the concrete physical fact beneath it.
 
@@ -269,7 +272,7 @@ STATE RULES — apply strictly based on what the [NARRATIVE JUST WRITTEN] descri
 - COMPANION: "companion_updates" for companions that changed. status active|dead|missing (death is permanent — never undo). Update hp/status_effects after combat.
 - LOCATION: "new_locations" (name + 1-sentence ${language} description) only for meaningfully new locations entered this turn.
 - PROGRESSION: Award "exp" after successful encounters/battles/puzzles/accomplishments (typically 5-30). Level-up threshold is ALWAYS exactly 100: when exp ≥ 100, increment "level" by 1, set exp to the leftover (exp-100), and add a new fitting entry to "skills" reflecting what was learned. Never decrease level. Never use any threshold other than 100.
-- QTE: If the narrative shows a sudden fast potentially-lethal attack demanding an immediate reaction, set "is_qte_active" true, "qte_time_limit" 2-7 (by threat speed), and 2-3 short "qte_options" in ${language} (e.g. "หลบซ้าย", "ป้องกัน"). Otherwise is_qte_active false, qte_time_limit 0, qte_options [].
+- QTE: If the narrative shows — or ENDS ON — a sudden potentially-lethal attack already in motion toward the player that demands an instant physical reflex (a strike mid-swing, a creature lunging, an incoming arrow/blade/trap), set "is_qte_active" true EVEN IF the impact itself is not yet shown. Trigger it whenever the final beat leaves the player only a heartbeat to react physically. Set "qte_time_limit" 2-7 (by threat speed) and 2-3 short "qte_options" in ${language} that fit the specific threat (e.g. "หลบซ้าย", "ยกดาบรับ", "ทิ้งตัวลงพื้น"). Keep is_qte_active false for mere tension, slow menace, or a decision cliffhanger where the player still has time to think — those get suggested_actions, NOT a QTE. When false: qte_time_limit 0, qte_options [].
 - COUNTDOWN: If the narrative introduces a real ticking deadline (bomb, execution, sealed door, spreading poison, collapse), set "countdown_event" to { "label": ${language} short description, "seconds": 15-120 } (30=very urgent, 60=moderate, 120=slow burn). Keep returning the same active countdown on later turns (do not reset seconds — the client tracks elapsed time). When resolved/escaped/defused/irrelevant, set it to null. Only for real-seconds threats, never vague turn-based ones.
 - LIVES & RESPAWN: If "hp" drops to 0 or below: if "lives_left" > 0, decrease it by 1, restore "hp" to "max_hp", clear "inventory" to [], and treat the narrative as a return to the last safe zone (keep is_dead false). If "lives_left" is already 0, set "is_dead" true and keep "hp" 0. Otherwise keep lives_left unchanged. Set "is_dead" true only when the character perishes with no lives left.
 - WORLD EVENT TURNS: If the player action begins with "[WORLD EVENT:", leave "player_status" completely unchanged and set "dialogue_lines", "character_updates", "quest_updates", "faction_updates", "companion_updates", "new_locations" to empty arrays unless the event itself directly triggers one. Do not start/stop countdowns or trigger QTE. Do not set a new quest/objective directive.
@@ -278,7 +281,7 @@ STATE RULES — apply strictly based on what the [NARRATIVE JUST WRITTEN] descri
 - SCENE IMAGE: If the narrative enters a NEW location, shows a notable NEW creature/boss, or changes the scene visually in a major way, write a detailed comma-separated ENGLISH "scene_image_prompt" (e.g. "dark fantasy, wet cave, glowing moss, cinematic lighting, 8k, unreal engine"). Otherwise "".
 - STORY SUMMARY: Update "story_summary" — a concise running log of important events, NPCs, locations, and goals. Note any "pending consequence" here (a witnessed theft, a broken oath) to be delivered 2-5 turns later.
 - CURRENT OBJECTIVE: Update "current_objective" — a single short ${language} sentence for what the player should probably do next. (On WORLD EVENT turns, keep it unchanged.)
-- SUGGESTED ACTIONS: 2-4 short ${language} actions (each under 8 words) the player could plausibly do right now given the scene.
+- SUGGESTED ACTIONS: 2-4 short ${language} actions (each under 8 words) the player could take right now. Make each one SPECIFIC to this exact scene and charged with intent, attitude, or risk — never a flat generic menu verb. Tie every option to something concrete that is physically present in the narrative and give it a clear stake or flavor. Prefer evocative, decisive choices ("ฟันโซ่ที่ล่ามประตูให้ขาด", "หลบใต้เตียงแล้วกลั้นหายใจ", "จ่อมีดถามชื่อมันตรงๆ") over bland ones ("โจมตี", "สำรวจห้อง", "คุยกับ NPC"). Each should read like a decision a character would actually make in this moment, not a game command.
 - OPEN THREADS: "open_threads" tracks unresolved hooks, looming dangers, pending consequences, ticking clocks. Add a new thread (unique kebab id) when a significant hook/threat/tension appears; raise urgency (low→medium→high→critical) as pressure builds; remove a thread by omitting its id once resolved/delivered. Return the FULL current list every turn ([] if none). If expires_in_turns is a number it counts down each turn.
 - FIRST TURN: If there are no [RECENT EVENTS], this is the opening turn — initialize "player_status" with values appropriate to the character and genre (attributes typically 8-16 reflecting their class/background, sensible hp/max_hp, mana/max_mana, starting gold, any logical starting inventory/skills, level 1, exp 0) rather than copying the placeholder defaults in [CURRENT PLAYER STATUS]. Set lives_left to the value in [LIVES LEFT].
 
@@ -607,6 +610,21 @@ ${historyContext}
 
     const narrativeLanguage = worldConfig?.language || 'ไทย';
 
+    // The narrative (storyteller) call can optionally target a SEPARATE OpenAI-compatible
+    // endpoint — e.g. Typhoon (opentyphoon.ai), which handles Thai prose far better than any
+    // Groq general model. Extraction + dice stay on Groq. Enabled by NARRATIVE_BASE_URL
+    // (+ NARRATIVE_API_KEY); unset → narrative stays on the Groq/Ollama endpoint (no change).
+    const narrativeBaseUrl = process.env.NARRATIVE_BASE_URL?.replace(/\/$/, '');
+    const useNarrativeOverride = !useOllama && !!narrativeBaseUrl;
+
+    // Sampling is endpoint-aware. The Groq general models were tuned hot (0.85–0.95) for prose
+    // variety. Typhoon (a3b MoE) instead OBEYS the show-don't-tell / banned-phrase rules and stops
+    // garbling words only at its recommended low temp (~0.6, top_p 0.6); hot sampling makes it write
+    // "คุณรู้สึก" and glitch. So drop temperature + pin top_p when routed to the Typhoon override.
+    const groqTemperature = isFirstTurn ? 0.95 : 0.85;
+    const typhoonTemperature = isFirstTurn ? 0.7 : 0.6;
+    const narrativeTemperature = useNarrativeOverride ? typhoonTemperature : groqTemperature;
+
     const requestBody = JSON.stringify({
       model: narrativeModel,
       messages: [
@@ -614,9 +632,9 @@ ${historyContext}
         { role: 'user', content: finalUserPrompt },
       ],
       stream: true,
-      // Higher temperature now that this call ONLY writes prose — no JSON to keep rigid.
-      temperature: isFirstTurn ? 0.95 : 0.85,
+      temperature: narrativeTemperature,
       max_tokens: 1600,
+      ...(useNarrativeOverride ? { top_p: 0.6 } : {}),
       // Qwen3 models think by default and would stream <think> reasoning into the
       // prose. Disable it so the storyteller emits prose only (and stays fast).
       ...(narrativeModel.includes('qwen') ? { reasoning_effort: 'none' } : {}),
@@ -628,13 +646,20 @@ ${historyContext}
       'Authorization': useOllama ? 'Bearer ollama' : `Bearer ${groqKey}`,
     };
 
-    let groqResponse = await fetch(inferenceUrl, {
+    const narrativeUrl = useNarrativeOverride
+      ? `${narrativeBaseUrl}/chat/completions`
+      : inferenceUrl;
+    const narrativeHeaders = useNarrativeOverride
+      ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NARRATIVE_API_KEY ?? ''}` }
+      : requestHeaders;
+
+    let groqResponse = await fetch(narrativeUrl, {
       method: 'POST',
-      headers: requestHeaders,
+      headers: narrativeHeaders,
       body: requestBody,
     });
 
-    // On TPM rate limit, wait the specified time and retry once — Groq only.
+    // On TPM/rate limit, wait the specified time and retry once (cloud endpoints only).
     if (!useOllama && groqResponse.status === 429) {
       const errText = await groqResponse.text().catch(() => "");
       const retryMatch = /try again in ([\d.]+)(ms|s)/i.exec(errText);
@@ -645,9 +670,9 @@ ${historyContext}
       }
       if (waitMs <= 28000) {
         await new Promise<void>(resolve => setTimeout(resolve, waitMs));
-        groqResponse = await fetch(inferenceUrl, {
+        groqResponse = await fetch(narrativeUrl, {
           method: 'POST',
-          headers: requestHeaders,
+          headers: narrativeHeaders,
           body: requestBody,
         });
       }
@@ -656,7 +681,7 @@ ${historyContext}
     if (!groqResponse.ok || !groqResponse.body) {
       const errText = await groqResponse.text().catch(() => "");
       return NextResponse.json(
-        { error: `Groq API returned an error (${groqResponse.status}): ${errText}` },
+        { error: `Narrative API returned an error (${groqResponse.status}): ${errText}` },
         { status: 502 }
       );
     }

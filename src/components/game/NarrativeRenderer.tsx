@@ -1,11 +1,36 @@
 "use client";
 
 import { MessageSquare } from "lucide-react";
+import type { ReactNode } from "react";
 import type { DialogueLine } from "@/store/useGameStore";
 
 type Segment =
   | { type: "text"; text: string }
   | { type: "dialog"; speaker: string | null; speech: string };
+
+// Render a lightweight inline markdown subset the storyteller emits: **bold** for
+// key names/items, *italic* for sound effects / emphasised words. Anything unmatched
+// (a lone asterisk, math) passes through as literal text. Newlines are preserved by
+// the parent's whitespace-pre-wrap. Bold is matched before italic so "**" never reads
+// as two "*". Kept out of the streaming path — partial markers would flicker.
+function renderInline(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const re = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+  let last = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m[1]) {
+      nodes.push(<strong key={key++} className="font-semibold text-amber-100">{m[1]}</strong>);
+    } else {
+      nodes.push(<em key={key++} className="italic text-amber-100/90">{m[2]}</em>);
+    }
+    last = re.lastIndex;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
 
 // Search for dialogue text in narrative, trying several common quote wrappers.
 // Returns { index, len } of the earliest match, or null if not found.
@@ -87,7 +112,7 @@ export default function NarrativeRenderer({
   if (segments.length === 1 && segments[0].type === "text") {
     return (
       <p className="text-amber-50/85 leading-[2] text-[0.95rem] whitespace-pre-wrap tracking-wide border-l-2 border-amber-800/40 pl-5">
-        {text}
+        {renderInline(text)}
       </p>
     );
   }
@@ -100,7 +125,7 @@ export default function NarrativeRenderer({
             key={seg.text.slice(0, 32)}
             className="text-amber-50/85 leading-[2] text-[0.95rem] whitespace-pre-wrap tracking-wide border-l-2 border-amber-800/40 pl-5"
           >
-            {seg.text}
+            {renderInline(seg.text)}
           </p>
         ) : (
           <div
