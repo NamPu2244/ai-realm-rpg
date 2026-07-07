@@ -139,6 +139,9 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   for condition transforms). environment_fx/player_condition persist; impact_fx is forced to `[]` in the
   store's partialize (one-shot, must not re-fire on reload). This is part of the extraction↔store↔
   applyGameResult danger-zone contract. See flow-run `2026-07-07-cinematic-fx`.
+  **Sound (v2):** each FX also has synthesized Web Audio in `src/lib/sounds.ts` (no files) —
+  `playBoom`/`playThunder` one-shots + `setAmbientLoops`/`stopAllAmbient` looping weather (`LOOP_SPECS`).
+  FXManager fires them; muting stops loops. So a new effect means updating `sounds.ts` too (5th sync place).
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
