@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight, Lightbulb } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -185,6 +185,20 @@ export default function ActionBar({
     setPrevSuggestions(suggestedActions);
     setShowHints(false);
   }
+
+  // Number keys 1-N pick a hint — but only while the hints are actually revealed, so the
+  // shortcut stays consistent with what's on screen (and never collides with the QTE keys,
+  // since a QTE turn clears suggestions / re-hides hints).
+  useEffect(() => {
+    if (isLoading || isDead || !showHints || suggestedActions.length === 0) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const idx = Number.parseInt(e.key) - 1;
+      if (idx >= 0 && idx < suggestedActions.length) onSend(suggestedActions[idx]);
+    };
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
+  }, [isLoading, isDead, showHints, suggestedActions, onSend]);
 
   const activeMeta = selectedType ? PLAYER_ACTION_TYPES.find((t) => t.id === selectedType) : null;
   const placeholder = activeMeta?.placeholder ?? "What does your character do? e.g. 'Look around' 'Talk to them' 'Go north'";
