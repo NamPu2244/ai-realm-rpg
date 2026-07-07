@@ -165,6 +165,13 @@ interface GameState {
   // Real-time countdown event (e.g. "bomb will explode in 30 seconds")
   active_countdown: CountdownEvent | null;
 
+  // Cinematic FX driven by the extraction model each turn (see FXManager).
+  // environment_fx + player_condition are persistent scene state; impact_fx is a
+  // per-turn one-shot (never persisted — excluded in partialize).
+  environment_fx: string[];   // ambient overlays: 'rain' | 'snow' | 'fog' | 'embers'
+  player_condition: string;   // screen overlay: '' | 'dizzy' | 'poisoned' | 'drunk'
+  impact_fx: string[];        // one-shot hits this turn: 'shake' | 'flash'
+
   // User-supplied Groq API key. Kept in memory only for the current tab session:
   // excluded from persistence (see partialize) and never written to our DB. The user
   // must re-enter it after a refresh — a deliberate trade-off for maximum key safety.
@@ -238,6 +245,9 @@ const initialState = {
   visited_locations: [] as VisitedLocation[],
   open_threads: [] as OpenThread[],
   active_countdown: null,
+  environment_fx: [] as string[],
+  player_condition: '',
+  impact_fx: [] as string[],
   groq_api_key: '',
   user: null,
   auth_status: 'unknown' as AuthStatus,
@@ -494,7 +504,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'storyweave-save',
-      version: 5,
+      version: 6,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, is_pro, energy, sync_error, ...rest } = state;
@@ -503,6 +513,8 @@ export const useGameStore = create<GameState>()(
           // Cap persisted history so a long game can't overflow the localStorage quota.
           history: rest.history.slice(-MAX_PERSISTED_HISTORY),
           game_phase: state.auth_status === 'authenticated' ? 'Dashboard' : rest.game_phase,
+          // impact_fx is a per-turn one-shot trigger — persist it empty so it never re-fires on reload.
+          impact_fx: [],
         };
       },
       migrate: (persistedState) => {
@@ -528,6 +540,9 @@ export const useGameStore = create<GameState>()(
           visited_locations: state.visited_locations ?? [],
           open_threads: state.open_threads ?? [],
           active_countdown: state.active_countdown ?? null,
+          environment_fx: state.environment_fx ?? [],
+          player_condition: state.player_condition ?? '',
+          impact_fx: [],
           // NOSONAR: cast required because spreading Partial<PersistedState> makes action fields optional
         } as PersistedState;
       },

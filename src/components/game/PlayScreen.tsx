@@ -31,6 +31,8 @@ import {
   buildSceneImageUrl,
 } from "@/lib/gameText";
 import { playQteSelect, playAmbient } from "@/lib/sounds";
+import { sanitizeEnvironmentFx, sanitizePlayerCondition, sanitizeImpactFx } from "@/lib/fx";
+import FXManager, { sceneConditionClass, useNarrativeShake } from "@/components/game/FXManager";
 import { useGameEffects } from "@/hooks/useGameEffects";
 import { useQteTimer } from "@/hooks/useQteTimer";
 import { useCountdownTimer } from "@/hooks/useCountdownTimer";
@@ -61,6 +63,9 @@ export default function PlayScreen() {
     visited_locations,
     open_threads,
     active_countdown,
+    environment_fx,
+    player_condition,
+    impact_fx,
     auth_status,
     groq_api_key,
     energy,
@@ -147,6 +152,10 @@ export default function PlayScreen() {
     player_status.hp,
     player_status.level,
   );
+  // Narrative-driven cinematic FX (from the extraction model, separate from the HP-based
+  // effects above). Shake fires transiently; dizzy/drunk are persistent scene distortions.
+  const narrativeShaking = useNarrativeShake(impact_fx);
+  const sceneFxClass = `${sceneConditionClass(player_condition)} ${narrativeShaking ? "fx-shake" : ""}`.trim();
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -164,6 +173,9 @@ export default function PlayScreen() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyGameResult = (data: any, newHistory: ChatLog[], worldConfig: WorldConfig | null, message: string, isSystemInit: boolean, onSend: typeof handleSend) => {
     const freshState = useGameStore.getState();
+    // Ambient/world-side beats aren't real player turns — the extractor is told to leave most
+    // fields empty, so keep the persistent scene FX (weather/condition) instead of flickering them off.
+    const isAmbientOrSystem = isWorldEventSignal(message) || isWorldSideSignal(message);
     const prevHp = freshState.player_status.hp;
     const prevMana = freshState.player_status.mana;
     const newHp = data.player_status?.hp ?? prevHp;
@@ -262,6 +274,10 @@ export default function PlayScreen() {
       companions: updatedCompanions,
       visited_locations: updatedLocations,
       open_threads: Array.isArray(data.open_threads) ? (data.open_threads as OpenThread[]) : freshState.open_threads,
+      // Cinematic FX: keep persistent weather/condition on ambient turns; one-shot impacts fire per turn.
+      environment_fx: isAmbientOrSystem ? freshState.environment_fx : sanitizeEnvironmentFx(data.environment_fx),
+      player_condition: isAmbientOrSystem ? freshState.player_condition : sanitizePlayerCondition(data.player_condition),
+      impact_fx: sanitizeImpactFx(data.impact_fx),
       history: [
         ...newHistory,
         {
@@ -281,7 +297,6 @@ export default function PlayScreen() {
       onFirstTurnCompleteRef.current = null;
     }
 
-    const isAmbientOrSystem = isWorldEventSignal(message) || isWorldSideSignal(message);
     if (isWorldEventSignal(message)) playAmbient();
 
     if (!isAmbientOrSystem && !isSystemInit && !data.is_dead && !data.is_qte_active && Math.random() < 0.25) {
@@ -805,6 +820,9 @@ export default function PlayScreen() {
           <div className="fixed inset-0 z-40 bg-red-700 animate-damage-flash pointer-events-none" />
         )}
 
+        {/* Narrative-driven cinematic overlays (weather / poison vignette / flash) */}
+        <FXManager environmentFx={environment_fx} playerCondition={player_condition} impactFx={impact_fx} />
+
         {isCritical && (
           <div
             aria-hidden="true"
@@ -896,7 +914,7 @@ export default function PlayScreen() {
           />
         )}
 
-        <div className="relative z-10 flex flex-1 min-w-0">
+        <div className={`relative z-10 flex flex-1 min-w-0 ${sceneFxClass}`}>
           <div className="flex-1 flex flex-col min-w-0 max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/60 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
             <GameHeader
               worldConfig={world_config}

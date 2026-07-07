@@ -279,6 +279,10 @@ STATE RULES — apply strictly based on what the [NARRATIVE JUST WRITTEN] descri
 - DIALOGUE: Extract all direct speech by NAMED characters (NPCs/named entities only — NOT the player) from the narrative into "dialogue_lines" as {speaker, text} (text verbatim, no quotes). Empty array if no NPC speaks.
 - CHARACTER TRACKING: For each named NPC (or distinct titled one, e.g. "ยามประตูเมือง") who speaks/acts/is meaningfully described this turn, add/update "character_updates": name, description (${language}), role (${language}), relationship (${language}), status (${language}), last_seen (${language}). Include [KNOWN CHARACTERS] entries whose status/relationship changed. Empty array if none.
 - SCENE IMAGE: If the narrative enters a NEW location, shows a notable NEW creature/boss, or changes the scene visually in a major way, write a detailed comma-separated ENGLISH "scene_image_prompt" (e.g. "dark fantasy, wet cave, glowing moss, cinematic lighting, 8k, unreal engine"). Otherwise "".
+- CINEMATIC FX — drive on-screen effects from the narrative. Use ONLY the fixed vocabulary below; NEVER invent other values. These are separate from scene_image_prompt.
+  • "environment_fx": array of AMBIENT weather/atmosphere physically present in the scene right now. Allowed values: "rain", "snow", "fog", "embers" (embers = active fire / burning / drifting ash). Include a value only when the narrative clearly shows it; use [] for a plain, clear, or indoor scene with none. These persist across turns until the weather/scene changes — keep returning the ones that still apply and drop any the narrative has moved away from.
+  • "player_condition": ONE screen overlay for the character's current impaired state. Allowed: "dizzy" (disoriented / concussed / spinning / vision swimming), "poisoned" (poisoned / venom / sick to the stomach), "drunk" (intoxicated / woozy). Use "" when none. Persist it while it applies; clear it to "" when the narrative shows recovery.
+  • "impact_fx": one-shot jolts that happen on THIS turn ONLY. Allowed: "shake" (a violent impact / explosion / quake / hard blow / collapse) and "flash" (a blinding flash / blast / lightning / detonation). Include BOTH for a large explosion. Use [] on a calm turn. NEVER carry these over to later turns — set them only on the exact turn the impact occurs.
 - STORY SUMMARY: Update "story_summary" — a concise running log of important events, NPCs, locations, and goals. Note any "pending consequence" here (a witnessed theft, a broken oath) to be delivered 2-5 turns later.
 - CURRENT OBJECTIVE: Update "current_objective" — a single short ${language} sentence for what the player should probably do next. (On WORLD EVENT turns, keep it unchanged.)
 - SUGGESTED ACTIONS: 2-4 short ${language} actions (each under 8 words) the player could take right now. Make each one SPECIFIC to this exact scene and charged with intent, attitude, or risk — never a flat generic menu verb. Tie every option to something concrete that is physically present in the narrative and give it a clear stake or flavor. Prefer evocative, decisive choices ("ฟันโซ่ที่ล่ามประตูให้ขาด", "หลบใต้เตียงแล้วกลั้นหายใจ", "จ่อมีดถามชื่อมันตรงๆ") over bland ones ("โจมตี", "สำรวจห้อง", "คุยกับ NPC"). Each should read like a decision a character would actually make in this moment, not a game command.
@@ -314,7 +318,10 @@ EXPECTED JSON SCHEMA — respond with ONLY this JSON object, no narrative, no pr
   "new_locations": [{"name": "String", "description": "String (1 sentence in ${language})"}],
   "open_threads": [{"id": "String (kebab-slug)", "description": "String (in ${language})", "urgency": "low|medium|high|critical", "expires_in_turns": "Number or null"}],
   "countdown_event": null,
-  "suggested_actions": ["String (in ${language})"]
+  "suggested_actions": ["String (in ${language})"],
+  "environment_fx": ["String — subset of: rain, snow, fog, embers"],
+  "player_condition": "String — one of: dizzy, poisoned, drunk (or empty)",
+  "impact_fx": ["String — subset of: shake, flash"]
 }`;
 }
 
