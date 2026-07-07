@@ -159,42 +159,113 @@ export function playThunder() {
   noiseBurst(0.6, "lowpass", 180, 0.28);      // rolling tail
 }
 
-// ── Ambient weather loops (environment_fx) ──────────────────────────────────
-// Looping filtered noise, one node-chain per active effect. setAmbientLoops() diffs
-// against what's playing and fades in/out. Kept low-gain so it sits under the prose.
-type Loop = { src: AudioBufferSourceNode; gain: GainNode };
+// ── Ambient loops (environment_fx) ──────────────────────────────────────────
+// A looping synthesized ambience per active effect. setAmbientLoops() diffs against
+// what's playing and fades each in/out. Every ambience connects into a per-effect master
+// GainNode (which startLoop fades) and returns a stop() that halts its sources. All gains
+// are kept low so the ambience sits under the prose. No audio files — pure Web Audio.
+// KEEP THE KEYS IN SYNC with ENVIRONMENT_FX in @/lib/fx and the extraction prompt.
+type StopFn = () => void;
+type Loop = { gain: GainNode; stop: StopFn };
 const activeLoops = new Map<string, Loop>();
 
-const LOOP_SPECS: Record<string, { type: BiquadFilterType; freq: number; q: number; gain: number }> = {
-  rain:   { type: "bandpass", freq: 1600, q: 0.5, gain: 0.05 },
-  snow:   { type: "lowpass",  freq: 520,  q: 0.5, gain: 0.015 },
-  fog:    { type: "lowpass",  freq: 220,  q: 0.6, gain: 0.03 },
-  embers: { type: "lowpass",  freq: 380,  q: 1.1, gain: 0.03 },
+function loopingNoise(c: AudioContext): AudioBufferSourceNode {
+  const buffer = c.createBuffer(1, Math.floor(c.sampleRate * 2), c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = c.createBufferSource();
+  src.buffer = buffer;
+  src.loop = true;
+  return src;
+}
+
+// Filtered-noise ambience: one noise source through a biquad into dest.
+function noiseBed(c: AudioContext, dest: AudioNode, type: BiquadFilterType, freq: number, q: number): StopFn {
+  const src = loopingNoise(c);
+  const filter = c.createBiquadFilter();
+  filter.type = type;
+  filter.frequency.value = freq;
+  filter.Q.value = q;
+  src.connect(filter);
+  filter.connect(dest);
+  src.start();
+  return () => { try { src.stop(); } catch { /* already stopped */ } };
+}
+
+// A slow LFO oscillator modulating a target AudioParam (for wave swell / wind gusts).
+function modulate(c: AudioContext, target: AudioParam, rate: number, depth: number): OscillatorNode {
+  const osc = c.createOscillator();
+  osc.frequency.value = rate;
+  const g = c.createGain();
+  g.gain.value = depth;
+  osc.connect(g);
+  g.connect(target);
+  osc.start();
+  return osc;
+}
+
+// name → { peak gain, builder that wires its graph into `dest` and returns a stop() }.
+const AMBIENTS: Record<string, { peak: number; build: (c: AudioContext, dest: AudioNode) => StopFn }> = {
+  // Weather / outdoors
+  rain:   { peak: 0.05,  build: (c, d) => noiseBed(c, d, "bandpass", 1600, 0.5) },
+  snow:   { peak: 0.015, build: (c, d) => noiseBed(c, d, "lowpass", 520, 0.5) },
+  fog:    { peak: 0.03,  build: (c, d) => noiseBed(c, d, "lowpass", 220, 0.6) },
+  wind:   { peak: 0.05,  build: (c, d) => {
+    const src = loopingNoise(c);
+    const filter = c.createBiquadFilter();
+    filter.type = "lowpass"; filter.frequency.value = 480; filter.Q.value = 0.9;
+    src.connect(filter); filter.connect(d); src.start();
+    const gust = modulate(c, filter.frequency, 0.12, 260); // howling gusts
+    return () => { try { src.stop(); } catch {} try { gust.stop(); } catch {} };
+  } },
+  // Fire
+  embers: { peak: 0.03,  build: (c, d) => noiseBed(c, d, "lowpass", 380, 1.1) },
+  // Water
+  water:      { peak: 0.04,  build: (c, d) => noiseBed(c, d, "bandpass", 720, 0.7) },
+  underwater: { peak: 0.045, build: (c, d) => noiseBed(c, d, "lowpass", 180, 0.9) },
+  ocean:  { peak: 0.06,  build: (c, d) => {
+    const src = loopingNoise(c);
+    const filter = c.createBiquadFilter();
+    filter.type = "lowpass"; filter.frequency.value = 650; filter.Q.value = 0.5;
+    const wave = c.createGain(); wave.gain.value = 0.6;
+    src.connect(filter); filter.connect(wave); wave.connect(d); src.start();
+    const swell = modulate(c, wave.gain, 0.12, 0.4); // waves rolling in/out
+    return () => { try { src.stop(); } catch {} try { swell.stop(); } catch {} };
+  } },
+  // Places
+  cave:   { peak: 0.04,  build: (c, d) => noiseBed(c, d, "lowpass", 130, 0.7) },
+  crowd:  { peak: 0.035, build: (c, d) => noiseBed(c, d, "bandpass", 500, 0.4) },
+  machinery: { peak: 0.04, build: (c, d) => {
+    const osc = c.createOscillator(); osc.type = "sawtooth"; osc.frequency.value = 55;
+    const oscF = c.createBiquadFilter(); oscF.type = "lowpass"; oscF.frequency.value = 200;
+    osc.connect(oscF); oscF.connect(d); osc.start();
+    const hiss = loopingNoise(c);
+    const hf = c.createBiquadFilter(); hf.type = "bandpass"; hf.frequency.value = 1400;
+    const hg = c.createGain(); hg.gain.value = 0.25;
+    hiss.connect(hf); hf.connect(hg); hg.connect(d); hiss.start();
+    return () => { try { osc.stop(); } catch {} try { hiss.stop(); } catch {} };
+  } },
+  magic:  { peak: 0.03,  build: (c, d) => {
+    const o1 = c.createOscillator(); o1.type = "sine"; o1.frequency.value = 528;
+    const o2 = c.createOscillator(); o2.type = "sine"; o2.frequency.value = 533; // detuned shimmer
+    const trem = c.createGain(); trem.gain.value = 0.6;
+    o1.connect(trem); o2.connect(trem); trem.connect(d);
+    o1.start(); o2.start();
+    const shimmer = modulate(c, trem.gain, 0.3, 0.3);
+    return () => { for (const o of [o1, o2, shimmer]) { try { o.stop(); } catch {} } };
+  } },
 };
 
 function startLoop(name: string) {
   const c = getCtx();
-  const spec = LOOP_SPECS[name];
+  const spec = AMBIENTS[name];
   if (!c || !spec || activeLoops.has(name)) return;
-  const bufferSize = Math.floor(c.sampleRate * 2);
-  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-  const src = c.createBufferSource();
-  src.buffer = buffer;
-  src.loop = true;
-  const filter = c.createBiquadFilter();
-  filter.type = spec.type;
-  filter.frequency.value = spec.freq;
-  filter.Q.value = spec.q;
-  const gain = c.createGain();
-  gain.gain.setValueAtTime(0, c.currentTime);
-  gain.gain.linearRampToValueAtTime(spec.gain, c.currentTime + 1.2); // fade in
-  src.connect(filter);
-  filter.connect(gain);
-  gain.connect(c.destination);
-  src.start();
-  activeLoops.set(name, { src, gain });
+  const master = c.createGain();
+  master.gain.setValueAtTime(0, c.currentTime);
+  master.gain.linearRampToValueAtTime(spec.peak, c.currentTime + 1.2); // fade in
+  master.connect(c.destination);
+  const stop = spec.build(c, master);
+  activeLoops.set(name, { gain: master, stop });
 }
 
 function stopLoop(name: string) {
@@ -207,16 +278,16 @@ function stopLoop(name: string) {
       loop.gain.gain.cancelScheduledValues(c.currentTime);
       loop.gain.gain.setValueAtTime(loop.gain.gain.value, c.currentTime);
       loop.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.6); // fade out
-      loop.src.stop(c.currentTime + 0.7);
+      setTimeout(loop.stop, 700);
     } else {
-      loop.src.stop();
+      loop.stop();
     }
   } catch {
-    // node may already be stopped
+    loop.stop();
   }
 }
 
-/** Reconcile the looping weather to exactly `desired` (subset of LOOP_SPECS keys). */
+/** Reconcile the looping ambience to exactly `desired` (subset of AMBIENTS keys). */
 export function setAmbientLoops(desired: string[]) {
   // Snapshot keys first — stopLoop() mutates activeLoops mid-iteration.
   const playing = Array.from(activeLoops.keys());
