@@ -53,7 +53,7 @@ function BackButton({ onClick }: Readonly<{ onClick: () => void }>) {
 function SectionLabel({ text }: Readonly<{ text: string }>) {
   return (
     <div className="mb-5">
-      <span className="text-[9px] text-neutral-700 tracking-[0.55em] uppercase">{text}</span>
+      <span className="text-[9px] text-neutral-700 tracking-widest uppercase">{text}</span>
     </div>
   );
 }
@@ -152,7 +152,7 @@ export default function MainMenuDashboard() {
           <div className="mb-10 md:mb-12 animate-[pageFadeIn_0.5s_ease-out_0.06s_both]">
             <div className="flex items-center gap-3 mb-5">
               <div className="h-px w-5 bg-amber-700/50" />
-              <span className="text-amber-700/50 text-[9px] tracking-[0.35em] uppercase font-medium">เกม RPG ผจญภัยแบบข้อความ</span>
+              <span className="text-amber-700/50 text-[9px] tracking-widest uppercase font-medium">เกม RPG ผจญภัยแบบข้อความ</span>
             </div>
             <h1 className="leading-none font-black uppercase">
               <span className="block text-[54px] sm:text-[64px] md:text-[70px] lg:text-[82px] tracking-[0.18em] text-white">
@@ -164,7 +164,7 @@ export default function MainMenuDashboard() {
             </h1>
             <div className="flex items-center gap-3 mt-4">
               <div className="h-px w-10 bg-gradient-to-r from-amber-700/50 to-transparent" />
-              <span className="text-amber-800/40 text-[9px] tracking-[0.35em] uppercase">ขับเคลื่อนด้วย AI</span>
+              <span className="text-amber-800/40 text-[9px] tracking-widest uppercase">ขับเคลื่อนด้วย AI</span>
             </div>
           </div>
 
@@ -462,7 +462,7 @@ export default function MainMenuDashboard() {
               <span className="text-amber-500 text-base">✦</span>
               <div className="h-px w-20 bg-gradient-to-l from-transparent to-amber-500" />
             </div>
-            <p className="mt-5 text-[10px] tracking-[0.5em] uppercase text-amber-800/20 font-medium">
+            <p className="mt-5 text-[10px] tracking-widest uppercase text-amber-800/20 font-medium">
               เกม RPG ผจญภัยแบบข้อความ
             </p>
           </div>

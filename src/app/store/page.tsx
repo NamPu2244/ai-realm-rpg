@@ -97,8 +97,8 @@ function HeroBanner({ world, onOpen }: Readonly<{ world: World; onOpen: (w: Worl
         <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-orange-700/15 blur-3xl" />
 
         <div className="relative max-w-2xl">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-amber-200 ring-1 ring-amber-400/25 backdrop-blur">
-            <Sparkles size={12} /> Trending #1
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-amber-200 ring-1 ring-amber-400/25 backdrop-blur">
+            <Sparkles size={12} /> มาแรงอันดับ 1
           </span>
 
           <h1 className="mt-5 font-black leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)] text-4xl sm:text-5xl">
@@ -585,12 +585,12 @@ export default function StorePage() {
         <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-amber-900/20 bg-white/[0.015] p-5 backdrop-blur-2xl lg:flex">
           <button type="button" onClick={goHome} className="flex items-center gap-2 text-neutral-600 transition-colors hover:text-amber-300">
             <ArrowLeft size={13} />
-            <span className="text-xs uppercase tracking-[0.3em]">เมนูหลัก</span>
+            <span className="text-xs uppercase tracking-widest">เมนูหลัก</span>
           </button>
 
           <div className="px-1">
             <p className="text-sm font-black tracking-[0.15em] text-white">STORYWEAVE</p>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-800/70">ตลาดโลก</p>
+            <p className="text-[10px] uppercase tracking-widest text-amber-800/70">ตลาดโลก</p>
           </div>
 
           <nav className="flex flex-col gap-1">

@@ -108,12 +108,12 @@ export default function WorldDetailPage() {
             className="flex items-center gap-2 text-neutral-600 transition-colors hover:text-amber-300"
           >
             <ArrowLeft size={14} />
-            <span className="text-xs uppercase tracking-[0.3em]">กลับไปตลาด</span>
+            <span className="text-xs uppercase tracking-widest">กลับไปตลาด</span>
           </button>
           <div className="flex items-center gap-3">
             <div className="hidden text-right leading-tight sm:block">
               <p className="text-xs font-black tracking-[0.15em] text-white">STORYWEAVE</p>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-amber-800/70">ตลาดโลก</p>
+              <p className="text-[9px] uppercase tracking-widest text-amber-800/70">ตลาดโลก</p>
             </div>
             <span className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3.5 py-2 text-sm font-semibold text-amber-300 ring-1 ring-amber-900/25">
               <Zap size={15} className="fill-amber-300" /> {energy}
@@ -203,7 +203,7 @@ export default function WorldDetailPage() {
 
               {world.world_config?.character && (
                 <div className="mt-5 rounded-xl border border-amber-900/25 bg-white/[0.02] p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-amber-800/80">คุณรับบทเป็น</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-800/80">คุณรับบทเป็น</p>
                   <p className="mt-1.5 text-sm text-neutral-300">{world.world_config.character}</p>
                 </div>
               )}
