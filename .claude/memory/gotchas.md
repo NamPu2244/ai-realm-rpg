@@ -113,6 +113,12 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   KEYS matched against Supabase — the marketplace TROPE tags in `src/app/store/page.tsx` (translating
   breaks filtering vs. already-published worlds; migrate the DB first). Admin pages are internal — skip
   unless asked.**
+- **Thai labels must NOT use wide letter-spacing.** The design used `uppercase tracking-[0.25em‥0.55em]`
+  on labels — fine for Latin caps, but Thai has no word spaces and no uppercase, so wide tracking splits
+  Thai words apart and hurts readability (`uppercase` is also a no-op). Rule: cap Thai labels at
+  `tracking-widest` (0.1em) or tighter; keep wide tracking ONLY on the Latin brand wordmarks
+  (STORYWEAVE/STORY/WEAVE/Storyweave). Fixed across menu/auth/create/loading/store/QTE/inventory/sidebar
+  on 2026-07-07 (`fix/thai-label-tracking`).
 - **`/store` (and `/store/[id]`) do NOT mount `usePhaseSync` — navigate with `router.push`, not
   `game_phase`.** `usePhaseSync` (which mirrors `game_phase` → URL) is only mounted on `/` (page.tsx),
   `/create`, and `/play` (PlayScreen). On the store routes, `setGameState({ game_phase })` updates state
