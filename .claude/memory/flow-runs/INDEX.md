@@ -6,6 +6,7 @@ Open a full `YYYY-MM-DD-slug.md` only when a line below clearly matches the curr
 
 | Date | Slug | Tier | Hook (what it was + status) |
 |------|------|------|------|
+| 2026-07-07 | thai-localization-app | T2 | Part 2: localized OUT-of-game screens (login/menu/create-world/marketplace/loading/modals). Kept AI-facing prompt data + DB-matched trope tags in English. Skipped admin. tsc clean. |
 | 2026-07-07 | thai-localization | T2 | Localized the in-game UI chrome to Thai across 14 components (sidebar/stats/ActionBar/header/modals/QTE/PlayScreen); stats translated too; no i18n framework. Glossary recorded. tsc clean. |
 | 2026-07-07 | actionbar-opt-in-hints | T2 | Suggested actions now opt-in behind a hint toggle (re-hides each turn); free-text input gated on a chosen mode; 1-N shortcut moved to ActionBar. tsc/lint clean, user-tested OK. |
 | 2026-07-07 | inline-markdown-emphasis | T2 | Deferred "step 2": `renderInline` in NarrativeRenderer for **bold**/*italic* + sparing EMPHASIS prompt rule. Fixes raw `*คราง*`. Regex + live verified. |

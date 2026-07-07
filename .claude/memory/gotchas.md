@@ -106,7 +106,13 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   modes Speak/Think/Act/Investigate/No Response → พูด/คิด/ทำ/สำรวจ/นิ่งเฉย; Send→ส่ง, Cancel→ยกเลิก,
   Save→บันทึก, Close→ปิด, Retry→ลองใหม่. Keep the STORYWEAVE brand + AI-facing signals
   (`[[SCENE]]`, `[ทอยเต๋า]`, `Begin the adventure.`) in their original form. Full list in flow-run
-  `2026-07-07-thai-localization`.
+  `2026-07-07-thai-localization`. Out-of-game screens (login/menu/create/marketplace/loading/modals)
+  were localized in `2026-07-07-thai-localization-app`. **When localizing, DO NOT translate strings that
+  are (a) sent to the AI as prompt content — `GENRES[].value`, `OPENING_SEEDS`, and the `Gender:/Sexual
+  orientation:/Personality traits:/Concept:` scaffolding in `WorldCreationMenu.tsx`; or (b) used as DATA
+  KEYS matched against Supabase — the marketplace TROPE tags in `src/app/store/page.tsx` (translating
+  breaks filtering vs. already-published worlds; migrate the DB first). Admin pages are internal — skip
+  unless asked.**
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
