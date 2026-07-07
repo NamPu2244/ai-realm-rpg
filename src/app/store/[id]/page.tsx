@@ -108,12 +108,12 @@ export default function WorldDetailPage() {
             className="flex items-center gap-2 text-neutral-600 transition-colors hover:text-amber-300"
           >
             <ArrowLeft size={14} />
-            <span className="text-xs uppercase tracking-[0.3em]">Back to Store</span>
+            <span className="text-xs uppercase tracking-[0.3em]">กลับไปตลาด</span>
           </button>
           <div className="flex items-center gap-3">
             <div className="hidden text-right leading-tight sm:block">
               <p className="text-xs font-black tracking-[0.15em] text-white">STORYWEAVE</p>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-amber-800/70">World Store</p>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-amber-800/70">ตลาดโลก</p>
             </div>
             <span className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3.5 py-2 text-sm font-semibold text-amber-300 ring-1 ring-amber-900/25">
               <Zap size={15} className="fill-amber-300" /> {energy}
@@ -135,13 +135,13 @@ export default function WorldDetailPage() {
         {status === "error" && (
           <div className="grid place-items-center rounded-2xl border border-red-500/20 bg-red-500/5 py-20 text-center">
             <Ghost size={40} className="text-red-400/50" />
-            <p className="mt-4 text-sm font-semibold text-red-300">World not found</p>
+            <p className="mt-4 text-sm font-semibold text-red-300">ไม่พบโลก</p>
             <button
               type="button"
               onClick={() => router.push("/store")}
               className="mt-4 rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-amber-900/25 transition hover:bg-white/15"
             >
-              Back to Store
+              กลับไปตลาด
             </button>
           </div>
         )}
@@ -203,7 +203,7 @@ export default function WorldDetailPage() {
 
               {world.world_config?.character && (
                 <div className="mt-5 rounded-xl border border-amber-900/25 bg-white/[0.02] p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-amber-800/80">You Play As</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-amber-800/80">คุณรับบทเป็น</p>
                   <p className="mt-1.5 text-sm text-neutral-300">{world.world_config.character}</p>
                 </div>
               )}
@@ -215,13 +215,13 @@ export default function WorldDetailPage() {
                 className="group mt-7 flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-7 py-3.5 text-sm font-bold text-white shadow-[0_8px_30px_-6px_rgba(217,119,6,0.55)] transition-all duration-300 hover:scale-[1.02] hover:brightness-110 disabled:opacity-60"
               >
                 {launching ? <Loader2 size={17} className="animate-spin" /> : <Play size={17} className="fill-white transition-transform group-hover:scale-110" />}
-                {launching ? "Weaving your story…" : "Play This World"}
+                {launching ? "กำลังถักทอเรื่องราวของคุณ…" : "เล่นโลกนี้"}
               </button>
 
               {auth_status !== "authenticated" && (
                 <p className="mt-3 flex items-center gap-1.5 text-xs text-neutral-600">
                   <Zap size={12} className="text-amber-700" />
-                  Playing as a guest — sign in to save your progress to the cloud.
+                  กำลังเล่นแบบผู้เยี่ยมชม — เข้าสู่ระบบเพื่อบันทึกความคืบหน้าขึ้นคลาวด์
                 </p>
               )}
             </div>

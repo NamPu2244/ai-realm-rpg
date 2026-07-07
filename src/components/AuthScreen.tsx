@@ -36,7 +36,7 @@ const PARTICLES: Particle[] = Array.from({ length: 22 }, (_, i) => ({
 
 function SubmitLabel({ mode, isLoading }: Readonly<{ mode: Mode; isLoading: boolean }>) {
   if (isLoading) {
-    const text = mode === "signin" ? "Signing in..." : "Creating account...";
+    const text = mode === "signin" ? "กำลังเข้าสู่ระบบ..." : "กำลังสร้างบัญชี...";
     return (
       <>
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -47,7 +47,7 @@ function SubmitLabel({ mode, isLoading }: Readonly<{ mode: Mode; isLoading: bool
       </>
     );
   }
-  return <>{mode === "signin" ? "Sign In" : "Sign Up"}</>;
+  return <>{mode === "signin" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}</>;
 }
 
 export default function AuthScreen() {
@@ -76,11 +76,11 @@ export default function AuthScreen() {
       } else {
         const { error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
-        setMessage("A confirmation link has been sent to your email. Check your inbox (and spam folder) and click the link to sign in.");
+        setMessage("ส่งลิงก์ยืนยันไปที่อีเมลของคุณแล้ว ตรวจกล่องจดหมาย (และโฟลเดอร์สแปม) แล้วคลิกลิงก์เพื่อเข้าสู่ระบบ");
         setMode("signin");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred. Please try again.");
+      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด กรุณาลองอีกครั้ง");
     } finally {
       setIsLoading(false);
     }
@@ -167,7 +167,7 @@ export default function AuthScreen() {
                   STORYWEAVE
                 </h1>
                 <p className="text-[10px] text-neutral-600 mt-1.5 uppercase tracking-[0.25em]">
-                  Fantasy RPG Adventure
+                  เกม RPG ผจญภัยแฟนตาซี
                 </p>
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function AuthScreen() {
                     mode === m ? "text-amber-300" : "text-neutral-500 hover:text-neutral-300"
                   }`}
                 >
-                  {m === "signin" ? "Sign In" : "Sign Up"}
+                  {m === "signin" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
                 </button>
               ))}
             </div>
@@ -197,7 +197,7 @@ export default function AuthScreen() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div className="space-y-1.5">
-                <label htmlFor="auth-email" className="text-[10px] text-neutral-500 uppercase tracking-widest">Email</label>
+                <label htmlFor="auth-email" className="text-[10px] text-neutral-500 uppercase tracking-widest">อีเมล</label>
                 <input
                   id="auth-email"
                   type="email"
@@ -212,7 +212,7 @@ export default function AuthScreen() {
 
               {/* Password */}
               <div className="space-y-1.5">
-                <label htmlFor="auth-password" className="text-[10px] text-neutral-500 uppercase tracking-widest">Password</label>
+                <label htmlFor="auth-password" className="text-[10px] text-neutral-500 uppercase tracking-widest">รหัสผ่าน</label>
                 <div className="relative">
                   <input
                     id="auth-password"
@@ -268,7 +268,7 @@ export default function AuthScreen() {
             {/* ── Divider ── */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-neutral-800/60" />
-              <span className="text-[10px] text-neutral-700 uppercase tracking-widest">or</span>
+              <span className="text-[10px] text-neutral-700 uppercase tracking-widest">หรือ</span>
               <div className="flex-1 h-px bg-neutral-800/60" />
             </div>
 
@@ -287,19 +287,19 @@ export default function AuthScreen() {
               ) : (
                 <GoogleIcon />
               )}
-              {isGoogleLoading ? "Connecting to Google..." : "Continue with Google"}
+              {isGoogleLoading ? "กำลังเชื่อมต่อ Google..." : "เข้าสู่ระบบด้วย Google"}
             </button>
 
             {/* ── Guest ── */}
             <button
               type="button"
               onClick={() => setGameState({ auth_status: "guest", game_phase: "Menu" })}
-              title="Play without logging in — progress is saved on this device only"
+              title="เล่นโดยไม่ต้องเข้าสู่ระบบ — ความคืบหน้าบันทึกบนเครื่องนี้เท่านั้น"
               className="group flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-neutral-800/40 hover:border-neutral-700/50 text-neutral-600 hover:text-neutral-400 text-xs tracking-wide transition-all duration-200 hover:bg-neutral-900/30"
             >
               <Shield size={13} className="text-neutral-700 group-hover:text-neutral-500 transition-colors" />
-              Play as Guest
-              <span className="text-neutral-700 group-hover:text-neutral-600 transition-colors">(saved on this device only)</span>
+              เล่นแบบผู้เยี่ยมชม
+              <span className="text-neutral-700 group-hover:text-neutral-600 transition-colors">(บันทึกบนเครื่องนี้เท่านั้น)</span>
             </button>
           </div>
 

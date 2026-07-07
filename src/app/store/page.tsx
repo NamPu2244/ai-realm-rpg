@@ -69,13 +69,13 @@ function PriceBadge({ world }: Readonly<{ world: World }>) {
   if (world.is_premium) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-300/40">
-        <Sparkles size={11} /> Premium
+        <Sparkles size={11} /> พรีเมียม
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
-      Free
+      ฟรี
     </span>
   );
 }
@@ -224,8 +224,8 @@ function WorldCard({ world, onOpen, onDelete }: Readonly<{ world: World; onOpen:
       {onDelete && (
         <button
           type="button"
-          aria-label="Delete world"
-          title="Delete this world"
+          aria-label="ลบโลก"
+          title="ลบโลกนี้"
           onClick={() => onDelete(world)}
           className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-lg bg-black/50 text-red-300/80 opacity-0 ring-1 ring-red-500/20 backdrop-blur transition-all duration-200 hover:bg-red-500/20 hover:text-red-300 group-hover:opacity-100"
         >
@@ -267,13 +267,13 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
 
   const handlePublish = async () => {
     setError(null);
-    if (!title.trim()) return setError("Please enter a title.");
-    if (!slotId) return setError("Please pick a world to publish.");
+    if (!title.trim()) return setError("กรุณาใส่ชื่อเรื่อง");
+    if (!slotId) return setError("กรุณาเลือกโลกที่จะเผยแพร่");
     setBusy(true);
     try {
       const { data: { session } } = await getSupabaseClient().auth.getSession();
       const token = session?.access_token;
-      if (!token) throw new Error("Not signed in");
+      if (!token) throw new Error("ยังไม่ได้เข้าสู่ระบบ");
 
       const coverUrl = buildWorldCoverUrl(title.trim(), selectedSlot?.genre ?? "");
       const res = await fetch("/api/store/worlds", {
@@ -297,7 +297,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
       onPublished();
     } catch (err) {
       console.error("Publish failed:", err);
-      setError(err instanceof Error ? err.message : "Failed to publish.");
+      setError(err instanceof Error ? err.message : "เผยแพร่ไม่สำเร็จ");
     } finally {
       setBusy(false);
     }
@@ -310,8 +310,8 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
     <Modal onDismiss={onClose} size="lg">
         <div className="relative flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-black tracking-wide text-white">Publish a World</h2>
-            <p className="mt-1 text-sm text-neutral-500">Share one of your worlds with the marketplace.</p>
+            <h2 className="text-xl font-black tracking-wide text-white">เผยแพร่โลก</h2>
+            <p className="mt-1 text-sm text-neutral-500">แชร์โลกของคุณสู่ตลาด</p>
           </div>
           <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-neutral-500 transition-colors hover:bg-white/10 hover:text-white">
             <X size={18} />
@@ -322,19 +322,19 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
           <div className="relative mt-8 grid place-items-center rounded-2xl border border-amber-900/30 bg-white/[0.02] py-12 text-center">
             <Lock size={30} className="text-amber-700/60" />
             <p className="mt-4 text-sm font-semibold text-neutral-300">
-              {signedOut ? "Sign in to publish worlds" : "You have no saved worlds yet"}
+              {signedOut ? "เข้าสู่ระบบเพื่อเผยแพร่โลก" : "คุณยังไม่มีโลกที่บันทึกไว้"}
             </p>
             <p className="mt-1 max-w-xs text-xs text-neutral-600">
               {signedOut
-                ? "Only signed-in creators can publish to the marketplace."
-                : "Create and play a world first — then you can publish it here."}
+                ? "เฉพาะครีเอเตอร์ที่เข้าสู่ระบบเท่านั้นที่เผยแพร่สู่ตลาดได้"
+                : "สร้างและเล่นโลกก่อน — แล้วจึงเผยแพร่ที่นี่ได้"}
             </p>
           </div>
         ) : (
           <>
             {/* World picker */}
             <div className="relative mt-6">
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Which world?</span>
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">โลกไหน?</span>
               <div className="mt-2 max-h-32 space-y-1.5 overflow-y-auto pr-1">
                 {save_slots.map((slot) => {
                   const sel = slot.id === slotId;
@@ -347,7 +347,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
                         sel ? "border-amber-600/50 bg-amber-500/10 text-white" : "border-amber-900/25 bg-white/[0.02] text-neutral-400 hover:bg-white/[0.05]"
                       }`}
                     >
-                      <span className="truncate font-medium">{slot.world_name || "Unnamed World"}</span>
+                      <span className="truncate font-medium">{slot.world_name || "โลกไร้ชื่อ"}</span>
                       <span className="ml-3 shrink-0 text-[11px] text-neutral-600">{slot.genre}</span>
                     </button>
                   );
@@ -357,33 +357,33 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
 
             {/* Title */}
             <div className="relative mt-5">
-              <label htmlFor="publish-world-title" className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Listing Title</label>
+              <label htmlFor="publish-world-title" className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">ชื่อประกาศ</label>
               <input
                 id="publish-world-title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. The Villainess Reverses the Hourglass"
+                placeholder="เช่น นางร้ายพลิกเวลาย้อนคืน"
                 className="mt-2 w-full rounded-xl border border-amber-900/30 bg-white/5 px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none transition focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
               />
             </div>
 
             {/* Synopsis */}
             <div className="relative mt-4">
-              <label htmlFor="publish-world-synopsis" className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Synopsis</label>
+              <label htmlFor="publish-world-synopsis" className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">เรื่องย่อ</label>
               <textarea
                 id="publish-world-synopsis"
                 value={synopsis}
                 onChange={(e) => setSynopsis(e.target.value)}
                 rows={2}
-                placeholder="A one-line hook that sells your world…"
+                placeholder="ประโยคเด็ดหนึ่งบรรทัดที่ขายโลกของคุณ…"
                 className="mt-2 w-full resize-none rounded-xl border border-amber-900/30 bg-white/5 px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none transition focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
               />
             </div>
 
             {/* Tropes */}
             <div className="relative mt-4">
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Tropes (up to 6)</span>
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">ธีม (สูงสุด 6)</span>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {TROPES.map((t) => {
                   const sel = tags.includes(t);
@@ -407,10 +407,10 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
             <div className="relative mt-5">
               <label className="flex items-center gap-2 text-sm text-neutral-300">
                 <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} className="accent-amber-500" />
-                Mark as Premium
+                ทำเป็นพรีเมียม
               </label>
               <p className="mt-1.5 text-xs text-neutral-600">
-                {isPremium ? "Highlighted as a premium world." : "Published free for everyone."}
+                {isPremium ? "ถูกไฮไลต์เป็นโลกพรีเมียม" : "เผยแพร่ฟรีสำหรับทุกคน"}
               </p>
             </div>
 
@@ -418,7 +418,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
 
             <div className="relative mt-7 flex gap-3">
               <button type="button" onClick={onClose} className="flex-1 rounded-xl bg-white/5 px-4 py-3 text-sm font-semibold text-neutral-300 ring-1 ring-amber-900/25 transition hover:bg-white/10">
-                Cancel
+                ยกเลิก
               </button>
               <button
                 type="button"
@@ -427,7 +427,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
                 className="flex-[2] flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-3 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(217,119,6,0.6)] transition hover:brightness-110 disabled:opacity-60"
               >
                 {busy ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                {busy ? "Publishing…" : "Publish to Marketplace"}
+                {busy ? "กำลังเผยแพร่…" : "เผยแพร่สู่ตลาด"}
               </button>
             </div>
           </>
@@ -525,7 +525,7 @@ export default function StorePage() {
     try {
       const { data: { session } } = await getSupabaseClient().auth.getSession();
       const token = session?.access_token;
-      if (!token) throw new Error("Not signed in");
+      if (!token) throw new Error("ยังไม่ได้เข้าสู่ระบบ");
       const res = await fetch(`/api/store/worlds/${deleteTarget.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -560,10 +560,10 @@ export default function StorePage() {
   const grid = hero ? filtered.slice(1) : filtered;
 
   let emptyHint: string;
-  if (q) emptyHint = `No worlds match "${query.trim()}".`;
-  else if (tab === "library") emptyHint = "Publish one of your saved worlds to see it here.";
-  else if (trope) emptyHint = `Be the first to publish a ${trope} world.`;
-  else emptyHint = "Be the first to publish a world.";
+  if (q) emptyHint = `ไม่มีโลกที่ตรงกับ "${query.trim()}"`;
+  else if (tab === "library") emptyHint = "เผยแพร่โลกที่บันทึกไว้เพื่อให้ปรากฏที่นี่";
+  else if (trope) emptyHint = `เป็นคนแรกที่เผยแพร่โลกแนว ${trope}`;
+  else emptyHint = "เป็นคนแรกที่เผยแพร่โลก";
 
   return (
     <div className="relative min-h-screen bg-[#07050a] text-neutral-200">
@@ -583,18 +583,18 @@ export default function StorePage() {
         <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-amber-900/20 bg-white/[0.015] p-5 backdrop-blur-2xl lg:flex">
           <button type="button" onClick={goHome} className="flex items-center gap-2 text-neutral-600 transition-colors hover:text-amber-300">
             <ArrowLeft size={13} />
-            <span className="text-xs uppercase tracking-[0.3em]">Main Menu</span>
+            <span className="text-xs uppercase tracking-[0.3em]">เมนูหลัก</span>
           </button>
 
           <div className="px-1">
             <p className="text-sm font-black tracking-[0.15em] text-white">STORYWEAVE</p>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-800/70">World Store</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-800/70">ตลาดโลก</p>
           </div>
 
           <nav className="flex flex-col gap-1">
             {([
-              { id: "explore", label: "Explore Worlds", icon: Compass },
-              { id: "library", label: "My Library", icon: Library },
+              { id: "explore", label: "สำรวจโลก", icon: Compass },
+              { id: "library", label: "คลังของฉัน", icon: Library },
             ] as const).map(({ id, label, icon: Icon }) => {
               const isActive = tab === id;
               return (
@@ -622,7 +622,7 @@ export default function StorePage() {
             className="group relative mt-2 overflow-hidden rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-6px_rgba(217,119,6,0.5)] transition-all duration-300 hover:brightness-110"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              <Wand2 size={16} /> Publish a World
+              <Wand2 size={16} /> เผยแพร่โลก
             </span>
           </button>
 
@@ -632,9 +632,9 @@ export default function StorePage() {
                 {initials}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-neutral-200">{user?.email ?? "Guest"}</p>
+                <p className="truncate text-xs font-semibold text-neutral-200">{user?.email ?? "ผู้เยี่ยมชม"}</p>
                 <p className="flex items-center gap-1 text-[11px] text-amber-300/80">
-                  <Zap size={11} className="fill-amber-300/80" /> {energy} energy
+                  <Zap size={11} className="fill-amber-300/80" /> {energy} พลังงาน
                 </p>
               </div>
             </div>
@@ -653,13 +653,13 @@ export default function StorePage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search worlds or tropes…"
+                placeholder="ค้นหาโลกหรือธีม…"
                 className="w-full rounded-xl border border-amber-900/25 bg-white/5 py-2.5 pl-10 pr-9 text-sm text-white placeholder-neutral-600 outline-none transition focus:border-amber-500/40 focus:ring-2 focus:ring-amber-500/15"
               />
               {query && (
                 <button
                   type="button"
-                  aria-label="Clear search"
+                  aria-label="ล้างการค้นหา"
                   onClick={() => setQuery("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full text-neutral-500 transition hover:bg-white/10 hover:text-neutral-200"
                 >
@@ -672,7 +672,7 @@ export default function StorePage() {
               onClick={() => setShowPublish(true)}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 lg:hidden"
             >
-              <Wand2 size={16} /> Publish
+              <Wand2 size={16} /> เผยแพร่
             </button>
             <span className="hidden items-center gap-1.5 rounded-xl bg-white/5 px-3.5 py-2.5 text-sm font-semibold text-amber-300 ring-1 ring-amber-900/25 sm:flex">
               <Zap size={15} className="fill-amber-300" /> {energy}
@@ -687,7 +687,7 @@ export default function StorePage() {
             {/* Tropes (Explore only) */}
             {tab === "explore" && (
               <section className="space-y-4">
-                <h2 className="text-lg font-bold tracking-wide text-white">Browse by Trope</h2>
+                <h2 className="text-lg font-bold tracking-wide text-white">เลือกดูตามธีม</h2>
                 <TropeTags selected={trope} onSelect={selectTrope} />
               </section>
             )}
@@ -697,10 +697,10 @@ export default function StorePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold tracking-wide text-white">
-                    {tab === "library" ? "My Published Worlds" : trope ? `${trope} Worlds` : "Trending Worlds"}
+                    {tab === "library" ? "โลกที่ฉันเผยแพร่" : trope ? `โลกแนว ${trope}` : "โลกมาแรง"}
                   </h2>
                   <p className="text-sm text-neutral-600">
-                    {tab === "library" ? "Worlds you've shared with the community" : "Fresh from the community forge"}
+                    {tab === "library" ? "โลกที่คุณแชร์กับชุมชน" : "สดใหม่จากชุมชน"}
                   </p>
                 </div>
                 {tab === "explore" && (
@@ -710,11 +710,11 @@ export default function StorePage() {
                         key={key}
                         type="button"
                         onClick={() => selectSort(key)}
-                        className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition ${
+                        className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
                           sort === key ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white" : "text-neutral-500 hover:text-white"
                         }`}
                       >
-                        {key}
+                        {key === "popular" ? "ยอดนิยม" : "ใหม่ล่าสุด"}
                       </button>
                     ))}
                   </div>
@@ -729,9 +729,9 @@ export default function StorePage() {
 
               {status === "error" && (
                 <div className="grid place-items-center rounded-2xl border border-red-500/20 bg-red-500/5 py-16 text-center">
-                  <p className="text-sm font-semibold text-red-300">Couldn&apos;t load worlds</p>
+                  <p className="text-sm font-semibold text-red-300">โหลดโลกไม่สำเร็จ</p>
                   <button type="button" onClick={retry} className="mt-4 flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-amber-900/25 transition hover:bg-white/15">
-                    <Loader2 size={14} /> Retry
+                    <Loader2 size={14} /> ลองใหม่
                   </button>
                 </div>
               )}
@@ -740,11 +740,11 @@ export default function StorePage() {
                 <div className="grid place-items-center rounded-2xl border border-amber-900/25 bg-white/[0.02] py-20 text-center">
                   <Ghost size={40} className="text-amber-900/50" />
                   <p className="mt-4 text-sm font-semibold text-neutral-300">
-                    {tab === "library" ? "You haven't published any worlds yet" : "No worlds here yet"}
+                    {tab === "library" ? "คุณยังไม่ได้เผยแพร่โลกใดๆ" : "ยังไม่มีโลกที่นี่"}
                   </p>
                   <p className="mt-1 text-xs text-neutral-600">{emptyHint}</p>
                   <button type="button" onClick={() => setShowPublish(true)} className="mt-5 flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110">
-                    <Wand2 size={14} /> Publish a World
+                    <Wand2 size={14} /> เผยแพร่โลก
                   </button>
                 </div>
               )}
@@ -771,10 +771,10 @@ export default function StorePage() {
       {deleteTarget && (
         <ConfirmModal
           variant="danger"
-          title="Remove This World?"
-          message={`Remove "${deleteTarget.title}" from the marketplace? Players will no longer be able to find it. This cannot be undone.`}
-          confirmText={deleting ? "Removing…" : "Remove"}
-          cancelText="Cancel"
+          title="นำโลกนี้ออก?"
+          message={`นำ "${deleteTarget.title}" ออกจากตลาด? ผู้เล่นจะหาไม่เจออีกต่อไป การกระทำนี้ย้อนกลับไม่ได้`}
+          confirmText={deleting ? "กำลังนำออก…" : "นำออก"}
+          cancelText="ยกเลิก"
           onConfirm={confirmDelete}
           onCancel={() => setDeleteTarget(null)}
         />
