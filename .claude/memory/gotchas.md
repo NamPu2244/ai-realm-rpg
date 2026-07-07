@@ -126,6 +126,11 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   menu" did nothing. Fix: call `router.push("/")` explicitly (keep the `game_phase: "Dashboard"` so the
   landing renders MainMenuDashboard). The play button in `store/[id]` already does this
   (`router.push("/play")`). Path: `src/app/store/page.tsx`.
+- **Never render `world_config.genre` or `.tone` raw in the UI — they're AI-facing values.** `genre`
+  holds the long English description sent to the model and `tone` holds the raw id (`balanced` etc.).
+  They were leaking into the sidebar, mobile stats, journal, and header (e.g. "แนว: High fantasy…",
+  "โทน: balanced", "BALANCED"). Use `genreLabelTH()` / `toneLabelTH()` from `src/lib/gameText.ts` at
+  every DISPLAY site (custom Pro genres fall through and show as typed). Verified via a screenshot pass.
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
