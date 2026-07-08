@@ -176,14 +176,15 @@ export default function ActionBar({
   const inputHistoryRef = useRef<string[]>([]);
   const historyIdxRef = useRef(-1);
   const [selectedType, setSelectedType] = useState<PlayerActionTypeId | null>(null);
-  // Suggested actions are an opt-in "hint" now, not always-on hand-holding. Hidden by
-  // default and re-hidden each new turn. Reset during render (React's "adjust state when a
-  // prop changes" pattern) when the suggestions change — avoids a setState-in-effect.
-  const [showHints, setShowHints] = useState(false);
+  // Suggested actions are shown by default every turn — concrete choices are what keep the
+  // game from feeling like an open-ended chat ("…so what do I do now?"). Still dismissible
+  // (the "ซ่อน" button), and re-shown for each new turn. Reset during render (React's "adjust
+  // state when a prop changes" pattern) when the suggestions change — avoids a setState-in-effect.
+  const [showHints, setShowHints] = useState(true);
   const [prevSuggestions, setPrevSuggestions] = useState(suggestedActions);
   if (suggestedActions !== prevSuggestions) {
     setPrevSuggestions(suggestedActions);
-    setShowHints(false);
+    setShowHints(true);
   }
 
   // Number keys 1-N pick a hint — but only while the hints are actually revealed, so the
@@ -268,7 +269,7 @@ export default function ActionBar({
               disabled={isLoading}
               className="self-start flex items-center gap-2 px-3 py-1.5 text-xs text-theme-muted hover:text-theme-accent border border-theme-border/60 hover:border-theme-accent/40 rounded-lg transition-all disabled:opacity-40"
             >
-              <Lightbulb size={13} /> นึกไม่ออก? ดูคำใบ้
+              <Lightbulb size={13} /> ดูทางเลือก
             </button>
           )}
 
