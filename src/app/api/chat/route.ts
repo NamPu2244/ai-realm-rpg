@@ -330,6 +330,23 @@ EXPECTED JSON SCHEMA — respond with ONLY this JSON object, no narrative, no pr
 }`;
 }
 
+// The player-choices "brain". suggested_actions is a CRAFT task (concrete, tempting,
+// scene-specific choices), not bookkeeping — so it runs on the storyteller model
+// (Typhoon), not the small extraction model, which produces flat generic verbs. Fed the
+// finished prose; returns {"actions": [...]}. Runs in parallel with extraction in finishTurn.
+function buildChoicesPrompt(worldConfig?: WorldConfig | null) {
+  const language = worldConfig?.language || 'ไทย';
+  return `You are the Game Master. You just narrated the scene the user will give you. Output the concrete next actions the PLAYER could take RIGHT NOW — the kind that make a player lean in and click, not a flat menu.
+RULES:
+- EXACTLY 3 options, each written in ${language}, each UNDER 10 words.
+- Each option MUST be anchored to something physically present in the scene just narrated, and carry clear intent, risk, or attitude.
+- The 3 must be DISTINCT in approach — e.g. one bold/aggressive, one cunning/social, one risky or unexpected. Never three flavors of the same move.
+- These are things the CHARACTER does in-world, phrased as a decisive choice, never a game command or a question.
+- ❌ BANNED — flat generic verbs with no specific target: "โจมตี", "สำรวจห้อง", "สำรวจบริเวณ", "คุยกับ...", "ถาม...เพิ่มเติม", "หาของมีค่า", "เตรียมตัว...", "ตรวจสอบ...". Every option names a SPECIFIC target AND a SPECIFIC action.
+- ✅ SHAPE — build each option to this FORMULA, never copy any wording from this instruction: [a decisive physical verb] + [a specific object, feature, or character that literally appears in THIS scene] + optional [the intent or the risk]. Every option must be constructed from the scene you were given, not from these rules. If an option would still make sense in a totally different scene, it is too generic — rewrite it.
+Output ONLY this JSON and nothing else: {"actions": ["…","…","…"]}`;
+}
+
 
 // ---- Deterministic dice tools ----
 
@@ -733,28 +750,52 @@ ${historyContext}
             }
           }
 
-          // Phase 3: bookkeeping. Feed the finished prose to the rules engine.
+          // Phase 3: bookkeeping (scout) + player choices (storyteller), in PARALLEL.
           // Include the prologue as extra context so the world's genre/tone is grounded.
+          const extractionNarrative = prologue ? `${prologue}\n\n${narrativeBody}` : narrativeBody;
+
+          // 3a. Bookkeeping — the small model derives structured state from the prose.
+          const extractionUserPrompt = `${finalUserPrompt}\n\n[NARRATIVE JUST WRITTEN — derive all state changes from this exact prose]\n${extractionNarrative}`;
+          const extractionPromise = fetch(inferenceUrl, {
+            method: 'POST',
+            headers: requestHeaders,
+            body: JSON.stringify({
+              model: extractionModel,
+              messages: [
+                { role: 'system', content: extractionSystemPrompt },
+                { role: 'user', content: extractionUserPrompt },
+              ],
+              stream: false,
+              temperature: 0.2,
+              max_tokens: 1600,
+              response_format: { type: 'json_object' },
+            }),
+          }).catch(() => null);
+
+          // 3b. Player choices — the storyteller model turns the scene it just wrote into
+          // concrete, tempting options. Kicked off now so it overlaps extraction (no added
+          // wall-time). Overrides the extraction's flatter suggested_actions when it succeeds.
+          const choicesPromise = fetch(narrativeUrl, {
+            method: 'POST',
+            headers: narrativeHeaders,
+            body: JSON.stringify({
+              model: narrativeModel,
+              messages: [
+                { role: 'system', content: buildChoicesPrompt(worldConfig) },
+                { role: 'user', content: `[SCENE JUST NARRATED]\n${extractionNarrative}` },
+              ],
+              stream: false,
+              temperature: 0.7,
+              max_tokens: 200,
+              ...(useNarrativeOverride ? { top_p: 0.8 } : {}),
+              ...(narrativeModel.includes('qwen') ? { reasoning_effort: 'none' } : {}),
+            }),
+          }).catch(() => null);
+
           let gameState: Record<string, unknown> | null = null;
           try {
-            const extractionNarrative = prologue ? `${prologue}\n\n${narrativeBody}` : narrativeBody;
-            const extractionUserPrompt = `${finalUserPrompt}\n\n[NARRATIVE JUST WRITTEN — derive all state changes from this exact prose]\n${extractionNarrative}`;
-            const extractionRes = await fetch(inferenceUrl, {
-              method: 'POST',
-              headers: requestHeaders,
-              body: JSON.stringify({
-                model: extractionModel,
-                messages: [
-                  { role: 'system', content: extractionSystemPrompt },
-                  { role: 'user', content: extractionUserPrompt },
-                ],
-                stream: false,
-                temperature: 0.2,
-                max_tokens: 1600,
-                response_format: { type: 'json_object' },
-              }),
-            });
-            if (extractionRes.ok) {
+            const extractionRes = await extractionPromise;
+            if (extractionRes?.ok) {
               const extractionData = await extractionRes.json() as {
                 choices?: Array<{ message?: { content?: string } }>;
               };
@@ -763,6 +804,27 @@ ${historyContext}
             }
           } catch {
             // Non-fatal: gameState stays null → client shows retry, prose already shown.
+          }
+
+          // Override suggested_actions with the storyteller's concrete choices when valid.
+          try {
+            const choicesRes = await choicesPromise;
+            if (choicesRes?.ok && gameState) {
+              const cData = await choicesRes.json() as { choices?: Array<{ message?: { content?: string } }> };
+              const raw = cData.choices?.[0]?.message?.content ?? "";
+              // Accept either {"actions":[...]} or a bare JSON array [...] (some models drop the wrapper).
+              let list: unknown = parseJsonObject(raw)?.actions;
+              if (!Array.isArray(list)) {
+                const start = raw.indexOf('['), end = raw.lastIndexOf(']');
+                if (start !== -1 && end > start) { try { list = JSON.parse(raw.slice(start, end + 1)); } catch { list = undefined; } }
+              }
+              const acts = Array.isArray(list)
+                ? list.filter((a): a is string => typeof a === 'string' && a.trim().length > 0).slice(0, 4)
+                : [];
+              if (acts.length >= 2) gameState.suggested_actions = acts;
+            }
+          } catch {
+            // Non-fatal: keep the extraction's suggested_actions.
           }
 
           // Deduct 1 energy atomically once the turn's generation has completed.
