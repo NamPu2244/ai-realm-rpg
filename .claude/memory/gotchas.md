@@ -146,6 +146,24 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   sound-only wind/water/ocean/underwater/cave/crowd/machinery/magic. The `AMBIENTS` registry in
   `sounds.ts` (per-effect synth builders) must have a key for every ENVIRONMENT_FX value; the 8 sound-only
   ones deliberately have NO CSS/visual (FXManager only renders overlays for rain/snow/fog/embers).
+- **Typhoon narrative slips banned phrases via un-listed variants (2026-07-08).** Symptom: prose still
+  writes รู้สึก/ดูเหมือน despite the ban. Root cause: the THAI BANNED PHRASES list enumerated exact
+  strings (คุณรู้สึก/รู้สึกว่า, ดูเหมือน) so the model reached for near-variants (bare รู้สึกว่า, รู้สึกคุ้น,
+  รู้สึกถึง, ก็รู้สึก, คล้ายจะ). Fix: `buildNarrativePrompt` now bans the VERB รู้สึก in EVERY form + ดูเหมือน/
+  คล้ายจะ as fact-hedges, each with ❌→✅ rewrites, while explicitly PRESERVING the poetic ราวกับ simile
+  (don't ban that — the good prose leans on it). Reduced ~7→0 on one full battery, ~4 residual on another.
+  **Ceiling reality:** at temp 0.6/top_p 0.6 prompt rules REDUCE but can't GUARANTEE zero — residual slips
+  cluster on introspective/supernatural beats (god-mode backlash, eerie exploration) and on genuine
+  physical-sensation uses (น้ำเย็นจนรู้สึก…). Chasing 0 needs a rewrite-pass backstop, not more prompt text.
+- **`[[SCENE]]` marker is variance-flaky, both directions (2026-07-08).** It leaked onto continuation turns
+  (client strips it via the defensive split in the stream's `finishTurn`, so harmless) AND was occasionally
+  omitted on first turns (~1/9, different opening each run → prologue shows inline). Fix: made the OUTPUT
+  FORMAT rule symmetric — STRICTLY FORBIDDEN on any turn with [RECENT EVENTS], REQUIRED on the first turn.
+  Continuation leaks gone; first-turn omission stays a low-rate variance the server tolerates.
+- **How to battery-test narrative without the UI:** POST real turns straight to a running dev server's
+  `/api/chat` (no auth → skips energy, still counts vs MAX_DAILY_TURNS=50) and read the NDJSON `response`
+  chunks. Harness pattern used: scratchpad `narrative-battery.mjs` (worldConfig per genre + seeded history
+  for non-first turns). Grep outputs for รู้สึก/ดูเหมือน, stray `[A-Za-z]`, and `[[SCENE]]` on turns 04+.
 - (Add recurring problems + their fixes here as they're discovered, so future runs resolve them faster.
   Include: symptom → root cause → fix → file paths.)
 
