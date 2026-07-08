@@ -9,7 +9,6 @@ import type { LucideIcon } from "lucide-react";
 import { WorldConfig, WorldTone } from "@/store/useGameStore";
 import { generateRandomStart } from "@/utils/randomStarts";
 
-const LANGUAGES = ["ไทย", "English", "日本語"];
 
 const GENRES: { id: string; icon: LucideIcon; label: string; value: string }[] = [
   { id: "fantasy",    icon: Sword,     label: "แฟนตาซี",       value: "High fantasy with magic, monsters, and medieval kingdoms" },
@@ -179,8 +178,6 @@ interface WorldCreationMenuProps {
 }
 
 export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: Readonly<WorldCreationMenuProps>) {
-  const [language, setLanguage]               = useState(LANGUAGES[0]);
-  const [customLanguage, setCustomLanguage]   = useState("");
   const [genreId, setGenreId]                 = useState(GENRES[0].id);
   const [customGenre, setCustomGenre]         = useState("");
   const [tone, setTone]                       = useState<WorldTone>("balanced");
@@ -209,7 +206,6 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
   const handleStart = () => {
     if (!worldName.trim()) { setWorldNameError(true); return; }
     setWorldNameError(false);
-    const resolvedLanguage = customLanguage.trim() || language;
     const resolvedGenre =
       customGenre.trim() || GENRES.find((g) => g.id === genreId)?.value || GENRES[0].value;
 
@@ -231,7 +227,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
       openingSeed = generateRandomStart();
     }
 
-    onStart({ language: resolvedLanguage, genre: resolvedGenre, tone, character: resolvedCharacter, customWorld: customWorld.trim(), openingSeed, worldName: worldName.trim() });
+    onStart({ language: 'ไทย', genre: resolvedGenre, tone, character: resolvedCharacter, customWorld: customWorld.trim(), openingSeed, worldName: worldName.trim() });
   };
 
   const ctaPrice = upsellPlan === "monthly" ? "฿99/mo" : "฿799/yr";
@@ -412,33 +408,8 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           )}
         </StepCard>
 
-        {/* ── 1. Language ── */}
-        <StepCard num={1} title="ภาษาของเกม" tooltip="ภาษาที่ AI จะใช้เล่าเรื่องและข้อความในเกมทั้งหมด">
-          <div className="flex flex-wrap gap-2">
-            {LANGUAGES.map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => { setLanguage(lang); setCustomLanguage(""); }}
-                className={`px-4 py-2 rounded-xl border text-sm transition-colors ${
-                  language === lang && !customLanguage ? PILL_ON : PILL_OFF
-                }`}
-              >
-                {lang}
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            value={customLanguage}
-            onChange={(e) => setCustomLanguage(e.target.value)}
-            placeholder="หรือพิมพ์ภาษาอื่น..."
-            className={INPUT}
-          />
-        </StepCard>
-
-        {/* ── 2. Genre ── */}
-        <StepCard num={2} title="แนวเรื่อง" tooltip="กำหนดบรรยากาศ ธีม และฉากของโลกที่คุณจะผจญภัย">
+        {/* ── 1. Genre ── */}
+        <StepCard num={1} title="แนวเรื่อง" tooltip="กำหนดบรรยากาศ ธีม และฉากของโลกที่คุณจะผจญภัย">
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
             {GENRES.map((g) => {
               const active = genreId === g.id && !customGenre;
@@ -468,8 +439,8 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           </ProGate>
         </StepCard>
 
-        {/* ── 3. Tone ── */}
-        <StepCard num={3} title="โทน / ความยาก" tooltip="กำหนดความเข้มงวดของกฎและความเสี่ยงที่จะตาย">
+        {/* ── 2. Tone ── */}
+        <StepCard num={2} title="โทน / ความยาก" tooltip="กำหนดความเข้มงวดของกฎและความเสี่ยงที่จะตาย">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {TONES.map((t) => {
               const active = tone === t.id;
@@ -495,8 +466,8 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           </div>
         </StepCard>
 
-        {/* ── 4. Character ── */}
-        <StepCard num={4} title="ตัวละคร: ตัวตนและบุคลิก" tooltip="กำหนดเพศ รสนิยม บุคลิก และภูมิหลังของตัวละคร — AI จะใช้ตลอดทั้งเรื่อง">
+        {/* ── 3. Character ── */}
+        <StepCard num={3} title="ตัวละคร: ตัวตนและบุคลิก" tooltip="กำหนดเพศ รสนิยม บุคลิก และภูมิหลังของตัวละคร — AI จะใช้ตลอดทั้งเรื่อง">
 
           {/* Gender */}
           <div className="space-y-2">
@@ -590,9 +561,9 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
           </ProGate>
         </StepCard>
 
-        {/* ── 5. Custom world ── */}
+        {/* ── 4. Custom world ── */}
         <StepCard
-          num={5}
+          num={4}
           title={`รายละเอียดโลกเพิ่มเติม${isPro ? "" : " 🔒 Pro"}`}
           tooltip="เพิ่มกฎพิเศษ ระบบเวทมนตร์ กลุ่มพลัง หรือสิ่งที่อยาก (หรือไม่อยาก) ให้ AI ใส่"
         >
