@@ -83,7 +83,7 @@ export default function GameHeader({
             <Swords size={20} className="text-amber-400" /> STORYWEAVE
           </h1>
           <p className="text-xs text-amber-100/40 uppercase tracking-wider mt-0.5">
-            {worldConfig?.language} · {toneLabelTH(worldConfig?.tone)}
+            {toneLabelTH(worldConfig?.tone)}
             {(timeOfDay || inWorldDate) && (
               <span className="text-amber-100/30 ml-2 normal-case tracking-normal">
                 {[timeOfDay, inWorldDate].filter(Boolean).join(" · ")}

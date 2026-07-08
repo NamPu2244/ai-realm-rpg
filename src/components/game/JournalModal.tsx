@@ -133,11 +133,7 @@ export default function JournalModal({
         <div className="space-y-2">
           <h3 className="text-xs font-bold text-amber-400/60 uppercase tracking-widest">ข้อมูลโลกและตัวละคร</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-amber-400/60">ภาษา: </span>
-              <span className="text-amber-50/80">{worldConfig?.language}</span>
-            </div>
-            <div>
+            <div className="col-span-2">
               <span className="text-amber-400/60">โทน: </span>
               <span className="text-amber-50/80">{toneLabelTH(worldConfig?.tone)}</span>
             </div>
