@@ -155,6 +155,18 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   **Ceiling reality:** at temp 0.6/top_p 0.6 prompt rules REDUCE but can't GUARANTEE zero — residual slips
   cluster on introspective/supernatural beats (god-mode backlash, eerie exploration) and on genuine
   physical-sensation uses (น้ำเย็นจนรู้สึก…). Chasing 0 needs a rewrite-pass backstop, not more prompt text.
+- **Vivid few-shot ✅ examples get parroted into the story (2026-07-08).** After adding a ❌→✅ rewrite
+  with a memorable concrete image ("รูปทรงเดียวกับที่สลักอยู่เหนือประตูบ้านเกิด") Typhoon copied that exact
+  image into unrelated scenes (a crow's burn mark, a god-mode backlash). Root cause: concrete nouns in
+  examples are liftable. Fix: examples must teach the TECHNIQUE with generic/placeholder payload (show the
+  move via a body reaction, no unique noun) + an inline "examples illustrate technique only, don't reuse
+  their imagery" note. Applies to every ❌/✅ pair in `buildNarrativePrompt` — keep them schematic.
+- **The Thai-only decision (2026-07-08).** Language picker removed from `WorldCreationMenu`
+  (`language` hardcoded 'ไทย'); the whole craft stack (Typhoon model + banned-phrase/particle rules) is
+  Thai-tuned and can't be QA'd per-language. `WorldConfig.language` + the prompt's `${language}` plumbing
+  intentionally KEPT (default ไทย) so pre-existing non-Thai localStorage saves don't force-switch. If
+  re-adding a language, it needs a model suited to it AND its own banned-phrase list — don't just expose
+  the picker again.
 - **`[[SCENE]]` marker is variance-flaky, both directions (2026-07-08).** It leaked onto continuation turns
   (client strips it via the defensive split in the stream's `finishTurn`, so harmless) AND was occasionally
   omitted on first turns (~1/9, different opening each run → prologue shows inline). Fix: made the OUTPUT
