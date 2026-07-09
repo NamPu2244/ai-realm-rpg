@@ -163,9 +163,15 @@ against it. Keep it to recurring, reusable lessons — one bullet each, in the s
   in PARALLEL with extraction (Promise-style, no added wall-time), fed the finished prose; it OVERRIDES
   `gameState.suggested_actions` when it returns ≥2 valid strings, else falls back to extraction's list.
   So there are now effectively 4 LLM calls/turn (dice, narrative, extraction, choices). If you're debugging
-  "why is suggested_actions X", it comes from the choices call, NOT the extraction schema. Parser accepts
-  `{"actions":[...]}` or a bare `[...]`. Also: the UI (ActionBar) now shows these EVERY turn by default
-  (was an opt-in hint) — `showHints` starts true + re-shows on each new suggestion set.
+  "why is suggested_actions X", it comes from the choices call, NOT the extraction schema.
+  **Now GROUPED BY MODE (2026-07-09):** the choices call returns `{speak,think,act,investigate}` →
+  `suggested_actions_by_mode` (store field, persist v7, `normalizeActionsByMode` guard); the flat
+  `suggested_actions` is a derived compat mirror. ActionBar is mode-first: pick a mode → see that mode's
+  choices → click sends `[mode]: choice`. **Gotcha:** the grouped JSON is much bigger than a flat list —
+  the choices call needs `max_tokens ≥ 500` + `response_format:json_object` or it truncates mid-JSON and
+  ~half the turns silently fall back to the flat list. If a turn's grouped result is thin, route.ts seeds
+  the 'act' mode from the flat list, and ActionBar auto-jumps to a populated mode, so the player never
+  sees a blank choice set. The design intent is "fake freedom within bounds" (constraint > empty sandbox).
 - **Vivid few-shot ✅ examples get parroted into the story (2026-07-08).** (Recurred in `buildChoicesPrompt`:
   concrete Thai ✅ examples like "ฟันโซ่ที่ล่ามประตู"/"จ่อมีดถามชื่อมันตรงๆ" got copied verbatim into scenes
   that loosely matched. Same fix: replace liftable example sentences with an abstract FORMULA + "never copy
