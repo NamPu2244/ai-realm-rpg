@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import type { SuggestedActionsByMode } from "@/store/useGameStore";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+import { Send, RotateCcw, Skull } from "lucide-react";
+import type { SuggestedActionsByMode, PlayerActionMode } from "@/store/useGameStore";
 
 interface ActionBarProps {
   error: string | null;
@@ -17,121 +17,27 @@ interface ActionBarProps {
   onRestart: () => void;
 }
 
-// ---- Suggested action type detection (unchanged) ----
-
-type ActionType = "combat" | "explore" | "talk" | "magic" | "item" | "default";
-
-interface ActionStyle {
-  icon: LucideIcon;
-  card: string;
-  key: string;
-  label: string;
-}
-
-const ACTION_STYLES: Record<ActionType, ActionStyle> = {
-  combat: {
-    icon: Sword,
-    card: "border-red-800/50 hover:border-red-600/70 hover:bg-red-950/30 text-red-200/80 hover:text-red-100",
-    key: "text-red-700/60 group-hover:text-red-500/80",
-    label: "Combat",
-  },
-  explore: {
-    icon: Compass,
-    card: "border-emerald-800/40 hover:border-emerald-600/60 hover:bg-emerald-950/25 text-emerald-200/80 hover:text-emerald-100",
-    key: "text-emerald-700/60 group-hover:text-emerald-500/80",
-    label: "Explore",
-  },
-  talk: {
-    icon: MessageCircle,
-    card: "border-sky-800/40 hover:border-sky-600/60 hover:bg-sky-950/25 text-sky-200/80 hover:text-sky-100",
-    key: "text-sky-700/60 group-hover:text-sky-500/80",
-    label: "Dialogue",
-  },
-  magic: {
-    icon: Wand2,
-    card: "border-purple-800/40 hover:border-purple-600/60 hover:bg-purple-950/25 text-purple-200/80 hover:text-purple-100",
-    key: "text-purple-700/60 group-hover:text-purple-500/80",
-    label: "Magic",
-  },
-  item: {
-    icon: Package,
-    card: "border-amber-800/40 hover:border-amber-600/60 hover:bg-amber-950/25 text-amber-200/80 hover:text-amber-100",
-    key: "text-amber-700/60 group-hover:text-amber-500/80",
-    label: "Item",
-  },
-  default: {
-    icon: ChevronRight,
-    card: "border-theme-border hover:border-theme-accent/50 hover:bg-theme-surface text-theme-text/65 hover:text-theme-text",
-    key: "text-theme-accent/60 group-hover:text-theme-accent/80",
-    label: "Action",
-  },
-};
-
-const COMBAT_RE = /โจมตี|ต่อสู้|ฆ่า|ยิง|ตี|ฟัน|ป้องกัน|ระเบิด|attack|fight|kill|strike|slash|defend|shoot/i;
-const EXPLORE_RE = /เดิน|วิ่ง|มุ่งหน้า|สำรวจ|ค้นหา|ซ่อน|หลบ|หนี|ปีน|go|move|run|explore|search|hide|flee/i;
-const TALK_RE = /พูด|ถาม|เจรจา|ทักทาย|โน้มน้าว|talk|ask|speak|say|negotiate|greet|persuade/i;
-const MAGIC_RE = /ร่าย|เวทย์|สาป|เรียก|ปลุก|cast|spell|magic|enchant|summon|curse/i;
-const ITEM_RE = /ใช้|หยิบ|วาง|ดื่ม|ฉีด|เปิด|ปิด|use|take|drink|equip|apply|open|close/i;
-
-function detectActionType(text: string): ActionType {
-  if (COMBAT_RE.test(text)) return "combat";
-  if (MAGIC_RE.test(text)) return "magic";
-  if (ITEM_RE.test(text)) return "item";
-  if (EXPLORE_RE.test(text)) return "explore";
-  if (TALK_RE.test(text)) return "talk";
-  return "default";
-}
-
-// ---- Player action type selector ----
-
-type PlayerActionTypeId = "speak" | "think" | "act" | "investigate";
-
-interface PlayerActionType {
-  id: PlayerActionTypeId;
-  emoji: string;
-  label: string;
-  placeholder: string;
-  activeClass: string;
-  inactiveClass: string;
-}
-
-const PLAYER_ACTION_TYPES: PlayerActionType[] = [
-  {
-    id: "speak",
-    emoji: "💬",
-    label: "พูด",
-    placeholder: "ตัวละครของคุณจะพูดว่าอะไร?",
-    activeClass: "bg-sky-950/60 border-sky-500/70 text-sky-200",
-    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-sky-800/50 hover:text-sky-400/70",
-  },
-  {
-    id: "think",
-    emoji: "💭",
-    label: "คิด",
-    placeholder: "ตัวละครของคุณคิดอะไรอยู่? (NPC ไม่รับรู้)",
-    activeClass: "bg-purple-950/60 border-purple-500/70 text-purple-200",
-    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-purple-800/50 hover:text-purple-400/70",
-  },
-  {
-    id: "act",
-    emoji: "⚔️",
-    label: "ทำ",
-    placeholder: "ตัวละครของคุณจะทำอะไร?",
-    activeClass: "bg-theme-surface border-theme-accent/70 text-theme-accent",
-    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-theme-accent/50 hover:text-theme-accent/70",
-  },
-  {
-    id: "investigate",
-    emoji: "🔍",
-    label: "สำรวจ",
-    placeholder: "คุณจะตรวจสอบอะไร?",
-    activeClass: "bg-emerald-950/60 border-emerald-500/70 text-emerald-200",
-    inactiveClass: "border-stone-700/40 text-stone-500 hover:border-emerald-800/50 hover:text-emerald-400/70",
-  },
+// The four action modes, shown as a fanned hand of cards. `sym` is the little
+// tarot-style corner glyph; the suit colour comes from the .ahud-suit-* class.
+interface ModeMeta { id: PlayerActionMode; emoji: string; sym: string; label: string; }
+const MODE_META: ModeMeta[] = [
+  { id: "speak", emoji: "💬", sym: "❋", label: "พูด" },
+  { id: "think", emoji: "💭", sym: "☾", label: "คิด" },
+  { id: "act", emoji: "⚔️", sym: "✠", label: "ทำ" },
+  { id: "investigate", emoji: "🔍", sym: "✧", label: "สำรวจ" },
 ];
+const MODE_LABEL: Record<PlayerActionMode, string> = { speak: "💬 พูด", think: "💭 คิด", act: "⚔️ ทำ", investigate: "🔍 สำรวจ" };
 
-// ---- Dead panel ----
+// Fan the cards out along a shallow arc — angle per card, centred on zero.
+function fanAngles(n: number): number[] {
+  const step = Math.min(15, 44 / Math.max(n, 1));
+  const start = -((n - 1) / 2) * step;
+  return Array.from({ length: n }, (_, i) => start + i * step);
+}
+const cardStyle = (angle: number, i: number): CSSProperties =>
+  ({ "--ahud-angle": `${angle}deg`, "--ahud-i": i } as CSSProperties);
 
+// ---- Dead panel (unchanged) ----
 function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRestart: () => void }>) {
   if (worldTone === "hardcore") {
     return (
@@ -160,6 +66,7 @@ function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRe
 }
 
 // ---- Main component ----
+type View = "ready" | "modes" | "choices";
 
 export default function ActionBar({
   error,
@@ -176,44 +83,49 @@ export default function ActionBar({
 }: Readonly<ActionBarProps>) {
   const inputHistoryRef = useRef<string[]>([]);
   const historyIdxRef = useRef(-1);
-  // Mode-first interaction ("fake freedom in bounds"): the player picks a mode, then sees the
-  // concrete choices for THAT mode (from suggestedActionsByMode). Default to "act" so a choice
-  // is always visible the instant a turn lands — no "…so what do I do now?". The selected mode
-  // persists across turns (less friction); free-text stays as an escape hatch.
-  const [selectedType, setSelectedType] = useState<PlayerActionTypeId>("act");
-  const currentChoices = useMemo(() => suggestedActionsByMode[selectedType] ?? [], [suggestedActionsByMode, selectedType]);
-  const anyChoices = (["speak", "think", "act", "investigate"] as const).some((m) => suggestedActionsByMode[m].length > 0);
+  const freeInputRef = useRef<HTMLInputElement>(null);
 
-  // When a new turn's choices land, if the player's current mode has none but another mode does,
-  // jump to the first populated mode (preferring act) so they never see a blank set. Adjusts state
-  // during render (React's "derive from prop change" pattern) — no setState-in-effect.
+  // The HUD is a small state machine: a floating sigil ("your turn") that the player taps to
+  // fan out the mode cards; picking a mode fans out that mode's choices; the sigil shrinks into
+  // a back button. Free-text is a card ("พิมพ์เอง") that reveals an input.
+  const [view, setView] = useState<View>("ready");
+  const [selectedMode, setSelectedMode] = useState<PlayerActionMode>("act");
+  const [showInput, setShowInput] = useState(false);
+
+  // Each new turn collapses back to the floating sigil (the "your turn" beat). Adjust state
+  // during render on the prop change — no setState-in-effect.
   const [prevByMode, setPrevByMode] = useState(suggestedActionsByMode);
   if (suggestedActionsByMode !== prevByMode) {
     setPrevByMode(suggestedActionsByMode);
-    if (suggestedActionsByMode[selectedType].length === 0) {
-      const firstWith = (["act", "speak", "investigate", "think"] as const).find((m) => suggestedActionsByMode[m].length > 0);
-      if (firstWith) setSelectedType(firstWith);
-    }
+    setView("ready");
+    setShowInput(false);
   }
 
-  // Number keys 1-N fire the current mode's choices (prefixed with the mode), matching what's
-  // on screen. Never active during a QTE turn (choices are empty then) or while typing.
-  useEffect(() => {
-    if (isLoading || isDead || currentChoices.length === 0) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      const idx = Number.parseInt(e.key) - 1;
-      if (idx >= 0 && idx < currentChoices.length) onSend(`[${selectedType}]: ${currentChoices[idx]}`);
-    };
-    globalThis.addEventListener("keydown", handler);
-    return () => globalThis.removeEventListener("keydown", handler);
-  }, [isLoading, isDead, currentChoices, selectedType, onSend]);
+  // Remounting the fan on this key replays the CSS deal-in animation for each new set of cards.
+  const fanKey = view === "choices" ? `c-${selectedMode}` : view;
+  const choices = suggestedActionsByMode[selectedMode] ?? [];
 
-  const activeMeta = PLAYER_ACTION_TYPES.find((t) => t.id === selectedType);
-  const placeholder = activeMeta?.placeholder ?? "ตัวละครของคุณจะทำอะไร?";
+  // Leaving the free-text card for any other card cancels the half-typed input entirely.
+  const cancelTyping = () => { setShowInput(false); if (input) onInputChange(""); };
+  const goModes = () => { cancelTyping(); setView("modes"); };
+  const pickMode = (id: PlayerActionMode) => { setSelectedMode(id); cancelTyping(); setView("choices"); };
+  const fireChoice = (text: string) => { cancelTyping(); onSend(`[${selectedMode}]: ${text}`); };
+  const openType = () => { setShowInput(true); requestAnimationFrame(() => freeInputRef.current?.focus()); };
+  const sigilClick = () => {
+    if (isLoading) return;
+    if (view === "ready") goModes();
+    else if (view === "choices") goModes();
+    else setView("ready");
+  };
 
-  // Free-text is always available (escape hatch) — it just carries the current mode.
-  const inputPlaceholder = isLoading ? "GM กำลังประมวลผล..." : `${placeholder}  (หรือเลือกจากตัวเลือกด้านบน)`;
+  const handleSubmit = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text) return;
+    inputHistoryRef.current.push(text);
+    historyIdxRef.current = -1;
+    onSend(`[${selectedMode}]: ${text}`);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const hist = inputHistoryRef.current;
@@ -230,23 +142,37 @@ export default function ActionBar({
     }
   };
 
-  const handleSubmit = (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text) return;
-    inputHistoryRef.current.push(text);
-    historyIdxRef.current = -1;
-    onSend(`[${selectedType}]: ${text}`);
-  };
+  // Keyboard: number keys pick the visible cards; Esc steps back.
+  useEffect(() => {
+    if (isLoading || isDead) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "Escape") { sigilClick(); return; }
+      const idx = Number.parseInt(e.key, 10) - 1;
+      if (idx < 0) return;
+      if (view === "modes" && idx < MODE_META.length) pickMode(MODE_META[idx].id);
+      else if (view === "choices") {
+        if (idx < choices.length) fireChoice(choices[idx]);
+        else if (idx === choices.length) openType();
+      }
+    };
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
+  });
 
-  // A mode is always selected; clicking just switches which mode's choices show.
-  const handleTypeSelect = (id: PlayerActionTypeId) => setSelectedType(id);
+  let discMod = "";
+  if (isLoading) discMod = " is-loading";
+  else if (view !== "ready") discMod = " is-small";
+  const discClass = `ahud-disc${discMod}`;
 
-  const handleChoice = (choice: string) => onSend(`[${selectedType}]: ${choice}`);
+  let ctaText: React.ReactNode;
+  let glyph: string;
+  if (isLoading) { ctaText = "GM กำลังเล่าเรื่อง…"; glyph = "…"; }
+  else if (view === "ready") { ctaText = <>ตาของคุณ<small>แตะเพื่อเลือกการกระทำ</small></>; glyph = "✦"; }
+  else { ctaText = "ย้อน"; glyph = "‹"; }
 
-  const handleNoResponse = () => {
-    onSend("[no response]");
-  };
+  const modeAngles = fanAngles(MODE_META.length);
+  const choiceAngles = fanAngles(choices.length + 1);
 
   return (
     <div className="p-4 md:p-6 border-t border-theme-border bg-theme-surface flex flex-col gap-3">
@@ -262,96 +188,114 @@ export default function ActionBar({
           </button>
         </div>
       )}
+
       {isDead ? (
         <DeadPanel worldTone={worldTone} onRestart={onRestart} />
       ) : (
-        <>
-          {/* Mode selector — the primary entry point: pick HOW you act, each mode reveals its own choices */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] text-theme-muted uppercase tracking-widest shrink-0 mr-0.5">โหมด</span>
-            {PLAYER_ACTION_TYPES.map((t) => {
-              const count = suggestedActionsByMode[t.id].length;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => handleTypeSelect(t.id)}
-                  disabled={isLoading}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all disabled:opacity-40 ${
-                    selectedType === t.id ? t.activeClass : t.inactiveClass
-                  }`}
-                >
-                  <span>{t.emoji}</span>
-                  <span>{t.label}</span>
-                  {count > 0 && (
-                    <span className="ml-0.5 min-w-[15px] h-[15px] px-1 inline-flex items-center justify-center rounded-full bg-theme-accent/20 text-theme-accent text-[9px] font-bold leading-none">
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={handleNoResponse}
-              disabled={isLoading}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all disabled:opacity-40 border-stone-700/40 text-stone-500 hover:border-stone-500/60 hover:text-stone-300"
-            >
-              <span>🚫</span>
-              <span>นิ่งเฉย</span>
-            </button>
-          </div>
+        <div className="ahud-stack">
+          {view !== "ready" && !isLoading && (
+            <div className="ahud-title">{view === "modes" ? "เลือกสิ่งที่จะทำ" : MODE_LABEL[selectedMode]}</div>
+          )}
 
-          {/* Choices for the currently-selected mode — click or press [n] */}
-          {currentChoices.length > 0 && (
-            <div className="grid grid-cols-1 gap-1.5">
-              {currentChoices.map((action, i) => {
-                const style = ACTION_STYLES[detectActionType(action)];
-                const Icon = style.icon;
+          {/* the fan of cards */}
+          {view === "modes" && !isLoading && (
+            <div key={fanKey} className="ahud-fan">
+              {MODE_META.map((m, i) => {
+                const count = suggestedActionsByMode[m.id].length;
                 return (
                   <button
-                    key={`${selectedType}-${i}-${action.slice(0, 12)}`}
-                    onClick={() => handleChoice(action)}
-                    disabled={isLoading}
-                    title={`กด [${i + 1}] หรือคลิกเพื่อทำ`}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-theme-surface/60 border rounded-lg transition-all disabled:opacity-40 group ${style.card}`}
+                    key={m.id}
+                    type="button"
+                    className={`ahud-card ahud-suit-${m.id}`}
+                    style={cardStyle(modeAngles[i], i)}
+                    onClick={() => pickMode(m.id)}
                   >
-                    <span className={`shrink-0 transition-colors ${style.key}`}>
-                      <Icon size={14} />
+                    <span className="ahud-suitbar" />
+                    <span className="ahud-corner tl">{m.sym}</span>
+                    <span className="ahud-mode-face">
+                      <span className="g">{m.emoji}</span>
+                      <span className="n">{m.label}</span>
                     </span>
-                    <span className="leading-snug flex-1">{action}</span>
-                    <span className={`text-[10px] font-mono shrink-0 transition-colors ${style.key}`}>[{i + 1}]</span>
+                    {count > 0 && <span className="ahud-corner br">{count}</span>}
                   </button>
                 );
               })}
             </div>
           )}
-          {currentChoices.length === 0 && anyChoices && !isLoading && (
-            <p className="text-[11px] text-theme-muted px-1">โหมดนี้ยังไม่มีตัวเลือกในฉากนี้ — ลองโหมดอื่น หรือพิมพ์เอง</p>
+
+          {view === "choices" && !isLoading && (
+            <div key={fanKey} className="ahud-fan">
+              {choices.map((c, i) => (
+                <button
+                  key={`${selectedMode}-${i}-${c.slice(0, 10)}`}
+                  type="button"
+                  className={`ahud-card ahud-suit-${selectedMode}`}
+                  style={cardStyle(choiceAngles[i], i)}
+                  onClick={() => fireChoice(c)}
+                >
+                  <span className="ahud-suitbar" />
+                  <span className="ahud-corner tl">{i + 1}</span>
+                  <span className="ahud-ch-txt">{c}</span>
+                  <span className="ahud-ch-emblem">{MODE_META.find((m) => m.id === selectedMode)?.sym}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                className="ahud-card is-type"
+                style={cardStyle(choiceAngles[choices.length], choices.length)}
+                onClick={openType}
+              >
+                <span className="ahud-ch-txt"><span className="big">✍️</span>พิมพ์เอง</span>
+              </button>
+            </div>
           )}
 
-          {/* Free-text escape hatch — always available, carries the current mode */}
-          <form onSubmit={handleSubmit} className="flex gap-3">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => onInputChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isLoading}
-              placeholder={inputPlaceholder}
-              className={`flex-1 bg-theme-surface border ${
-                isLowHp ? "border-red-900/50 focus:border-red-500" : "border-theme-border focus:border-theme-accent/60"
-              } ${isLoading ? "animate-input-pulse" : ""} rounded-xl px-4 py-3 text-theme-text focus:outline-none disabled:opacity-50 transition-colors placeholder:text-theme-muted/50`}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="flex items-center gap-2 px-6 py-3 bg-theme-accent text-theme-bg font-bold rounded-xl hover:opacity-90 disabled:opacity-40 transition-all shadow-[0_0_20px_var(--theme-accent-glow)] hover:shadow-[0_0_28px_var(--theme-accent-glow)]"
-            >
-              {isLoading ? "..." : <><Send size={15} /> ส่ง</>}
-            </button>
-          </form>
-        </>
+          {/* the reused bubble: floating sigil ↔ back button */}
+          <button type="button" className="ahud-sigil" onClick={sigilClick} disabled={isLoading} aria-label={view === "ready" ? "ถึงตาคุณ — เลือกการกระทำ" : "ย้อนกลับ"}>
+            <span className={discClass}>
+              <span className="ahud-ring" />
+              {view === "ready" && !isLoading && <span className="ahud-pulse" />}
+              <span className="ahud-glyph">{glyph}</span>
+            </span>
+            <span className="ahud-cta">{ctaText}</span>
+          </button>
+
+          {/* contextual free-text (revealed by the "พิมพ์เอง" card) */}
+          {showInput && view === "choices" && !isLoading && (
+            <form onSubmit={handleSubmit} className="ahud-rise flex gap-3 mt-4 w-full max-w-[560px]">
+              <input
+                ref={freeInputRef}
+                type="text"
+                value={input}
+                onChange={(e) => onInputChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={`${MODE_LABEL[selectedMode]} — พิมพ์เอง…`}
+                className={`flex-1 bg-theme-bg border ${isLowHp ? "border-red-900/50 focus:border-red-500" : "border-theme-border focus:border-theme-accent/60"} rounded-xl px-4 py-3 text-theme-text focus:outline-none transition-colors placeholder:text-theme-muted/50`}
+              />
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="flex items-center gap-2 px-6 py-3 bg-theme-accent text-theme-bg font-bold rounded-xl hover:opacity-90 disabled:opacity-40 transition-all shadow-[0_0_20px_var(--theme-accent-glow)]"
+              >
+                <Send size={15} /> ส่ง
+              </button>
+            </form>
+          )}
+
+          {/* footer: skip the turn + a hint, only while a fan is open */}
+          {view !== "ready" && !isLoading && (
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                type="button"
+                onClick={() => onSend("[no response]")}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-theme-border/60 text-theme-muted hover:text-theme-text hover:border-theme-border transition-colors text-xs"
+              >
+                🚫 นิ่งเฉย (ข้ามตา)
+              </button>
+              <span className="text-xs text-theme-muted/70">กด [1]-[4] เพื่อหยิบไพ่ · Esc ย้อน</span>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
