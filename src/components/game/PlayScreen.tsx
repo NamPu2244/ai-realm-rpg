@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useGameStore, WorldConfig, ChatLog, OpenThread, CountdownEvent, genreToTheme } from "@/store/useGameStore";
+import { useGameStore, WorldConfig, ChatLog, OpenThread, CountdownEvent, genreToTheme, normalizeActionsByMode } from "@/store/useGameStore";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { AlertModal, ConfirmModal } from "@/components/ui/Modal";
 import JournalModal from "@/components/game/JournalModal";
@@ -47,7 +47,7 @@ export default function PlayScreen() {
     history,
     story_summary,
     current_image_prompt,
-    suggested_actions,
+    suggested_actions_by_mode,
     current_objective,
     world_config,
     is_qte_active,
@@ -192,6 +192,7 @@ export default function PlayScreen() {
     }
 
     const suggestedActions: string[] = Array.isArray(data.suggested_actions) ? data.suggested_actions : [];
+    const suggestedActionsByMode = normalizeActionsByMode(data.suggested_actions_by_mode);
     const prevLives = freshState.lives_left;
     const newLives = typeof data.lives_left === "number" ? data.lives_left : prevLives;
     const respawned = newLives < prevLives && !data.is_dead;
@@ -261,6 +262,7 @@ export default function PlayScreen() {
       is_dead: !!data.is_dead,
       current_image_prompt: data.scene_image_prompt || freshState.current_image_prompt,
       suggested_actions: suggestedActions,
+      suggested_actions_by_mode: suggestedActionsByMode,
       is_qte_active: !!data.is_qte_active,
       qte_time_limit: typeof data.qte_time_limit === "number" ? data.qte_time_limit : 0,
       qte_options: Array.isArray(data.qte_options) ? data.qte_options : [],
@@ -662,6 +664,7 @@ export default function PlayScreen() {
       story_summary: state.story_summary,
       current_image_prompt: state.current_image_prompt,
       suggested_actions: state.suggested_actions,
+      suggested_actions_by_mode: state.suggested_actions_by_mode,
       current_objective: state.current_objective,
       world_config: state.world_config,
       lives_left: state.lives_left,
@@ -751,6 +754,7 @@ export default function PlayScreen() {
           story_summary: data.story_summary || "",
           current_image_prompt: data.current_image_prompt || "",
           suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
+          suggested_actions_by_mode: normalizeActionsByMode(data.suggested_actions_by_mode),
           current_objective: data.current_objective || "",
           world_config: data.world_config,
           lives_left: typeof data.lives_left === "number" ? data.lives_left : 3,
@@ -951,7 +955,7 @@ export default function PlayScreen() {
               error={error}
               isLoading={isLoading}
               isDead={is_dead}
-              suggestedActions={suggested_actions}
+              suggestedActionsByMode={suggested_actions_by_mode}
               input={input}
               isLowHp={isLowHp}
               worldTone={world_config?.tone}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useGameStore, WorldConfig, genreToTheme } from "@/store/useGameStore";
+import { useGameStore, WorldConfig, genreToTheme, normalizeActionsByMode } from "@/store/useGameStore";
 import WorldCreationMenu from "@/components/WorldCreationMenu";
 import { AlertModal } from "@/components/ui/Modal";
 import { usePhaseSync } from "@/lib/phaseRoute";
@@ -64,6 +64,7 @@ export default function CreateRoute() {
           story_summary: data.story_summary || "",
           current_image_prompt: data.current_image_prompt || "",
           suggested_actions: Array.isArray(data.suggested_actions) ? data.suggested_actions : [],
+          suggested_actions_by_mode: normalizeActionsByMode(data.suggested_actions_by_mode),
           current_objective: data.current_objective || "",
           world_config: data.world_config,
           lives_left: typeof data.lives_left === "number" ? data.lives_left : 3,

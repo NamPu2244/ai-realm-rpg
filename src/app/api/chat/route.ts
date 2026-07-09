@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { WorldConfig } from '@/store/useGameStore';
+import { WorldConfig, SuggestedActionsByMode, EMPTY_ACTIONS_BY_MODE } from '@/store/useGameStore';
 import { generateEmbedding } from '@/utils/embeddings';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { SCENE_DELIM } from '@/lib/gameText';
@@ -330,21 +330,29 @@ EXPECTED JSON SCHEMA — respond with ONLY this JSON object, no narrative, no pr
 }`;
 }
 
-// The player-choices "brain". suggested_actions is a CRAFT task (concrete, tempting,
-// scene-specific choices), not bookkeeping — so it runs on the storyteller model
-// (Typhoon), not the small extraction model, which produces flat generic verbs. Fed the
-// finished prose; returns {"actions": [...]}. Runs in parallel with extraction in finishTurn.
+// The player-choices "brain". Concrete, tempting, scene-specific choices are a CRAFT task,
+// not bookkeeping — so this runs on the storyteller model (Typhoon), fed the finished prose.
+// Returns choices GROUPED BY THE PLAYER'S ACTION MODE (speak / think / act / investigate) so
+// the UI can show mode-filtered options after the player picks a mode ("fake freedom in
+// bounds"). Runs in parallel with extraction in finishTurn.
 function buildChoicesPrompt(worldConfig?: WorldConfig | null) {
   const language = worldConfig?.language || 'ไทย';
-  return `You are the Game Master. You just narrated the scene the user will give you. Output the concrete next actions the PLAYER could take RIGHT NOW — the kind that make a player lean in and click, not a flat menu.
-RULES:
-- EXACTLY 3 options, each written in ${language}, each UNDER 10 words.
-- Each option MUST be anchored to something physically present in the scene just narrated, and carry clear intent, risk, or attitude.
-- The 3 must be DISTINCT in approach — e.g. one bold/aggressive, one cunning/social, one risky or unexpected. Never three flavors of the same move.
-- These are things the CHARACTER does in-world, phrased as a decisive choice, never a game command or a question.
+  return `You are the Game Master. You just narrated the scene the user will give you. Produce the concrete things the PLAYER could do RIGHT NOW, sorted into FOUR action modes. These become the clickable choices under each mode button — make each one make the player lean in and click.
+
+THE FOUR MODES:
+- "speak" — a line the character says out loud (a question, a lie, a threat, a bargain) aimed at someone actually present. If nobody is present to hear, return [].
+- "think" — a private read, plan, or memory (NPCs never know): sizing up a specific threat, recalling something relevant, deciding an angle.
+- "act" — a decisive PHYSICAL action on something/someone physically in the scene.
+- "investigate" — closely examine or test one specific object, mark, body, or detail present in the scene.
+
+RULES (apply to every option):
+- Write each option in ${language}, UNDER 10 words, phrased as a decisive in-world choice the CHARACTER does — never a game command, never a bare question to the system.
+- Each option MUST be anchored to something that literally appears in the scene just narrated, and carry clear intent, risk, or attitude.
+- Give 2-3 options per mode. If a mode genuinely does not fit this scene, return [] for it (e.g. "speak" when the player is alone). Never pad with filler.
+- Within a mode, the options must be DISTINCT in approach (e.g. bold vs cunning vs risky) — never three flavors of one move.
 - ❌ BANNED — flat generic verbs with no specific target: "โจมตี", "สำรวจห้อง", "สำรวจบริเวณ", "คุยกับ...", "ถาม...เพิ่มเติม", "หาของมีค่า", "เตรียมตัว...", "ตรวจสอบ...". Every option names a SPECIFIC target AND a SPECIFIC action.
-- ✅ SHAPE — build each option to this FORMULA, never copy any wording from this instruction: [a decisive physical verb] + [a specific object, feature, or character that literally appears in THIS scene] + optional [the intent or the risk]. Every option must be constructed from the scene you were given, not from these rules. If an option would still make sense in a totally different scene, it is too generic — rewrite it.
-Output ONLY this JSON and nothing else: {"actions": ["…","…","…"]}`;
+- ✅ SHAPE — build each option to this FORMULA, never copy any wording from this instruction: [a decisive verb] + [a specific object, feature, or character that appears in THIS scene] + optional [the intent or the risk]. If an option would still make sense in a totally different scene, it is too generic — rewrite it.
+Output ONLY this JSON and nothing else: {"speak":["…"],"think":["…"],"act":["…"],"investigate":["…"]}`;
 }
 
 
@@ -786,7 +794,10 @@ ${historyContext}
               ],
               stream: false,
               temperature: 0.7,
-              max_tokens: 200,
+              // The grouped output (4 modes × up to 3 Thai options) is far larger than the old
+              // flat list — too low a cap truncates it mid-JSON and the parse fails.
+              max_tokens: 500,
+              response_format: { type: 'json_object' },
               ...(useNarrativeOverride ? { top_p: 0.8 } : {}),
               ...(narrativeModel.includes('qwen') ? { reasoning_effort: 'none' } : {}),
             }),
@@ -806,25 +817,47 @@ ${historyContext}
             // Non-fatal: gameState stays null → client shows retry, prose already shown.
           }
 
-          // Override suggested_actions with the storyteller's concrete choices when valid.
+          // Fold in the storyteller's mode-grouped choices when valid. Sets
+          // suggested_actions_by_mode (drives the mode-first UI) and derives a flat
+          // suggested_actions for backward-compat consumers (memory, save/load, first turn).
           try {
             const choicesRes = await choicesPromise;
             if (choicesRes?.ok && gameState) {
               const cData = await choicesRes.json() as { choices?: Array<{ message?: { content?: string } }> };
               const raw = cData.choices?.[0]?.message?.content ?? "";
-              // Accept either {"actions":[...]} or a bare JSON array [...] (some models drop the wrapper).
-              let list: unknown = parseJsonObject(raw)?.actions;
-              if (!Array.isArray(list)) {
-                const start = raw.indexOf('['), end = raw.lastIndexOf(']');
-                if (start !== -1 && end > start) { try { list = JSON.parse(raw.slice(start, end + 1)); } catch { list = undefined; } }
-              }
-              const acts = Array.isArray(list)
-                ? list.filter((a): a is string => typeof a === 'string' && a.trim().length > 0).slice(0, 4)
+              const parsed = parseJsonObject(raw) ?? {};
+              const cleanMode = (v: unknown): string[] => Array.isArray(v)
+                ? v.filter((a): a is string => typeof a === 'string' && a.trim().length > 0).slice(0, 3)
                 : [];
-              if (acts.length >= 2) gameState.suggested_actions = acts;
+              const byMode = {
+                speak: cleanMode(parsed.speak),
+                think: cleanMode(parsed.think),
+                act: cleanMode(parsed.act),
+                investigate: cleanMode(parsed.investigate),
+              };
+              const total = byMode.speak.length + byMode.think.length + byMode.act.length + byMode.investigate.length;
+              if (total >= 2) {
+                gameState.suggested_actions_by_mode = byMode;
+                // Flat list = a representative spread across modes, deduped, for compat.
+                const flat = [...new Set([...byMode.act, ...byMode.investigate, ...byMode.speak, ...byMode.think])].slice(0, 4);
+                if (flat.length >= 2) gameState.suggested_actions = flat;
+              }
             }
           } catch {
-            // Non-fatal: keep the extraction's suggested_actions.
+            // Non-fatal: keep the extraction's suggested_actions, no grouped choices.
+          }
+
+          // Guarantee the mode-first UI always has SOMETHING to show: if the grouped call
+          // came back empty/thin (Typhoon occasionally fumbles the nested JSON), seed the
+          // 'act' mode from the flat suggested_actions so the player never faces a blank turn.
+          if (gameState) {
+            const bm = gameState.suggested_actions_by_mode as SuggestedActionsByMode | undefined;
+            const grouped = bm ?? EMPTY_ACTIONS_BY_MODE;
+            const hasAny = grouped.speak.length + grouped.think.length + grouped.act.length + grouped.investigate.length > 0;
+            const flat = Array.isArray(gameState.suggested_actions) ? (gameState.suggested_actions as string[]) : [];
+            if (!hasAny && flat.length > 0) {
+              gameState.suggested_actions_by_mode = { speak: [], think: [], act: flat.slice(0, 3), investigate: [] };
+            }
           }
 
           // Deduct 1 energy atomically once the turn's generation has completed.
