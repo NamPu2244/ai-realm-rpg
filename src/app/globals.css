@@ -336,3 +336,91 @@ body:has(.theme-survival) {
   30%, 50%, 70% { transform: translate(-6px, 2px); }
   40%, 60% { transform: translate(6px, -1px); }
 }
+
+/* ===== Action HUD — card-fan turn UI (see ActionBar.tsx) ===== */
+/* Themed via the world tokens: gold = --theme-accent; the four mode "suits" are fixed hues. */
+.ahud-suit-speak       { --ahud-suit: #5fbaf0; }
+.ahud-suit-think       { --ahud-suit: #a78bfa; }
+.ahud-suit-act         { --ahud-suit: var(--theme-accent); }
+.ahud-suit-investigate { --ahud-suit: #4fe0a8; }
+
+.ahud-stack { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; }
+.ahud-title { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--theme-muted); height: 18px; margin-bottom: 8px; }
+
+.ahud-fan { position: relative; height: 208px; width: 100%; display: flex; justify-content: center; align-items: flex-end; transform: translateZ(0); }
+.ahud-card {
+  position: absolute; bottom: 0; width: 132px; height: 182px; cursor: pointer;
+  display: flex; flex-direction: column; padding: 14px 13px; border-radius: 14px;
+  background: linear-gradient(165deg, color-mix(in srgb, var(--theme-surface) 90%, #000), color-mix(in srgb, var(--theme-bg) 82%, #000));
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 32%, transparent);
+  color: var(--theme-text); text-align: left;
+  box-shadow: 0 16px 30px -18px #000, inset 0 1px 0 rgba(255,255,255,0.04);
+  transform-origin: 50% 270%; transform: rotate(var(--ahud-angle, 0deg));
+  will-change: transform, opacity; backface-visibility: hidden;
+  /* deal-in via a keyframe (backwards fill shows the 'from' during each card's stagger delay,
+     then reverts to the base transform so :hover transitions cleanly). The fan is remounted
+     per view with a React key, which replays this. */
+  animation: ahud-deal 0.58s cubic-bezier(0.16,1,0.3,1) backwards;
+  animation-delay: calc(var(--ahud-i, 0) * 42ms);
+  transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.ahud-card:hover, .ahud-card:focus-visible {
+  transform: rotate(var(--ahud-angle, 0deg)) translateY(-30px); z-index: 20; transition-delay: 0s;
+  border-color: color-mix(in srgb, var(--theme-accent) 60%, transparent);
+  box-shadow: 0 30px 50px -22px #000, 0 0 24px -10px var(--theme-accent-glow);
+}
+.ahud-card:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; }
+.ahud-card::after { content: ""; position: absolute; inset: 5px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--theme-accent) 10%, transparent); pointer-events: none; }
+.ahud-card.is-type { border-style: dashed; }
+
+.ahud-suitbar { position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px; border-radius: 3px; background: linear-gradient(var(--ahud-suit), transparent); opacity: 0.85; }
+.ahud-corner { position: absolute; font-size: 12px; color: var(--theme-muted); }
+.ahud-corner.tl { top: 10px; left: 12px; color: var(--ahud-suit); opacity: 0.9; }
+.ahud-corner.br { bottom: 10px; right: 12px; font-variant-numeric: tabular-nums; }
+.ahud-mode-face { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.ahud-mode-face .g { font-size: 38px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+.ahud-mode-face .n { font-size: 20px; letter-spacing: 0.05em; color: color-mix(in srgb, var(--theme-accent) 85%, #fff); }
+.ahud-ch-txt { flex: 1; display: flex; align-items: center; font-size: 13.5px; line-height: 1.5; color: var(--theme-text); overflow: hidden; }
+.ahud-ch-emblem { position: absolute; bottom: 12px; right: 12px; font-size: 15px; opacity: 0.5; color: var(--ahud-suit); }
+.ahud-card.is-type .ahud-ch-txt { color: var(--theme-accent); align-items: center; justify-content: center; flex-direction: column; gap: 8px; text-align: center; letter-spacing: 0.04em; }
+.ahud-card.is-type .big { font-size: 26px; }
+
+/* the reused bubble: floating sigil in 'ready', shrinks into a back button when a fan is open */
+.ahud-sigil { position: relative; background: none; border: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 12px; }
+.ahud-disc {
+  position: relative; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--theme-accent) 18%, #100b06), #0d0a06);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-accent) 34%, transparent), 0 0 34px -10px var(--theme-accent-glow), inset 0 0 20px -6px var(--theme-accent-glow);
+  width: 88px; height: 88px;
+  transition: width 0.5s cubic-bezier(0.16,1,0.3,1), height 0.5s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s ease;
+  animation: ahud-float 3.6s ease-in-out infinite;
+}
+.ahud-disc.is-small { width: 52px; height: 52px; animation: none; }
+.ahud-disc.is-loading { opacity: 0.65; animation: none; }
+.ahud-sigil:hover .ahud-disc { box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-accent) 55%, transparent), 0 0 44px -6px var(--theme-accent-glow), inset 0 0 22px -4px var(--theme-accent-glow); }
+.ahud-ring {
+  position: absolute; inset: -7px; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent, var(--theme-accent), transparent 45%, var(--theme-accent-glow), transparent);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  animation: ahud-spin 9s linear infinite;
+}
+.ahud-disc.is-loading .ahud-ring { animation: ahud-spin 1s linear infinite; }
+.ahud-pulse { position: absolute; inset: 0; border-radius: 50%; animation: ahud-ping 2.8s ease-out infinite; }
+.ahud-glyph { font-size: 28px; color: color-mix(in srgb, var(--theme-accent) 88%, #fff); filter: drop-shadow(0 0 8px var(--theme-accent-glow)); line-height: 1; }
+.ahud-disc.is-small .ahud-glyph { font-size: 24px; }
+.ahud-cta { letter-spacing: 0.18em; text-transform: uppercase; font-size: 11.5px; color: var(--theme-accent); text-align: center; }
+.ahud-cta small { display: block; letter-spacing: 0; text-transform: none; color: var(--theme-muted); font-size: 11.5px; margin-top: 3px; }
+
+.ahud-rise { animation: ahud-rise 0.32s cubic-bezier(0.16,1,0.3,1) both; }
+
+@keyframes ahud-deal { from { opacity: 0; transform: translateY(64px) rotate(0deg) scale(0.9); } to { opacity: 1; transform: rotate(var(--ahud-angle, 0deg)); } }
+@keyframes ahud-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes ahud-spin { to { transform: rotate(360deg); } }
+@keyframes ahud-ping { 0% { box-shadow: 0 0 0 0 var(--theme-accent-glow); } 70%, 100% { box-shadow: 0 0 0 24px transparent; } }
+@keyframes ahud-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ahud-card, .ahud-disc, .ahud-ring, .ahud-pulse { animation: none !important; }
+  .ahud-card { opacity: 1; transform: rotate(var(--ahud-angle, 0deg)); transition-duration: 0.12s !important; }
+}
