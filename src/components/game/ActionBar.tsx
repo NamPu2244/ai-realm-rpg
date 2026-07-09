@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight, Lightbulb } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Send, RotateCcw, Skull, Sword, Compass, MessageCircle, Wand2, Package, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { SuggestedActionsByMode } from "@/store/useGameStore";
 
 interface ActionBarProps {
   error: string | null;
   isLoading: boolean;
   isDead: boolean;
-  suggestedActions: string[];
+  suggestedActionsByMode: SuggestedActionsByMode;
   input: string;
   isLowHp: boolean;
   worldTone?: string;
@@ -164,7 +165,7 @@ export default function ActionBar({
   error,
   isLoading,
   isDead,
-  suggestedActions,
+  suggestedActionsByMode,
   input,
   isLowHp,
   worldTone,
@@ -175,39 +176,44 @@ export default function ActionBar({
 }: Readonly<ActionBarProps>) {
   const inputHistoryRef = useRef<string[]>([]);
   const historyIdxRef = useRef(-1);
-  const [selectedType, setSelectedType] = useState<PlayerActionTypeId | null>(null);
-  // Suggested actions are shown by default every turn — concrete choices are what keep the
-  // game from feeling like an open-ended chat ("…so what do I do now?"). Still dismissible
-  // (the "ซ่อน" button), and re-shown for each new turn. Reset during render (React's "adjust
-  // state when a prop changes" pattern) when the suggestions change — avoids a setState-in-effect.
-  const [showHints, setShowHints] = useState(true);
-  const [prevSuggestions, setPrevSuggestions] = useState(suggestedActions);
-  if (suggestedActions !== prevSuggestions) {
-    setPrevSuggestions(suggestedActions);
-    setShowHints(true);
+  // Mode-first interaction ("fake freedom in bounds"): the player picks a mode, then sees the
+  // concrete choices for THAT mode (from suggestedActionsByMode). Default to "act" so a choice
+  // is always visible the instant a turn lands — no "…so what do I do now?". The selected mode
+  // persists across turns (less friction); free-text stays as an escape hatch.
+  const [selectedType, setSelectedType] = useState<PlayerActionTypeId>("act");
+  const currentChoices = useMemo(() => suggestedActionsByMode[selectedType] ?? [], [suggestedActionsByMode, selectedType]);
+  const anyChoices = (["speak", "think", "act", "investigate"] as const).some((m) => suggestedActionsByMode[m].length > 0);
+
+  // When a new turn's choices land, if the player's current mode has none but another mode does,
+  // jump to the first populated mode (preferring act) so they never see a blank set. Adjusts state
+  // during render (React's "derive from prop change" pattern) — no setState-in-effect.
+  const [prevByMode, setPrevByMode] = useState(suggestedActionsByMode);
+  if (suggestedActionsByMode !== prevByMode) {
+    setPrevByMode(suggestedActionsByMode);
+    if (suggestedActionsByMode[selectedType].length === 0) {
+      const firstWith = (["act", "speak", "investigate", "think"] as const).find((m) => suggestedActionsByMode[m].length > 0);
+      if (firstWith) setSelectedType(firstWith);
+    }
   }
 
-  // Number keys 1-N pick a hint — but only while the hints are actually revealed, so the
-  // shortcut stays consistent with what's on screen (and never collides with the QTE keys,
-  // since a QTE turn clears suggestions / re-hides hints).
+  // Number keys 1-N fire the current mode's choices (prefixed with the mode), matching what's
+  // on screen. Never active during a QTE turn (choices are empty then) or while typing.
   useEffect(() => {
-    if (isLoading || isDead || !showHints || suggestedActions.length === 0) return;
+    if (isLoading || isDead || currentChoices.length === 0) return;
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const idx = Number.parseInt(e.key) - 1;
-      if (idx >= 0 && idx < suggestedActions.length) onSend(suggestedActions[idx]);
+      if (idx >= 0 && idx < currentChoices.length) onSend(`[${selectedType}]: ${currentChoices[idx]}`);
     };
     globalThis.addEventListener("keydown", handler);
     return () => globalThis.removeEventListener("keydown", handler);
-  }, [isLoading, isDead, showHints, suggestedActions, onSend]);
+  }, [isLoading, isDead, currentChoices, selectedType, onSend]);
 
-  const activeMeta = selectedType ? PLAYER_ACTION_TYPES.find((t) => t.id === selectedType) : null;
-  const placeholder = activeMeta?.placeholder ?? "ตัวละครของคุณจะทำอะไร? เช่น 'มองไปรอบๆ' 'คุยกับเขา' 'มุ่งหน้าไปทางเหนือ'";
+  const activeMeta = PLAYER_ACTION_TYPES.find((t) => t.id === selectedType);
+  const placeholder = activeMeta?.placeholder ?? "ตัวละครของคุณจะทำอะไร?";
 
-  // Input is gated on a mode being chosen; reflect that in the placeholder.
-  let inputPlaceholder = "เลือกโหมด (พูด/คิด/ทำ/สำรวจ) ด้านบนก่อนถึงจะพิมพ์ได้";
-  if (isLoading) inputPlaceholder = "GM กำลังประมวลผล...";
-  else if (selectedType) inputPlaceholder = placeholder;
+  // Free-text is always available (escape hatch) — it just carries the current mode.
+  const inputPlaceholder = isLoading ? "GM กำลังประมวลผล..." : `${placeholder}  (หรือเลือกจากตัวเลือกด้านบน)`;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const hist = inputHistoryRef.current;
@@ -226,19 +232,17 @@ export default function ActionBar({
 
   const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
-    // A mode must be chosen before free-text is allowed (the input is disabled otherwise).
-    if (!selectedType) return;
     const text = input.trim();
     if (!text) return;
     inputHistoryRef.current.push(text);
     historyIdxRef.current = -1;
-    const msg = selectedType ? `[${selectedType}]: ${text}` : text;
-    onSend(msg);
+    onSend(`[${selectedType}]: ${text}`);
   };
 
-  const handleTypeSelect = (id: PlayerActionTypeId) => {
-    setSelectedType((prev) => (prev === id ? null : id));
-  };
+  // A mode is always selected; clicking just switches which mode's choices show.
+  const handleTypeSelect = (id: PlayerActionTypeId) => setSelectedType(id);
+
+  const handleChoice = (choice: string) => onSend(`[${selectedType}]: ${choice}`);
 
   const handleNoResponse = () => {
     onSend("[no response]");
@@ -262,71 +266,31 @@ export default function ActionBar({
         <DeadPanel worldTone={worldTone} onRestart={onRestart} />
       ) : (
         <>
-          {suggestedActions.length > 0 && !showHints && (
-            <button
-              type="button"
-              onClick={() => setShowHints(true)}
-              disabled={isLoading}
-              className="self-start flex items-center gap-2 px-3 py-1.5 text-xs text-theme-muted hover:text-theme-accent border border-theme-border/60 hover:border-theme-accent/40 rounded-lg transition-all disabled:opacity-40"
-            >
-              <Lightbulb size={13} /> ดูทางเลือก
-            </button>
-          )}
-
-          {suggestedActions.length > 0 && showHints && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs text-theme-accent/60 font-medium">เลือกสิ่งที่ตัวละครจะทำ</span>
-                <button
-                  type="button"
-                  onClick={() => setShowHints(false)}
-                  className="text-[11px] text-theme-muted hover:text-theme-text transition-colors"
-                >
-                  ซ่อน
-                </button>
-              </div>
-              <div className="grid grid-cols-1 gap-1.5">
-                {suggestedActions.map((action, i) => {
-                  const type = detectActionType(action);
-                  const style = ACTION_STYLES[type];
-                  const Icon = style.icon;
-                  return (
-                    <button
-                      key={`${i}-${action.slice(0, 12)}`}
-                      onClick={() => onSend(action)}
-                      disabled={isLoading}
-                      title={`AI suggested action — press [${i + 1}] or click to perform`}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-theme-surface/60 border rounded-lg transition-all disabled:opacity-40 group ${style.card}`}
-                    >
-                      <span className={`shrink-0 transition-colors ${style.key}`}>
-                        <Icon size={14} />
-                      </span>
-                      <span className="leading-snug flex-1">{action}</span>
-                      <span className={`text-[10px] font-mono shrink-0 transition-colors ${style.key}`}>[{i + 1}]</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Action type selector */}
+          {/* Mode selector — the primary entry point: pick HOW you act, each mode reveals its own choices */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] text-theme-muted uppercase tracking-widest shrink-0 mr-0.5">โหมด</span>
-            {PLAYER_ACTION_TYPES.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => handleTypeSelect(t.id)}
-                disabled={isLoading}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all disabled:opacity-40 ${
-                  selectedType === t.id ? t.activeClass : t.inactiveClass
-                }`}
-              >
-                <span>{t.emoji}</span>
-                <span>{t.label}</span>
-              </button>
-            ))}
+            {PLAYER_ACTION_TYPES.map((t) => {
+              const count = suggestedActionsByMode[t.id].length;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => handleTypeSelect(t.id)}
+                  disabled={isLoading}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all disabled:opacity-40 ${
+                    selectedType === t.id ? t.activeClass : t.inactiveClass
+                  }`}
+                >
+                  <span>{t.emoji}</span>
+                  <span>{t.label}</span>
+                  {count > 0 && (
+                    <span className="ml-0.5 min-w-[15px] h-[15px] px-1 inline-flex items-center justify-center rounded-full bg-theme-accent/20 text-theme-accent text-[9px] font-bold leading-none">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
             <button
               type="button"
               onClick={handleNoResponse}
@@ -338,13 +302,42 @@ export default function ActionBar({
             </button>
           </div>
 
+          {/* Choices for the currently-selected mode — click or press [n] */}
+          {currentChoices.length > 0 && (
+            <div className="grid grid-cols-1 gap-1.5">
+              {currentChoices.map((action, i) => {
+                const style = ACTION_STYLES[detectActionType(action)];
+                const Icon = style.icon;
+                return (
+                  <button
+                    key={`${selectedType}-${i}-${action.slice(0, 12)}`}
+                    onClick={() => handleChoice(action)}
+                    disabled={isLoading}
+                    title={`กด [${i + 1}] หรือคลิกเพื่อทำ`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm bg-theme-surface/60 border rounded-lg transition-all disabled:opacity-40 group ${style.card}`}
+                  >
+                    <span className={`shrink-0 transition-colors ${style.key}`}>
+                      <Icon size={14} />
+                    </span>
+                    <span className="leading-snug flex-1">{action}</span>
+                    <span className={`text-[10px] font-mono shrink-0 transition-colors ${style.key}`}>[{i + 1}]</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {currentChoices.length === 0 && anyChoices && !isLoading && (
+            <p className="text-[11px] text-theme-muted px-1">โหมดนี้ยังไม่มีตัวเลือกในฉากนี้ — ลองโหมดอื่น หรือพิมพ์เอง</p>
+          )}
+
+          {/* Free-text escape hatch — always available, carries the current mode */}
           <form onSubmit={handleSubmit} className="flex gap-3">
             <input
               type="text"
               value={input}
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isLoading || !selectedType}
+              disabled={isLoading}
               placeholder={inputPlaceholder}
               className={`flex-1 bg-theme-surface border ${
                 isLowHp ? "border-red-900/50 focus:border-red-500" : "border-theme-border focus:border-theme-accent/60"
@@ -352,7 +345,7 @@ export default function ActionBar({
             />
             <button
               type="submit"
-              disabled={isLoading || !selectedType || !input.trim()}
+              disabled={isLoading || !input.trim()}
               className="flex items-center gap-2 px-6 py-3 bg-theme-accent text-theme-bg font-bold rounded-xl hover:opacity-90 disabled:opacity-40 transition-all shadow-[0_0_20px_var(--theme-accent-glow)] hover:shadow-[0_0_28px_var(--theme-accent-glow)]"
             >
               {isLoading ? "..." : <><Send size={15} /> ส่ง</>}

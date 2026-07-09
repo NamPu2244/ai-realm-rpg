@@ -97,6 +97,20 @@ export interface CountdownEvent {
 
 export type WorldTone = 'hardcore' | 'balanced' | 'story' | 'sandbox';
 
+export type PlayerActionMode = 'speak' | 'think' | 'act' | 'investigate';
+export type SuggestedActionsByMode = Record<PlayerActionMode, string[]>;
+export const EMPTY_ACTIONS_BY_MODE: SuggestedActionsByMode = { speak: [], think: [], act: [], investigate: [] };
+
+// Coerce untrusted data (cloud save, imported JSON, AI output) into a valid grouped-choices
+// object — each mode becomes an array of non-empty strings, unknown shapes become empty.
+export function normalizeActionsByMode(v: unknown): SuggestedActionsByMode {
+  const src = (v && typeof v === 'object') ? v as Record<string, unknown> : {};
+  const clean = (x: unknown): string[] => Array.isArray(x)
+    ? x.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).slice(0, 3)
+    : [];
+  return { speak: clean(src.speak), think: clean(src.think), act: clean(src.act), investigate: clean(src.investigate) };
+}
+
 export type UiTheme = 'theme-fantasy' | 'theme-cyberpunk' | 'theme-horror' | 'theme-survival';
 
 /** Maps a genre string to the best-fit UI theme. Used when ui_theme is not set explicitly. */
@@ -145,6 +159,9 @@ interface GameState {
   history: ChatLog[];
   current_image_prompt: string;
   suggested_actions: string[];
+  // Choices grouped by the player's action mode — drives the mode-first ActionBar UI.
+  // The flat suggested_actions above stays as a derived/compat mirror.
+  suggested_actions_by_mode: SuggestedActionsByMode;
   current_objective: string;
   world_config: WorldConfig | null;
   is_qte_active: boolean;
@@ -230,6 +247,7 @@ const initialState = {
   history: [],
   current_image_prompt: '',
   suggested_actions: [],
+  suggested_actions_by_mode: EMPTY_ACTIONS_BY_MODE,
   current_objective: '',
   world_config: null,
   is_qte_active: false,
@@ -368,6 +386,7 @@ export const useGameStore = create<GameState>()(
           is_dead: !!gs.is_dead,
           current_image_prompt: gs.current_image_prompt ?? '',
           suggested_actions: Array.isArray(gs.suggested_actions) ? gs.suggested_actions : [],
+          suggested_actions_by_mode: normalizeActionsByMode(gs.suggested_actions_by_mode),
           known_characters: (gs.known_characters && typeof gs.known_characters === 'object') ? gs.known_characters : initialState.known_characters,
           time_of_day: gs.time_of_day ?? '',
           in_world_date: gs.in_world_date ?? '',
@@ -439,6 +458,7 @@ export const useGameStore = create<GameState>()(
               is_dead: state.is_dead,
               current_image_prompt: state.current_image_prompt,
               suggested_actions: state.suggested_actions,
+              suggested_actions_by_mode: state.suggested_actions_by_mode,
               known_characters: state.known_characters,
               time_of_day: state.time_of_day,
               in_world_date: state.in_world_date,
@@ -504,7 +524,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'storyweave-save',
-      version: 6,
+      version: 7,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, is_pro, energy, sync_error, ...rest } = state;
@@ -543,6 +563,7 @@ export const useGameStore = create<GameState>()(
           environment_fx: state.environment_fx ?? [],
           player_condition: state.player_condition ?? '',
           impact_fx: [],
+          suggested_actions_by_mode: state.suggested_actions_by_mode ?? EMPTY_ACTIONS_BY_MODE,
           // NOSONAR: cast required because spreading Partial<PersistedState> makes action fields optional
         } as PersistedState;
       },
