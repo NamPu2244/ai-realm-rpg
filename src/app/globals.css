@@ -348,6 +348,8 @@ body:has(.theme-survival) {
 .ahud-title { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--theme-muted); height: 18px; margin-bottom: 8px; }
 
 .ahud-fan { position: relative; height: 208px; width: 100%; display: flex; justify-content: center; align-items: flex-end; transform: translateZ(0); }
+/* .ahud-card is LOOK ONLY — Framer Motion (ActionBar) drives all transform/opacity so the
+   deal-in, hover lift, and exit are real. transform-origin stays here for the fan arc. */
 .ahud-card {
   position: absolute; bottom: 0; width: 132px; height: 182px; cursor: pointer;
   display: flex; flex-direction: column; padding: 14px 13px; border-radius: 14px;
@@ -355,17 +357,11 @@ body:has(.theme-survival) {
   border: 1px solid color-mix(in srgb, var(--theme-accent) 32%, transparent);
   color: var(--theme-text); text-align: left;
   box-shadow: 0 16px 30px -18px #000, inset 0 1px 0 rgba(255,255,255,0.04);
-  transform-origin: 50% 270%; transform: rotate(var(--ahud-angle, 0deg));
-  will-change: transform, opacity; backface-visibility: hidden;
-  /* deal-in via a keyframe (backwards fill shows the 'from' during each card's stagger delay,
-     then reverts to the base transform so :hover transitions cleanly). The fan is remounted
-     per view with a React key, which replays this. */
-  animation: ahud-deal 0.58s cubic-bezier(0.16,1,0.3,1) backwards;
-  animation-delay: calc(var(--ahud-i, 0) * 42ms);
-  transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease, box-shadow 0.3s ease;
+  transform-origin: 50% 270%; backface-visibility: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .ahud-card:hover, .ahud-card:focus-visible {
-  transform: rotate(var(--ahud-angle, 0deg)) translateY(-30px); z-index: 20; transition-delay: 0s;
+  z-index: 20;
   border-color: color-mix(in srgb, var(--theme-accent) 60%, transparent);
   box-shadow: 0 30px 50px -22px #000, 0 0 24px -10px var(--theme-accent-glow);
 }
@@ -387,16 +383,14 @@ body:has(.theme-survival) {
 
 /* the reused bubble: floating sigil in 'ready', shrinks into a back button when a fan is open */
 .ahud-sigil { position: relative; background: none; border: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 12px; }
+/* .ahud-disc is LOOK ONLY — Framer drives its float, size morph, and hover scale. */
 .ahud-disc {
   position: relative; border-radius: 50%; display: grid; place-items: center;
   background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--theme-accent) 18%, #100b06), #0d0a06);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-accent) 34%, transparent), 0 0 34px -10px var(--theme-accent-glow), inset 0 0 20px -6px var(--theme-accent-glow);
-  width: 88px; height: 88px;
-  transition: width 0.5s cubic-bezier(0.16,1,0.3,1), height 0.5s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s ease;
-  animation: ahud-float 3.6s ease-in-out infinite;
+  transition: box-shadow 0.3s ease;
 }
-.ahud-disc.is-small { width: 52px; height: 52px; animation: none; }
-.ahud-disc.is-loading { opacity: 0.65; animation: none; }
+.ahud-disc.is-loading { opacity: 0.6; }
 .ahud-sigil:hover .ahud-disc { box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-accent) 55%, transparent), 0 0 44px -6px var(--theme-accent-glow), inset 0 0 22px -4px var(--theme-accent-glow); }
 .ahud-ring {
   position: absolute; inset: -7px; border-radius: 50%;
@@ -407,22 +401,20 @@ body:has(.theme-survival) {
 }
 .ahud-disc.is-loading .ahud-ring { animation: ahud-spin 1s linear infinite; }
 .ahud-pulse { position: absolute; inset: 0; border-radius: 50%; animation: ahud-ping 2.8s ease-out infinite; }
-.ahud-glyph { font-size: 28px; color: color-mix(in srgb, var(--theme-accent) 88%, #fff); filter: drop-shadow(0 0 8px var(--theme-accent-glow)); line-height: 1; }
-.ahud-disc.is-small .ahud-glyph { font-size: 24px; }
+.ahud-glyph { color: color-mix(in srgb, var(--theme-accent) 88%, #fff); filter: drop-shadow(0 0 8px var(--theme-accent-glow)); line-height: 1; }
 .ahud-cta { letter-spacing: 0.18em; text-transform: uppercase; font-size: 11.5px; color: var(--theme-accent); text-align: center; }
 .ahud-cta small { display: block; letter-spacing: 0; text-transform: none; color: var(--theme-muted); font-size: 11.5px; margin-top: 3px; }
 
 .ahud-rise { animation: ahud-rise 0.32s cubic-bezier(0.16,1,0.3,1) both; }
 
-@keyframes ahud-deal { from { opacity: 0; transform: translateY(64px) rotate(0deg) scale(0.9); } to { opacity: 1; transform: rotate(var(--ahud-angle, 0deg)); } }
-@keyframes ahud-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @keyframes ahud-spin { to { transform: rotate(360deg); } }
 @keyframes ahud-ping { 0% { box-shadow: 0 0 0 0 var(--theme-accent-glow); } 70%, 100% { box-shadow: 0 0 0 24px transparent; } }
 @keyframes ahud-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .ahud-card, .ahud-disc, .ahud-ring, .ahud-pulse { animation: none !important; }
-  .ahud-card { opacity: 1; transform: rotate(var(--ahud-angle, 0deg)); transition-duration: 0.12s !important; }
+  /* Framer respects the OS setting via <MotionConfig reducedMotion="user">; this stops the
+     purely-decorative CSS loops (the spinning ring + the pulse ping). */
+  .ahud-ring, .ahud-pulse { animation: none !important; }
 }
 
 /* Visual-novel dialogue block entrance (see NarrativeRenderer.tsx) */
