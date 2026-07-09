@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useGameStore } from "@/store/useGameStore";
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { buildWorldCoverUrl } from "@/lib/gameText";
+import { buildWorldCoverUrl, tropeLabelTH } from "@/lib/gameText";
 import { ConfirmModal, Modal } from "@/components/ui/Modal";
 
 /* ============================================================
@@ -118,7 +118,7 @@ function HeroBanner({ world, onOpen }: Readonly<{ world: World; onOpen: (w: Worl
             </span>
             {world.trope_tags.slice(0, 3).map((t) => (
               <span key={t} className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-neutral-300 ring-1 ring-amber-900/30">
-                {t}
+                {tropeLabelTH(t)}
               </span>
             ))}
           </div>
@@ -162,7 +162,7 @@ function TropeTags({ selected, onSelect }: Readonly<{ selected: string | null; o
   return (
     <div className="flex gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {pill("ทั้งหมด", selected === null, () => onSelect(null))}
-      {TROPES.map((trope) => pill(trope, selected === trope, () => onSelect(trope)))}
+      {TROPES.map((trope) => pill(tropeLabelTH(trope), selected === trope, () => onSelect(trope)))}
     </div>
   );
 }
@@ -194,7 +194,7 @@ function WorldCard({ world, onOpen, onDelete }: Readonly<{ world: World; onOpen:
           <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1.5">
             {world.trope_tags.slice(0, 2).map((t) => (
               <span key={t} className="rounded-md bg-black/50 px-2 py-0.5 text-[10px] font-medium text-neutral-200 ring-1 ring-amber-900/30 backdrop-blur">
-                {t}
+                {tropeLabelTH(t)}
               </span>
             ))}
           </div>
@@ -396,7 +396,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
                         sel ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white" : "bg-white/[0.04] text-neutral-400 ring-1 ring-amber-900/25 hover:text-amber-100"
                       }`}
                     >
-                      {t}
+                      {tropeLabelTH(t)}
                     </button>
                   );
                 })}
@@ -564,7 +564,7 @@ export default function StorePage() {
   let emptyHint: string;
   if (q) emptyHint = `ไม่มีโลกที่ตรงกับ "${query.trim()}"`;
   else if (tab === "library") emptyHint = "เผยแพร่โลกที่บันทึกไว้เพื่อให้ปรากฏที่นี่";
-  else if (trope) emptyHint = `เป็นคนแรกที่เผยแพร่โลกแนว ${trope}`;
+  else if (trope) emptyHint = `เป็นคนแรกที่เผยแพร่โลกแนว ${tropeLabelTH(trope)}`;
   else emptyHint = "เป็นคนแรกที่เผยแพร่โลก";
 
   return (
@@ -699,7 +699,7 @@ export default function StorePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold tracking-wide text-white">
-                    {tab === "library" ? "โลกที่ฉันเผยแพร่" : trope ? `โลกแนว ${trope}` : "โลกมาแรง"}
+                    {tab === "library" ? "โลกที่ฉันเผยแพร่" : trope ? `โลกแนว ${tropeLabelTH(trope)}` : "โลกมาแรง"}
                   </h2>
                   <p className="text-sm text-neutral-600">
                     {tab === "library" ? "โลกที่คุณแชร์กับชุมชน" : "สดใหม่จากชุมชน"}

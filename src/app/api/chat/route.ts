@@ -9,6 +9,17 @@ export const maxDuration = 60;
 // Parse a single JSON object out of a model response. Tries a direct parse first
 // (clean when response_format json_object is honored), then falls back to a
 // brace-balanced substring scan so stray prose/markdown around the JSON is tolerated.
+// Turn a raw upstream LLM error into a friendly, actionable Thai message. The shared free-tier
+// key hits a daily token cap (TPD) — show players what to do instead of a raw English 429.
+function friendlyApiError(status: number, errText: string): string {
+  const t = (errText || "").toLowerCase();
+  if (status === 429 || t.includes("rate limit") || t.includes("tokens per day") || t.includes("tpd") || t.includes("quota")) {
+    return "โควตา AI วันนี้เต็มแล้ว (บริการรุ่นฟรีมีขีดจำกัดจำนวนต่อวัน) — รอสักครู่แล้วลองใหม่ หรือใส่ Groq API key ส่วนตัวในเมนูตั้งค่าเพื่อเล่นต่อได้ทันที";
+  }
+  if (status === 401 || status === 403) return "การเชื่อมต่อ AI ถูกปฏิเสธ (API key อาจไม่ถูกต้อง) — ตรวจสอบ key ในเมนูตั้งค่า";
+  return "ระบบ AI มีปัญหาชั่วคราว — กรุณาลองใหม่อีกครั้ง";
+}
+
 function parseJsonObject(raw: string): Record<string, unknown> | null {
   try {
     return JSON.parse(raw) as Record<string, unknown>;
@@ -721,7 +732,7 @@ ${historyContext}
     if (!groqResponse.ok || !groqResponse.body) {
       const errText = await groqResponse.text().catch(() => "");
       return NextResponse.json(
-        { error: `Narrative API returned an error (${groqResponse.status}): ${errText}` },
+        { error: friendlyApiError(groqResponse.status, errText) },
         { status: 502 }
       );
     }
@@ -905,7 +916,8 @@ ${historyContext}
               const parsed = JSON.parse(data);
               // Groq ส่ง error event ใน SSE body (เช่น rate limit, content filter) — propagate ให้ client
               if (parsed.error) {
-                const msg = parsed.error?.message || parsed.error?.code || "Groq API error";
+                const rawMsg = parsed.error?.message || parsed.error?.code || "";
+                const msg = friendlyApiError(parsed.error?.code === 'rate_limit_exceeded' ? 429 : 0, rawMsg);
                 controller.enqueue(encoder.encode(JSON.stringify({ stream_error: msg, done: true }) + "\n"));
                 controller.close();
                 return;
