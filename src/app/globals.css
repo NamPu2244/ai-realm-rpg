@@ -424,3 +424,8 @@ body:has(.theme-survival) {
   .ahud-card, .ahud-disc, .ahud-ring, .ahud-pulse { animation: none !important; }
   .ahud-card { opacity: 1; transform: rotate(var(--ahud-angle, 0deg)); transition-duration: 0.12s !important; }
 }
+
+/* Visual-novel dialogue block entrance (see NarrativeRenderer.tsx) */
+.ahud-vn { animation: ahud-vn-in 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes ahud-vn-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ahud-vn { animation: none; } }
