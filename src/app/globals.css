@@ -10,8 +10,8 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  --theme-bg: #0f0b07;
-  --theme-surface: rgba(26, 18, 8, 0.85);
+  --theme-bg: #1a130c;
+  --theme-surface: rgba(42, 30, 16, 0.85);
   --theme-border: rgba(120, 80, 20, 0.40);
   --theme-accent: #d97706;
   --theme-accent-glow: rgba(217, 119, 6, 0.35);
@@ -22,8 +22,8 @@
 
 /* ---- Fantasy: dark parchment + gold accents + serif ---- */
 .theme-fantasy {
-  --theme-bg: #0f0b07;
-  --theme-surface: rgba(26, 18, 8, 0.85);
+  --theme-bg: #1a130c;
+  --theme-surface: rgba(42, 30, 16, 0.85);
   --theme-border: rgba(120, 80, 20, 0.40);
   --theme-accent: #d97706;
   --theme-accent-glow: rgba(217, 119, 6, 0.35);
@@ -35,8 +35,8 @@
 
 /* ---- Cyberpunk: pitch black + neon cyan/magenta + monospace ---- */
 .theme-cyberpunk {
-  --theme-bg: #00000f;
-  --theme-surface: rgba(0, 8, 20, 0.92);
+  --theme-bg: #06081c;
+  --theme-surface: rgba(8, 16, 34, 0.92);
   --theme-border: rgba(0, 220, 255, 0.25);
   --theme-accent: #00dcff;
   --theme-accent-glow: rgba(0, 220, 255, 0.40);
@@ -48,8 +48,8 @@
 
 /* ---- Horror: abyssal black + blood-red + muted serif ---- */
 .theme-horror {
-  --theme-bg: #030303;
-  --theme-surface: rgba(10, 4, 4, 0.93);
+  --theme-bg: #100b0b;
+  --theme-surface: rgba(24, 14, 14, 0.93);
   --theme-border: rgba(139, 0, 0, 0.35);
   --theme-accent: #b30000;
   --theme-accent-glow: rgba(179, 0, 0, 0.45);
@@ -61,8 +61,8 @@
 
 /* ---- Survival: deep forest + earthy green + sans ---- */
 .theme-survival {
-  --theme-bg: #080b06;
-  --theme-surface: rgba(12, 18, 8, 0.90);
+  --theme-bg: #121a0d;
+  --theme-surface: rgba(22, 30, 15, 0.90);
   --theme-border: rgba(74, 110, 60, 0.35);
   --theme-accent: #5a9e6a;
   --theme-accent-glow: rgba(90, 158, 106, 0.35);

@@ -6,7 +6,7 @@ import {
   ArrowLeft, Star, Users, Play, Sparkles, Loader2, Ghost, Zap,
 } from "lucide-react";
 import { useGameStore, WorldConfig, genreToTheme } from "@/store/useGameStore";
-import { buildWorldCoverUrl } from "@/lib/gameText";
+import { buildWorldCoverUrl, tropeLabelTH } from "@/lib/gameText";
 
 interface WorldDetail {
   id: string;
@@ -193,7 +193,7 @@ export default function WorldDetailPage() {
                 <div className="mt-4 flex flex-wrap gap-1.5">
                   {world.trope_tags.map((t) => (
                     <span key={t} className="rounded-md bg-white/5 px-2.5 py-1 text-xs text-neutral-300 ring-1 ring-amber-900/30">
-                      {t}
+                      {tropeLabelTH(t)}
                     </span>
                   ))}
                 </div>

@@ -79,6 +79,21 @@ export function toneLabelTH(tone?: string | null): string {
   }
 }
 
+// Marketplace trope tags: the keys stay English (DB + filtering), only the display is Thai.
+const TROPE_LABELS_TH: Record<string, string> = {
+  "Isekai": "ต่างโลก",
+  "System": "ระบบ",
+  "Regression": "ย้อนเวลา",
+  "Villainess": "นางร้าย",
+  "Cultivation": "บำเพ็ญเพียร",
+  "OP MC": "พระเอกโอพี",
+  "Survival": "เอาชีวิตรอด",
+};
+export function tropeLabelTH(tag?: string | null): string {
+  if (!tag) return "";
+  return TROPE_LABELS_TH[tag] ?? tag;
+}
+
 // สัญญาณที่ส่งให้ AI เมื่อ QTE หมดเวลา (ห้ามแก้ข้อความนี้ เพราะ system prompt ฝั่ง
 // API จับคู่ข้อความนี้แบบ exact เพื่อ narrate ผลของการยืนนิ่งเฉย)
 export const QTE_TIMEOUT_SIGNAL = "[TIME OUT: Player failed to react in time and stood completely still]";

@@ -125,7 +125,9 @@ const INPUT = [
   "transition-all duration-200",
 ].join(" ");
 
-const TEXTAREA = INPUT + " resize-none";
+// Comfortable default height, draggable taller, and it scrolls instead of ballooning when a
+// player pastes a lot (some write whole worldbibles here).
+const TEXTAREA = INPUT + " resize-y max-h-72 overflow-y-auto leading-relaxed";
 
 const PILL_ON  = "bg-amber-900/40 text-amber-300 border-amber-600/50 font-semibold";
 const PILL_OFF = "bg-neutral-900/50 text-neutral-400 border-neutral-700/40 hover:border-neutral-600 hover:text-neutral-300";
@@ -206,8 +208,10 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
   const handleStart = () => {
     if (!worldName.trim()) { setWorldNameError(true); return; }
     setWorldNameError(false);
-    const resolvedGenre =
-      customGenre.trim() || GENRES.find((g) => g.id === genreId)?.value || GENRES[0].value;
+    // The chosen genre pill stays selected; any extra text refines/extends it rather than
+    // replacing it, so "pick แฟนตาซี + describe your own twist" uses BOTH.
+    const baseGenre = GENRES.find((g) => g.id === genreId)?.value || GENRES[0].value;
+    const resolvedGenre = customGenre.trim() ? `${baseGenre}. ${customGenre.trim()}` : baseGenre;
 
     const resolvedGender = customGender.trim() || (genderId === "unspecified" ? "" : GENDERS.find((g) => g.id === genderId)?.label);
     const resolvedOrientation = customOrientation.trim() || (orientationId === "unspecified" ? "" : ORIENTATIONS.find((o) => o.id === orientationId)?.label);
@@ -221,7 +225,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
 
     let openingSeed: string;
     if (customWorld.trim()) {
-      const seedPool = customGenre.trim() ? OPENING_SEEDS.generic : (OPENING_SEEDS[genreId] || OPENING_SEEDS.generic);
+      const seedPool = OPENING_SEEDS[genreId] || OPENING_SEEDS.generic;
       openingSeed = seedPool[Math.floor(Math.random() * seedPool.length)];
     } else {
       openingSeed = generateRandomStart();
@@ -233,7 +237,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
   const ctaPrice = upsellPlan === "monthly" ? "฿99/mo" : "฿799/yr";
 
   return (
-    <div className="relative h-screen overflow-y-auto bg-neutral-950 text-neutral-200 font-sans">
+    <div className="relative h-screen overflow-y-auto [scrollbar-gutter:stable] bg-neutral-950 text-neutral-200 font-sans">
 
       {/* ── Upsell modal ── */}
       {showUpsell && (
@@ -412,12 +416,12 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
         <StepCard num={1} title="แนวเรื่อง" tooltip="กำหนดบรรยากาศ ธีม และฉากของโลกที่คุณจะผจญภัย">
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
             {GENRES.map((g) => {
-              const active = genreId === g.id && !customGenre;
+              const active = genreId === g.id;
               return (
                 <button
                   key={g.id}
                   type="button"
-                  onClick={() => { setGenreId(g.id); setCustomGenre(""); }}
+                  onClick={() => setGenreId(g.id)}
                   className={`flex flex-col items-center gap-2 px-2 py-3.5 rounded-xl border text-center transition-all duration-200 ${
                     active ? PILL_ON : PILL_OFF
                   }`}
@@ -432,8 +436,8 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
             <textarea
               value={customGenre}
               onChange={(e) => setCustomGenre(e.target.value)}
-              placeholder="หรืออธิบายแนวเรื่องกำหนดเองได้อิสระ..."
-              rows={2}
+              placeholder="ปรับแต่ง/เพิ่มรายละเอียดแนวเรื่อง (ไม่บังคับ) — ใช้ร่วมกับแนวที่เลือกไว้ด้านบน..."
+              rows={4}
               className={TEXTAREA}
             />
           </ProGate>
@@ -555,7 +559,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
               value={characterConcept}
               onChange={(e) => setCharacterConcept(e.target.value)}
               placeholder="อธิบายตัวละครเพิ่มเติม (ไม่บังคับ): เผ่าพันธุ์ คลาส รูปร่าง ภูมิหลัง..."
-              rows={2}
+              rows={5}
               className={TEXTAREA}
             />
           </ProGate>
@@ -572,7 +576,7 @@ export default function WorldCreationMenu({ onStart, onCancel, isPro = false }: 
               value={customWorld}
               onChange={(e) => setCustomWorld(e.target.value)}
               placeholder="เช่น กฎพิเศษของโลก ระบบเวทมนตร์ กลุ่ม/อาณาจักรที่อยากมี สิ่งที่อยากเลี่ยง..."
-              rows={3}
+              rows={5}
               className={TEXTAREA}
             />
           </ProGate>
