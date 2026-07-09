@@ -189,8 +189,13 @@ export default function ActionBar({
               )}
             </AnimatePresence>
 
-            {/* fan viewport — AnimatePresence swaps mode-fan ↔ choice-fan with a real exit */}
-            <div style={{ position: "relative", height: 208, width: "100%", display: "flex", justifyContent: "center", alignItems: "flex-end" }}>
+            {/* fan viewport — collapses to nothing when idle (so the HUD barely covers the
+                story), springs open when a hand is dealt. AnimatePresence swaps the fans with a real exit. */}
+            <motion.div
+              animate={{ height: view === "ready" ? 0 : 208 }}
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center", alignItems: "flex-end" }}
+            >
               <AnimatePresence mode="popLayout">
                 {view === "modes" && !isLoading && (
                   <motion.div key="modes" variants={fanV} initial="hidden" animate="show" exit="exit" style={fanWrap}>
@@ -236,7 +241,7 @@ export default function ActionBar({
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
 
             {/* the reused bubble: floating sigil ↔ back button (Framer drives float + size morph) */}
             <motion.button type="button" className="ahud-sigil" onClick={sigilClick} disabled={isLoading}

@@ -919,7 +919,7 @@ export default function PlayScreen() {
         )}
 
         <div className={`relative z-10 flex flex-1 min-w-0 ${sceneFxClass}`}>
-          <div className="flex-1 flex flex-col min-w-0 max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/60 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
+          <div className="relative flex-1 flex flex-col min-w-0 max-w-5xl mx-auto border-x border-amber-900/20 bg-stone-950/60 shadow-[inset_0_0_120px_rgba(0,0,0,0.4)]">
             <GameHeader
               worldConfig={world_config}
               isLowHp={isLowHp}
@@ -951,19 +951,24 @@ export default function PlayScreen() {
               lastStatChange={lastStatChange}
             />
 
-            <ActionBar
-              error={error}
-              isLoading={isLoading}
-              isDead={is_dead}
-              suggestedActionsByMode={suggested_actions_by_mode}
-              input={input}
-              isLowHp={isLowHp}
-              worldTone={world_config?.tone}
-              onInputChange={(value) => { setInput(value); if (value) cancelPrefetches(); }}
-              onSend={(message) => handleSend(message)}
-              onRetry={handleRetry}
-              onRestart={handleRestart}
-            />
+            {/* The action HUD floats over the story — the collapsed sigil barely covers
+                anything, and the fan blooms upward over the content only while choosing.
+                pointer-events pass through the empty overlay so the story stays scrollable. */}
+            <div className="absolute inset-x-0 bottom-0 z-20 pointer-events-none [&_button]:pointer-events-auto [&_input]:pointer-events-auto [&_form]:pointer-events-auto bg-gradient-to-t from-stone-950/85 via-stone-950/40 to-transparent">
+              <ActionBar
+                error={error}
+                isLoading={isLoading}
+                isDead={is_dead}
+                suggestedActionsByMode={suggested_actions_by_mode}
+                input={input}
+                isLowHp={isLowHp}
+                worldTone={world_config?.tone}
+                onInputChange={(value) => { setInput(value); if (value) cancelPrefetches(); }}
+                onSend={(message) => handleSend(message)}
+                onRetry={handleRetry}
+                onRestart={handleRestart}
+              />
+            </div>
           </div>
 
           <CharacterSidebar

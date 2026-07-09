@@ -154,7 +154,7 @@ function ChatHistory({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 md:px-10 py-8 space-y-10">
+    <div className="flex-1 overflow-y-auto px-6 md:px-10 pt-8 pb-40 space-y-10">
       {history.length > 0 ? (
         history.map((chat, index) => (
           <div key={`${chat.role}-${index}-${chat.content.slice(0, 16)}`} className="space-y-6">
