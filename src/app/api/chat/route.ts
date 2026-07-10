@@ -668,6 +668,9 @@ ${historyContext}
     // (+ NARRATIVE_API_KEY); unset → narrative stays on the Groq/Ollama endpoint (no change).
     const narrativeBaseUrl = process.env.NARRATIVE_BASE_URL?.replace(/\/$/, '');
     const useNarrativeOverride = !useOllama && !!narrativeBaseUrl;
+    // OpenRouter routes a model to several upstream providers of varying speed; prefer the fastest
+    // so a slow route can't push a turn past the serverless maxDuration. Only applied to OpenRouter.
+    const orNarrative = useNarrativeOverride && (narrativeBaseUrl ?? '').includes('openrouter') ? { provider: { sort: 'throughput' } } : {};
 
     // Sampling is endpoint-aware. Bare Groq general models were tuned hot (0.85–0.95) for variety.
     // The narrative-override model (currently DeepSeek V3.1 via OpenRouter) follows the craft rules
@@ -689,6 +692,7 @@ ${historyContext}
       // so this costs nothing extra and just prevents truncation.
       max_tokens: 1600,
       ...(useNarrativeOverride ? { top_p: 0.6 } : {}),
+      ...orNarrative,
       // Qwen3 models think by default and would stream <think> reasoning into the
       // prose. Disable it so the storyteller emits prose only (and stays fast).
       ...(narrativeModel.includes('qwen') ? { reasoning_effort: 'none' } : {}),
@@ -717,6 +721,9 @@ ${historyContext}
     const extractionHeaders = useExtractionOverride
       ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.EXTRACTION_API_KEY ?? ''}` }
       : requestHeaders;
+
+    // Prefer the fastest OpenRouter upstream (declared with extractionBaseUrl above).
+    const orExtraction = useExtractionOverride && (extractionBaseUrl ?? '').includes('openrouter') ? { provider: { sort: 'throughput' } } : {};
 
     let groqResponse = await fetch(narrativeUrl, {
       method: 'POST',
@@ -812,6 +819,7 @@ ${historyContext}
               // Gemini-family models think by default, which eats the budget and truncates the JSON —
               // extraction needs no reasoning. (Kept for any future Gemini-compatible EXTRACTION_MODEL.)
               ...(extractionModel.includes('gemini') ? { reasoning_effort: 'none' } : {}),
+              ...orExtraction,
             }),
           }).catch(() => null);
 
@@ -834,6 +842,7 @@ ${historyContext}
               max_tokens: 500,
               response_format: { type: 'json_object' },
               ...(useNarrativeOverride ? { top_p: 0.8 } : {}),
+              ...orNarrative,
               ...(narrativeModel.includes('qwen') ? { reasoning_effort: 'none' } : {}),
             }),
           }).catch(() => null);
