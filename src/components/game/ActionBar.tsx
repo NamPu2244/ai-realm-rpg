@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import type { Variants } from "motion/react";
-import { Send, RotateCcw, Skull } from "lucide-react";
+import { Send, RotateCcw, Skull, Clock, CreditCard, KeyRound, TriangleAlert } from "lucide-react";
 import type { SuggestedActionsByMode, PlayerActionMode } from "@/store/useGameStore";
+import type { AiErrorKind } from "@/components/game/PlayScreen";
 
 interface ActionBarProps {
   error: string | null;
+  errorKind: AiErrorKind | null;
   isLoading: boolean;
   isDead: boolean;
   suggestedActionsByMode: SuggestedActionsByMode;
@@ -75,11 +77,44 @@ function DeadPanel({ worldTone, onRestart }: Readonly<{ worldTone?: string; onRe
   );
 }
 
+// ---- AI error banner (kind-aware) ----
+// Each failure kind gets its own icon, palette, and retry framing so the player knows
+// whether trying again will actually help. 'credits' (operator balance out) reads as a
+// calm "wait" rather than an alarming red — retrying immediately won't fix it.
+const ERROR_META: Record<AiErrorKind, {
+  Icon: typeof RotateCcw; wrap: string; btn: string; retryLabel: string; showRetry: boolean;
+}> = {
+  rate_limit: { Icon: Clock,         wrap: "bg-amber-950/40 border-amber-800/50 text-amber-200",  btn: "bg-amber-900/60 hover:bg-amber-800 border-amber-700", retryLabel: "ลองใหม่",       showRetry: true },
+  transient:  { Icon: TriangleAlert, wrap: "bg-red-950/40 border-red-800/50 text-red-300",         btn: "bg-red-900/60 hover:bg-red-800 border-red-700",       retryLabel: "ลองใหม่",       showRetry: true },
+  auth:       { Icon: KeyRound,      wrap: "bg-red-950/40 border-red-800/50 text-red-300",         btn: "bg-red-900/60 hover:bg-red-800 border-red-700",       retryLabel: "ลองใหม่",       showRetry: true },
+  credits:    { Icon: CreditCard,    wrap: "bg-stone-800/50 border-stone-600/50 text-stone-300",   btn: "bg-stone-700/60 hover:bg-stone-600 border-stone-500", retryLabel: "ลองใหม่อีกครั้ง", showRetry: true },
+};
+
+function ErrorBanner({ error, kind, isLoading, onRetry }: Readonly<{
+  error: string; kind: AiErrorKind | null; isLoading: boolean; onRetry: () => void;
+}>) {
+  const meta = ERROR_META[kind ?? "transient"];
+  const { Icon } = meta;
+  return (
+    <div className={`flex items-center justify-between gap-3 px-4 py-3 border rounded-xl text-sm ${meta.wrap}`}>
+      <span className="flex items-center gap-2 min-w-0">
+        <Icon size={15} className="shrink-0" />
+        <span className="leading-snug">{error}</span>
+      </span>
+      {meta.showRetry && (
+        <button onClick={onRetry} disabled={isLoading} className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50 ${meta.btn}`}>
+          <RotateCcw size={12} /> {isLoading ? "..." : meta.retryLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ---- Main component ----
 type View = "ready" | "modes" | "choices";
 
 export default function ActionBar({
-  error, isLoading, isDead, suggestedActionsByMode, input, isLowHp, worldTone,
+  error, errorKind, isLoading, isDead, suggestedActionsByMode, input, isLowHp, worldTone,
   onInputChange, onSend, onRetry, onRestart,
 }: Readonly<ActionBarProps>) {
   const inputHistoryRef = useRef<string[]>([]);
@@ -168,12 +203,7 @@ export default function ActionBar({
   return (
     <div className="p-4 md:p-6 flex flex-col gap-3">
       {error && (
-        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-red-950/40 border border-red-800/50 rounded-xl text-sm text-red-300">
-          <span>⚠️ {error}</span>
-          <button onClick={onRetry} disabled={isLoading} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/60 hover:bg-red-800 border border-red-700 rounded-lg text-xs font-bold whitespace-nowrap transition-colors disabled:opacity-50">
-            <RotateCcw size={12} /> {isLoading ? "..." : "ลองใหม่"}
-          </button>
-        </div>
+        <ErrorBanner error={error} kind={errorKind} isLoading={isLoading} onRetry={onRetry} />
       )}
 
       {isDead ? (

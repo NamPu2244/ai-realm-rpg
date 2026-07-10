@@ -38,6 +38,21 @@ import { useQteTimer } from "@/hooks/useQteTimer";
 import { useCountdownTimer } from "@/hooks/useCountdownTimer";
 import { usePhaseSync } from "@/lib/phaseRoute";
 
+// The API classifies an AI failure so the UI can react by kind (retry vs. wait). Mirrors
+// the `code` field from /api/chat's error responses (see classifyApiError in route.ts).
+export type AiErrorKind = "rate_limit" | "credits" | "auth" | "transient";
+
+// Carries the server's already-friendly Thai message + its kind through the turn's
+// try/catch, so the catch can show it directly instead of a generic connection error.
+class AiTurnError extends Error {
+  kind: AiErrorKind;
+  constructor(message: string, kind: AiErrorKind) {
+    super(message);
+    this.name = "AiTurnError";
+    this.kind = kind;
+  }
+}
+
 export default function PlayScreen() {
   const router = useRouter();
   const {
@@ -82,6 +97,7 @@ export default function PlayScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [streamingNarrative, setStreamingNarrative] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<AiErrorKind | null>(null);
   const [retryAction, setRetryAction] = useState<{
     newHistory: ChatLog[];
     message: string;
@@ -422,6 +438,7 @@ export default function PlayScreen() {
     setIsLoading(true);
     setStreamingNarrative("");
     setError(null);
+    setErrorKind(null);
 
     try {
       const freshState = useGameStore.getState();
@@ -456,7 +473,10 @@ export default function PlayScreen() {
           setShowEnergyModal(true);
           return;
         }
-        throw new Error(errBody?.error || `Request failed with status ${res.status}`);
+        throw new AiTurnError(
+          errBody?.error || `เชื่อมต่อ AI ไม่สำเร็จ (สถานะ ${res.status})`,
+          (errBody?.code as AiErrorKind) || "transient",
+        );
       }
 
       const reader = res.body.getReader();
@@ -466,6 +486,7 @@ export default function PlayScreen() {
       let narrativeBuf = "";
       let lineBuffer = "";
       let streamError: string | null = null;
+      let streamErrorKind: AiErrorKind = "transient";
       let streamedRemainingEnergy: number | null = null;
       let finalGameState: Record<string, unknown> | null = null;
 
@@ -482,6 +503,7 @@ export default function PlayScreen() {
           const parsed = JSON.parse(line);
           if (typeof parsed.stream_error === "string") {
             streamError = parsed.stream_error;
+            if (typeof parsed.code === "string") streamErrorKind = parsed.code as AiErrorKind;
             return;
           }
           if (typeof parsed.response === "string") {
@@ -510,7 +532,7 @@ export default function PlayScreen() {
       }
       processLine(lineBuffer);
 
-      if (streamError) throw new Error(`Groq: ${streamError}`);
+      if (streamError) throw new AiTurnError(streamError, streamErrorKind);
 
       if (streamedRemainingEnergy !== null) {
         setEnergy(streamedRemainingEnergy);
@@ -520,19 +542,23 @@ export default function PlayScreen() {
         applyGameResult(finalGameState, newHistory, worldConfig, message, isSystemInit, handleSend);
       } else {
         setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
-        setError("AI returned an invalid response. Please try again.");
+        setError("AI ตอบกลับในรูปแบบที่อ่านไม่ได้ — กรุณากดลองใหม่");
+        setErrorKind("transient");
         setRetryAction({ newHistory, message, worldConfig });
         setStreamingNarrative("");
       }
     } catch (err) {
-      console.error("Network Error:", err);
-      const detail = err instanceof Error ? err.message : "";
+      console.error("Turn error:", err);
       setGameState({ is_qte_active: false, qte_time_limit: 0, qte_options: [] });
-      setError(
-        detail
-          ? `เชื่อมต่อ AI ไม่สำเร็จ: ${detail}`
-          : "เชื่อมต่อ AI ไม่สำเร็จ กรุณาลองอีกครั้ง",
-      );
+      if (err instanceof AiTurnError) {
+        // Server already produced a friendly, kind-tagged Thai message — show it verbatim.
+        setError(err.message);
+        setErrorKind(err.kind);
+      } else {
+        // A raw network/abort failure — the request never reached a classified response.
+        setError("เชื่อมต่อ AI ไม่สำเร็จ (เครือข่ายมีปัญหา) — กรุณากดลองใหม่");
+        setErrorKind("transient");
+      }
       setRetryAction({ newHistory, message, worldConfig });
       setStreamingNarrative("");
     } finally {
@@ -786,6 +812,7 @@ export default function PlayScreen() {
           reputation: typeof data.reputation === "string" ? data.reputation : "",
         });
         setError(null);
+        setErrorKind(null);
         // A file import replaces the whole game; make sure we're on the play route.
         firstTurnStartedRef.current = true;
         router.replace("/play");
@@ -972,6 +999,7 @@ export default function PlayScreen() {
             <div className="absolute inset-x-0 bottom-0 z-20 pointer-events-none [&_button]:pointer-events-auto [&_input]:pointer-events-auto [&_form]:pointer-events-auto bg-gradient-to-t from-stone-950/85 via-stone-950/40 to-transparent">
               <ActionBar
                 error={error}
+                errorKind={errorKind}
                 isLoading={isLoading}
                 isDead={is_dead}
                 suggestedActionsByMode={suggested_actions_by_mode}
