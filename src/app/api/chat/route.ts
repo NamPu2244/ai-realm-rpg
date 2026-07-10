@@ -687,8 +687,9 @@ ${historyContext}
       ],
       stream: true,
       temperature: narrativeTemperature,
-      // Prose is now kept tight (40-150 words), so 1000 is ample headroom and caps runaway.
-      max_tokens: 1000,
+      // Generous cap (first-turn openings are two-phase and longer); output is billed as generated,
+      // so this costs nothing extra and just prevents truncation.
+      max_tokens: 1600,
       ...(useNarrativeOverride ? { top_p: 0.6 } : {}),
       // Qwen3 models think by default and would stream <think> reasoning into the
       // prose. Disable it so the storyteller emits prose only (and stays fast).
@@ -706,6 +707,17 @@ ${historyContext}
       : inferenceUrl;
     const narrativeHeaders = useNarrativeOverride
       ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NARRATIVE_API_KEY ?? ''}` }
+      : requestHeaders;
+
+    // The extraction (bookkeeping) call can likewise target a separate OpenAI-compatible endpoint —
+    // e.g. Gemini Flash (cheap, huge context, and off Groq's daily token cap). Enabled by
+    // EXTRACTION_BASE_URL (+ EXTRACTION_API_KEY + EXTRACTION_MODEL); unset → extraction stays on
+    // Groq (no change). Dice stays on Groq regardless (tiny, needs Groq tool-calling).
+    const extractionBaseUrl = process.env.EXTRACTION_BASE_URL?.replace(/\/$/, '');
+    const useExtractionOverride = !useOllama && !!extractionBaseUrl;
+    const extractionUrl = useExtractionOverride ? `${extractionBaseUrl}/chat/completions` : inferenceUrl;
+    const extractionHeaders = useExtractionOverride
+      ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.EXTRACTION_API_KEY ?? ''}` }
       : requestHeaders;
 
     let groqResponse = await fetch(narrativeUrl, {
@@ -784,9 +796,9 @@ ${historyContext}
           // narrative's job). The compact story summary is kept so persistent fields
           // (objective / countdown) still carry forward. This roughly halves the Groq payload.
           const extractionUserPrompt = `[STORY SO FAR]\n${storySoFar}${knownCharsSection}\n\n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}\n[LIVES LEFT]\n${livesDisplay}${diceResultsSection}\n\n[PLAYER ACTION]\nPlayer: ${playerAction}\n\n[NARRATIVE JUST WRITTEN — derive all state changes from THIS prose only]\n${extractionNarrative}`;
-          const extractionPromise = fetch(inferenceUrl, {
+          const extractionPromise = fetch(extractionUrl, {
             method: 'POST',
-            headers: requestHeaders,
+            headers: extractionHeaders,
             body: JSON.stringify({
               model: extractionModel,
               messages: [
@@ -795,9 +807,13 @@ ${historyContext}
               ],
               stream: false,
               temperature: 0.2,
-              // The game_state JSON is compact; 900 fits it with margin.
-              max_tokens: 900,
+              // Headroom for a content-rich Thai game_state (Thai is token-dense). max_tokens only
+              // caps OUTPUT (billed as generated), so a generous cap costs nothing and avoids truncation.
+              max_tokens: 1500,
               response_format: { type: 'json_object' },
+              // Gemini-family models think by default, which eats the budget and truncates the JSON —
+              // extraction needs no reasoning. (Kept for any future Gemini-compatible EXTRACTION_MODEL.)
+              ...(extractionModel.includes('gemini') ? { reasoning_effort: 'none' } : {}),
             }),
           }).catch(() => null);
 
@@ -829,7 +845,7 @@ ${historyContext}
             const extractionRes = await extractionPromise;
             if (extractionRes?.ok) {
               const extractionData = await extractionRes.json() as {
-                choices?: Array<{ message?: { content?: string } }>;
+                choices?: Array<{ message?: { content?: string; finish_reason?: string }; finish_reason?: string }>;
               };
               const content = extractionData.choices?.[0]?.message?.content ?? "";
               gameState = parseJsonObject(content);
