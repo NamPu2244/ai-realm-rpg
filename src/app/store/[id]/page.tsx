@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, Star, Users, Play, Sparkles, Loader2, Ghost, Zap,
+  ArrowLeft, Star, Users, Play, Loader2, Ghost, Zap,
 } from "lucide-react";
 import { useGameStore, WorldConfig, genreToTheme } from "@/store/useGameStore";
 import { buildWorldCoverUrl, tropeLabelTH } from "@/lib/gameText";
@@ -35,7 +35,7 @@ export default function WorldDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
-  const { auth_status, energy, setGameState, createNewSaveSlot } = useGameStore();
+  const { auth_status, setGameState, createNewSaveSlot } = useGameStore();
 
   const [world, setWorld] = useState<WorldDetail | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -115,9 +115,6 @@ export default function WorldDetailPage() {
               <p className="text-xs font-black tracking-[0.15em] text-white">STORYWEAVE</p>
               <p className="text-[9px] uppercase tracking-widest text-amber-800/70">ตลาดโลก</p>
             </div>
-            <span className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3.5 py-2 text-sm font-semibold text-amber-300 ring-1 ring-amber-900/25">
-              <Zap size={15} className="fill-amber-300" /> {energy}
-            </span>
           </div>
         </div>
 
@@ -160,20 +157,7 @@ export default function WorldDetailPage() {
 
             {/* Details */}
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                {world.is_premium && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-300/40">
-                    <Sparkles size={11} /> Premium
-                  </span>
-                )}
-                {!world.is_premium && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
-                    Free
-                  </span>
-                )}
-              </div>
-
-              <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl">
+              <h1 className="text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl">
                 {world.title}
               </h1>
 

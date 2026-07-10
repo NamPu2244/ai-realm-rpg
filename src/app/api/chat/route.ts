@@ -73,23 +73,6 @@ function sanitizeForLanguage(text: string, language?: string): string {
 }
 
 const MAX_DAILY_TURNS = 50;
-const MAX_ENERGY = 50;
-
-// Resolve the Supabase user from an Authorization: Bearer <token> header.
-// Returns null for unauthenticated / missing / invalid tokens.
-async function getAuthUser(req: Request): Promise<{ userId: string } | null> {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  try {
-    const supabase = getSupabaseServerClient();
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) return null;
-    return { userId: user.id };
-  } catch {
-    return null;
-  }
-}
 
 async function checkRateLimit(req: Request): Promise<{ allowed: boolean; remaining: number }> {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -499,34 +482,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- Energy system (authenticated users only) ---
-    const authUser = await getAuthUser(req);
-    const userId = authUser?.userId ?? null;
-
-    if (userId) {
-      try {
-        const supabase = getSupabaseServerClient();
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('energy_balance')
-          .eq('id', userId)
-          .single();
-
-        if (profile && profile.energy_balance <= 0) {
-          return NextResponse.json(
-            {
-              status: 'error',
-              code: 'OUT_OF_ENERGY',
-              message: 'You have no energy remaining. Please wait until tomorrow or top up your energy.',
-            },
-            { status: 403 }
-          );
-        }
-      } catch {
-        // Non-fatal: if DB is unreachable, allow the turn to proceed
-      }
-    }
-    // ------------------------------------------------
+    // NOTE: the energy/paywall gate was removed — the game is free while the full
+    // monetization system is rebuilt. The shared-key daily turn cap (checkRateLimit
+    // above) still applies as basic cost protection.
 
     const body = await req.json();
 
@@ -967,27 +925,12 @@ ${historyContext}
             }
           }
 
-          // Deduct 1 energy atomically once the turn's generation has completed.
-          let remainingEnergy: number | undefined;
-          if (userId) {
-            try {
-              const supabase = getSupabaseServerClient();
-              const { data: newBalance } = await supabase.rpc('spend_energy', { p_user_id: userId });
-              if (typeof newBalance === 'number') remainingEnergy = newBalance;
-            } catch {
-              // Non-fatal: skip energy metadata if DB call fails
-            }
-          }
-
+          // Energy deduction removed — free play while the monetization system is rebuilt.
           const donePayload: Record<string, unknown> = { response: "", done: true };
           if (gameState) {
             gameState.narrative = narrativeBody;
             if (prologue) gameState.prologue = prologue;
             donePayload.game_state = gameState;
-          }
-          if (remainingEnergy !== undefined) {
-            donePayload.remaining_energy = remainingEnergy;
-            donePayload.max_energy = MAX_ENERGY;
           }
           controller.enqueue(encoder.encode(JSON.stringify(donePayload) + "\n"));
         };

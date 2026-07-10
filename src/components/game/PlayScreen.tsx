@@ -15,9 +15,7 @@ import SceneBanner from "@/components/game/SceneBanner";
 import ActionBar from "@/components/game/ActionBar";
 import CharacterSidebar from "@/components/game/CharacterSidebar";
 import MobileStatsDrawer from "@/components/game/MobileStatsDrawer";
-import SettingsModal from "@/components/game/SettingsModal";
 import FeedbackModal from "@/components/game/FeedbackModal";
-import EnergyModal from "@/components/game/EnergyModal";
 import { Heart, MessageSquare } from "lucide-react";
 import WorldLoadingScreen from "@/components/WorldLoadingScreen";
 import {
@@ -83,11 +81,8 @@ export default function PlayScreen() {
     player_condition,
     impact_fx,
     auth_status,
-    groq_api_key,
-    energy,
     sync_error,
     setGameState,
-    setEnergy,
     resetGame,
     syncCurrentGameToCloud,
     quitToMainMenu,
@@ -133,10 +128,8 @@ export default function PlayScreen() {
   };
   const [lastStatChange, setLastStatChange] = useState<{ hp: number; mana: number } | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const statChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [showEnergyModal, setShowEnergyModal] = useState(false);
   const [alertInfo, setAlertInfo] = useState<string | null>(null);
   const [confirmInfo, setConfirmInfo] = useState<{
     message: string;
@@ -157,12 +150,8 @@ export default function PlayScreen() {
     [current_image_prompt, world_config?.tone],
   );
   const isLowHp = hpPercent <= 30 && hpPercent > 0 && game_phase === "Playing";
-  // Energy only depletes for authenticated users (the server-side guard is auth-only),
-  // so a guest's static 50 never trips this. MAX_ENERGY is 50, so <10 ≈ below 20%.
-  const isLowEnergy =
-    auth_status === "authenticated" && energy < 10 && game_phase === "Playing";
-  // Critical = HP or energy below ~20%; drives the pulsing red edge vignette.
-  const isCritical = (hpPercent > 0 && hpPercent < 20) || isLowEnergy;
+  // Critical = HP below ~20%; drives the pulsing red edge vignette.
+  const isCritical = hpPercent > 0 && hpPercent < 20;
 
   // Extracted hooks
   const { isShaking, isDamageFlash, showLevelUp, levelUpNum } = useGameEffects(
@@ -461,7 +450,6 @@ export default function PlayScreen() {
           knownCharacters: freshState.known_characters,
           openThreads: freshState.open_threads,
           reputation: freshState.reputation,
-          userGroqKey: freshState.groq_api_key || undefined,
         }),
       });
 
@@ -469,10 +457,6 @@ export default function PlayScreen() {
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => null);
-        if (errBody?.code === "OUT_OF_ENERGY") {
-          setShowEnergyModal(true);
-          return;
-        }
         throw new AiTurnError(
           errBody?.error || `เชื่อมต่อ AI ไม่สำเร็จ (สถานะ ${res.status})`,
           (errBody?.code as AiErrorKind) || "transient",
@@ -487,7 +471,6 @@ export default function PlayScreen() {
       let lineBuffer = "";
       let streamError: string | null = null;
       let streamErrorKind: AiErrorKind = "transient";
-      let streamedRemainingEnergy: number | null = null;
       let finalGameState: Record<string, unknown> | null = null;
 
       // On the first turn the prose is "prologue [[SCENE]] narrative"; only the part
@@ -513,9 +496,6 @@ export default function PlayScreen() {
           if (parsed.game_state && typeof parsed.game_state === "object") {
             finalGameState = parsed.game_state;
           }
-          if (typeof parsed.remaining_energy === "number") {
-            streamedRemainingEnergy = parsed.remaining_energy;
-          }
         } catch (e) {
           console.error("Stream line parse error:", e, "Line:", line);
         }
@@ -533,10 +513,6 @@ export default function PlayScreen() {
       processLine(lineBuffer);
 
       if (streamError) throw new AiTurnError(streamError, streamErrorKind);
-
-      if (streamedRemainingEnergy !== null) {
-        setEnergy(streamedRemainingEnergy);
-      }
 
       if (finalGameState) {
         applyGameResult(finalGameState, newHistory, worldConfig, message, isSystemInit, handleSend);
@@ -966,8 +942,6 @@ export default function PlayScreen() {
               worldConfig={world_config}
               isLowHp={isLowHp}
               authStatus={auth_status}
-              hasPersonalKey={!!groq_api_key}
-              energy={energy}
               timeOfDay={time_of_day}
               inWorldDate={in_world_date}
               importInputRef={importInputRef}
@@ -978,7 +952,6 @@ export default function PlayScreen() {
               onImportSave={handleImportSave}
               onQuitToDashboard={() => quitToMainMenu()}
               onNewGame={handleNewGame}
-              onOpenSettings={() => setShowSettings(true)}
             />
 
             {current_image_prompt && (
@@ -1061,22 +1034,9 @@ export default function PlayScreen() {
           <MessageSquare size={12} /> Feedback
         </button>
 
-        <SettingsModal
-          isOpen={showSettings}
-          groqApiKey={groq_api_key}
-          onSave={(key) => { setGameState({ groq_api_key: key }); setShowSettings(false); }}
-          onDelete={() => { setGameState({ groq_api_key: "" }); setShowSettings(false); }}
-          onClose={() => setShowSettings(false)}
-        />
-
         <FeedbackModal
           isOpen={showFeedback}
           onClose={() => setShowFeedback(false)}
-        />
-
-        <EnergyModal
-          isOpen={showEnergyModal}
-          onClose={() => setShowEnergyModal(false)}
         />
       </div>
     );

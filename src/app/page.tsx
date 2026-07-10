@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useGameStore } from "@/store/useGameStore";
 import AuthScreen from "@/components/AuthScreen";
 import MainMenuDashboard from "@/components/MainMenuDashboard";
@@ -13,14 +13,7 @@ export default function LandingPage() {
     game_phase,
     setGameState,
     fetchUserSaves,
-    fetchSubscriptionStatus,
-    fetchEnergyBalance,
   } = useGameStore();
-
-  const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(() => {
-    if (globalThis.location === undefined) return false;
-    return new URLSearchParams(globalThis.location.search).get("upgrade") === "success";
-  });
 
   // game_phase stays the source of truth; if it points to /create or /play
   // (e.g. a guest resuming a persisted game), bounce there.
@@ -38,8 +31,6 @@ export default function LandingPage() {
           auth_status: "authenticated",
         });
         fetchUserSaves(sessionUser.id);
-        fetchSubscriptionStatus();
-        fetchEnergyBalance();
         if (useGameStore.getState().game_phase !== "Playing") {
           setGameState({ game_phase: "Dashboard" });
         }
@@ -65,32 +56,11 @@ export default function LandingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Stripe upgrade success toast (checkout returns to "/?upgrade=success").
-  useEffect(() => {
-    if (!showUpgradeSuccess) return;
-    fetchSubscriptionStatus();
-    const url = new URL(globalThis.location.href);
-    url.searchParams.delete("upgrade");
-    globalThis.history.replaceState(null, "", url.toString());
-    const t = setTimeout(() => setShowUpgradeSuccess(false), 5000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   if (!hydrated) return null;
 
   return (
     <>
       {game_phase === "Auth" ? <AuthScreen /> : <MainMenuDashboard />}
-
-      {showUpgradeSuccess && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-level-up-pop">
-          <div className="px-6 py-3 bg-emerald-900/90 border border-emerald-400/60 rounded-xl shadow-[0_0_30px_rgba(52,211,153,0.3)] text-center">
-            <p className="text-xs text-emerald-400/80 uppercase tracking-widest mb-0.5">สำเร็จ!</p>
-            <p className="text-base font-bold text-emerald-300">คุณได้สิทธิ์ Pro แล้ว ✦</p>
-          </div>
-        </div>
-      )}
     </>
   );
 }

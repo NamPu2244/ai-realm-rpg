@@ -9,7 +9,6 @@ import { usePhaseSync } from "@/lib/phaseRoute";
 export default function CreateRoute() {
   const {
     auth_status,
-    is_pro,
     setGameState,
     createNewSaveSlot,
   } = useGameStore();
@@ -96,7 +95,6 @@ export default function CreateRoute() {
       <WorldCreationMenu
         onStart={handleStartGame}
         onCancel={auth_status === "authenticated" ? () => setGameState({ game_phase: "Dashboard" }) : undefined}
-        isPro={is_pro}
       />
       {auth_status !== "authenticated" && (
         <>

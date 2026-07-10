@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Compass, Library, Search, Star, Users, Play, X, Wand2,
-  Loader2, Ghost, ArrowLeft, Sparkles, Zap, Lock, Trash2,
+  Loader2, Ghost, ArrowLeft, Sparkles, Lock, Trash2,
 } from "lucide-react";
 import { useGameStore } from "@/store/useGameStore";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -64,21 +64,6 @@ function formatCount(n: number): string {
 /* ============================================================
    PRICE BADGE
    ============================================================ */
-
-function PriceBadge({ world }: Readonly<{ world: World }>) {
-  if (world.is_premium) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-300/40">
-        <Sparkles size={11} /> พรีเมียม
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
-      ฟรี
-    </span>
-  );
-}
 
 /* ============================================================
    HERO BANNER — features the top world of the current listing
@@ -187,10 +172,6 @@ function WorldCard({ world, onOpen, onDelete }: Readonly<{ world: World; onOpen:
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#07050a] via-[#07050a]/10 to-transparent" />
 
-          <div className="absolute left-3 top-3">
-            <PriceBadge world={world} />
-          </div>
-
           <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1.5">
             {world.trope_tags.slice(0, 2).map((t) => (
               <span key={t} className="rounded-md bg-black/50 px-2 py-0.5 text-[10px] font-medium text-neutral-200 ring-1 ring-amber-900/30 backdrop-blur">
@@ -247,7 +228,6 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
   const [title, setTitle] = useState<string>(save_slots[0]?.world_name ?? "");
   const [synopsis, setSynopsis] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [isPremium, setIsPremium] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -284,7 +264,7 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
           title: title.trim(),
           synopsis: synopsis.trim(),
           tropeTags: tags,
-          isPremium,
+          isPremium: false,
           priceCoins: 0,
           coverUrl,
           coverType: "auto",
@@ -403,17 +383,6 @@ function PublishModal({ onClose, onPublished }: Readonly<{ onClose: () => void; 
               </div>
             </div>
 
-            {/* Visibility — coin pricing is hidden until the economy ships */}
-            <div className="relative mt-5">
-              <label className="flex items-center gap-2 text-sm text-neutral-300">
-                <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} className="accent-amber-500" />
-                ทำเป็นพรีเมียม
-              </label>
-              <p className="mt-1.5 text-xs text-neutral-600">
-                {isPremium ? "ถูกไฮไลต์เป็นโลกพรีเมียม" : "เผยแพร่ฟรีสำหรับทุกคน"}
-              </p>
-            </div>
-
             {error && <p className="relative mt-4 text-xs text-red-400">{error}</p>}
 
             <div className="relative mt-7 flex gap-3">
@@ -458,7 +427,7 @@ function CardSkeleton() {
 
 export default function StorePage() {
   const router = useRouter();
-  const { user, energy, setGameState } = useGameStore();
+  const { user, setGameState } = useGameStore();
 
   const [tab, setTab] = useState<Tab>("explore");
   const [showPublish, setShowPublish] = useState(false);
@@ -635,9 +604,6 @@ export default function StorePage() {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold text-neutral-200">{user?.email ?? "ผู้เยี่ยมชม"}</p>
-                <p className="flex items-center gap-1 text-[11px] text-amber-300/80">
-                  <Zap size={11} className="fill-amber-300/80" /> {energy} พลังงาน
-                </p>
               </div>
             </div>
           </div>
@@ -676,9 +642,6 @@ export default function StorePage() {
             >
               <Wand2 size={16} /> เผยแพร่
             </button>
-            <span className="hidden items-center gap-1.5 rounded-xl bg-white/5 px-3.5 py-2.5 text-sm font-semibold text-amber-300 ring-1 ring-amber-900/25 sm:flex">
-              <Zap size={15} className="fill-amber-300" /> {energy}
-            </span>
           </header>
 
           <div className="mx-auto max-w-7xl space-y-10 px-5 py-8 sm:px-8">
