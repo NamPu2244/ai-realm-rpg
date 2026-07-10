@@ -669,15 +669,13 @@ ${historyContext}
     const narrativeBaseUrl = process.env.NARRATIVE_BASE_URL?.replace(/\/$/, '');
     const useNarrativeOverride = !useOllama && !!narrativeBaseUrl;
 
-    // Sampling is endpoint-aware. The Groq general models were tuned hot (0.85–0.95) for prose
-    // variety. Typhoon (a3b MoE) instead OBEYS the show-don't-tell / banned-phrase rules and stops
-    // garbling words only at its recommended low temp (~0.6, top_p 0.6); hot sampling makes it write
-    // "คุณรู้สึก" and glitch. So drop temperature + pin top_p when routed to the Typhoon override.
+    // Sampling is endpoint-aware. Bare Groq general models were tuned hot (0.85–0.95) for variety.
+    // The narrative-override model (currently DeepSeek V3.1 via OpenRouter) follows the craft rules
+    // well and reads best at a moderate 0.7 with top_p pinned to 0.6 — 0.7 gave more variety than 0.6
+    // with no extra show-don't-tell slips in testing. (Typhoon, the previous override, needed 0.6.)
     const groqTemperature = isFirstTurn ? 0.95 : 0.85;
-    // Typhoon obeys the show-don't-tell / banned-phrase / opening-trope rules only at low temp —
-    // even the opening turn (a hot 0.7 let it slip into "คุณรู้สึก" + amnesia openings), so pin 0.6.
-    const typhoonTemperature = 0.6;
-    const narrativeTemperature = useNarrativeOverride ? typhoonTemperature : groqTemperature;
+    const narrativeOverrideTemperature = 0.7;
+    const narrativeTemperature = useNarrativeOverride ? narrativeOverrideTemperature : groqTemperature;
 
     const requestBody = JSON.stringify({
       model: narrativeModel,
