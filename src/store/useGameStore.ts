@@ -178,6 +178,9 @@ interface GameState {
   companions: Record<string, Companion>;
   visited_locations: VisitedLocation[];
   open_threads: OpenThread[];
+  // Consequence engine: how the world/strangers perceive the player, evolved from their deeds
+  // (mercy/cruelty, honesty/betrayal, …). Drives NPC reactions + resurfacing past choices.
+  reputation: string;
 
   // Real-time countdown event (e.g. "bomb will explode in 30 seconds")
   active_countdown: CountdownEvent | null;
@@ -262,6 +265,7 @@ const initialState = {
   companions: {} as Record<string, Companion>,
   visited_locations: [] as VisitedLocation[],
   open_threads: [] as OpenThread[],
+  reputation: '',
   active_countdown: null,
   environment_fx: [] as string[],
   player_condition: '',
@@ -395,6 +399,7 @@ export const useGameStore = create<GameState>()(
           companions: (gs.companions && typeof gs.companions === 'object') ? gs.companions : initialState.companions,
           visited_locations: Array.isArray(gs.visited_locations) ? gs.visited_locations : [],
           open_threads: Array.isArray(gs.open_threads) ? gs.open_threads : [],
+          reputation: typeof gs.reputation === 'string' ? gs.reputation : '',
           active_countdown: (gs.active_countdown && typeof gs.active_countdown === 'object') ? gs.active_countdown : null,
           current_save_slot_id: slotId,
           game_phase: 'Playing',
@@ -467,6 +472,7 @@ export const useGameStore = create<GameState>()(
               companions: state.companions,
               visited_locations: state.visited_locations,
               open_threads: state.open_threads,
+              reputation: state.reputation,
               active_countdown: state.active_countdown,
             },
           })
@@ -524,7 +530,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'storyweave-save',
-      version: 7,
+      version: 8,
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { user, save_slots, is_loading_saves, current_save_slot_id, groq_api_key, is_pro, energy, sync_error, ...rest } = state;
@@ -559,6 +565,7 @@ export const useGameStore = create<GameState>()(
           companions: state.companions ?? initialState.companions,
           visited_locations: state.visited_locations ?? [],
           open_threads: state.open_threads ?? [],
+          reputation: state.reputation ?? '',
           active_countdown: state.active_countdown ?? null,
           environment_fx: state.environment_fx ?? [],
           player_condition: state.player_condition ?? '',

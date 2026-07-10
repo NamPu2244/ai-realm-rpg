@@ -143,6 +143,7 @@ const PRESSURE_SECONDS: Record<OpenThread['urgency'], number> = {
 interface CharacterSidebarProps {
   worldConfig: WorldConfig | null;
   currentObjective: string;
+  reputation: string;
   playerStatus: PlayerStatus;
   isLowHp: boolean;
   livesLeft: number;
@@ -155,6 +156,7 @@ interface CharacterSidebarProps {
 export default function CharacterSidebar({
   worldConfig,
   currentObjective,
+  reputation,
   playerStatus,
   isLowHp,
   livesLeft,
@@ -239,6 +241,13 @@ export default function CharacterSidebar({
               <div className="mb-5 border-l-2 border-amber-900/50 pl-3">
                 <SectionLabel>เป้าหมาย</SectionLabel>
                 <p className="text-xs text-amber-200/70 leading-relaxed">{currentObjective}</p>
+              </div>
+            )}
+
+            {reputation && (
+              <div className="mb-5 border-l-2 border-violet-900/50 pl-3">
+                <SectionLabel>ชื่อเสียง</SectionLabel>
+                <p className="text-xs italic text-violet-200/70 leading-relaxed">“{reputation}”</p>
               </div>
             )}
 

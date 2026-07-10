@@ -62,6 +62,7 @@ export default function PlayScreen() {
     companions,
     visited_locations,
     open_threads,
+    reputation,
     active_countdown,
     environment_fx,
     player_condition,
@@ -282,6 +283,8 @@ export default function PlayScreen() {
       companions: updatedCompanions,
       visited_locations: updatedLocations,
       open_threads: Array.isArray(data.open_threads) ? (data.open_threads as OpenThread[]) : freshState.open_threads,
+      // Reputation persists; only overwrite when the extraction returns a non-empty value.
+      reputation: (typeof data.reputation === "string" && data.reputation.trim()) ? data.reputation : freshState.reputation,
       // Cinematic FX: keep persistent weather/condition on ambient turns; one-shot impacts fire per turn.
       environment_fx: isAmbientOrSystem ? freshState.environment_fx : sanitizeEnvironmentFx(data.environment_fx),
       player_condition: isAmbientOrSystem ? freshState.player_condition : sanitizePlayerCondition(data.player_condition),
@@ -368,6 +371,8 @@ export default function PlayScreen() {
                 livesLeft: newLives,
                 saveSlotId: freshState.current_save_slot_id ?? undefined,
                 knownCharacters: updatedCharacters,
+                openThreads: Array.isArray(data.open_threads) ? data.open_threads : freshState.open_threads,
+                reputation: (typeof data.reputation === "string" && data.reputation.trim()) ? data.reputation : freshState.reputation,
               }),
               signal: controller.signal,
             });
@@ -437,6 +442,8 @@ export default function PlayScreen() {
           livesLeft: freshState.lives_left,
           saveSlotId: freshState.current_save_slot_id ?? undefined,
           knownCharacters: freshState.known_characters,
+          openThreads: freshState.open_threads,
+          reputation: freshState.reputation,
           userGroqKey: freshState.groq_api_key || undefined,
         }),
       });
@@ -682,6 +689,7 @@ export default function PlayScreen() {
       companions: state.companions,
       visited_locations: state.visited_locations,
       open_threads: state.open_threads,
+      reputation: state.reputation,
     };
 
     const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: "application/json" });
@@ -775,6 +783,7 @@ export default function PlayScreen() {
           companions: (data.companions && typeof data.companions === "object") ? data.companions : {},
           visited_locations: Array.isArray(data.visited_locations) ? data.visited_locations : [],
           open_threads: Array.isArray(data.open_threads) ? data.open_threads : [],
+          reputation: typeof data.reputation === "string" ? data.reputation : "",
         });
         setError(null);
         // A file import replaces the whole game; make sure we're on the play route.
@@ -980,6 +989,7 @@ export default function PlayScreen() {
           <CharacterSidebar
             worldConfig={world_config}
             currentObjective={current_objective}
+            reputation={reputation}
             playerStatus={player_status}
             isLowHp={isLowHp}
             livesLeft={lives_left}

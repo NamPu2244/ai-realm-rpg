@@ -79,6 +79,7 @@ export default function CreateRoute() {
           companions: (data.companions && typeof data.companions === "object") ? data.companions : {},
           visited_locations: Array.isArray(data.visited_locations) ? data.visited_locations : [],
           open_threads: Array.isArray(data.open_threads) ? data.open_threads : [],
+          reputation: typeof data.reputation === "string" ? data.reputation : "",
         });
       } catch (err) {
         console.error("Import Error:", err);

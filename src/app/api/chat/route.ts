@@ -239,6 +239,10 @@ CONTINUITY:
 - LOOP-BREAK: If [RECENT EVENTS] shows the same class of action twice in a row, the third turn MUST inject an external disruption (a new arrival, an environmental change, an unignorable threat, a closing opportunity).
 - NPC MUST ACT: After any NPC "hesitates"/"considers"/pauses, the very next sentence in the same turn MUST show them doing something concrete — speaking, moving, reaching, leaving, signaling. Stillness is visible but must end in motion within the same paragraph.
 
+CONSEQUENCE & MEMORY — THE WORLD REMEMBERS:
+- The player's past deeds have weight. [REPUTATION] tells you how strangers and the world currently perceive them; let it COLOR how NPCs greet, price, trust, fear, or resent the player — through behavior and subtext, never by announcing it. A feared killer is served in nervous silence; a known cheat gets watched hands and short answers; a celebrated rescuer gets a stranger's nod they didn't earn from this person. Never state the reputation outright in the prose.
+- [OPEN THREADS] are unresolved consequences and looming hooks the world is holding onto. When the moment fits — an unexpected turn, a lull, a rising tension — RESURFACE one as a concrete complication or callback: the witness the player let live reappears with a name and a grudge; the promise made three turns ago comes due at the worst time; the wounded enemy returns changed. Do not resolve them all at once, and do not force one every turn — but the higher a thread's urgency, the sooner it should press back into the scene. Consequences arrive through the world's own agents and events, never as narrator commentary.
+
 WORLD EVENT BEATS — if the player action begins with "[WORLD EVENT:", this is an ambient pulse, NOT a player choice. Do NOT address the player directly or steer them toward a goal. Write 40-120 words of pure atmosphere by type:
   • NPC — a nearby NPC takes a concrete weighted action (delivers news, makes a visible decision, counts coins and looks troubled), hinting at their own story.
   • OVERHEARD — a fragment of conversation drifts in, implying something about the wider world. Never over-explain.
@@ -303,7 +307,8 @@ STATE RULES — apply strictly based on what the [NARRATIVE JUST WRITTEN] descri
 - STORY SUMMARY: Update "story_summary" — a concise running log of important events, NPCs, locations, and goals. Note any "pending consequence" here (a witnessed theft, a broken oath) to be delivered 2-5 turns later.
 - CURRENT OBJECTIVE: Update "current_objective" — a single short ${language} sentence for what the player should probably do next. (On WORLD EVENT turns, keep it unchanged.)
 - SUGGESTED ACTIONS: 2-4 short ${language} actions (each under 8 words) the player could take right now. Make each one SPECIFIC to this exact scene and charged with intent, attitude, or risk — never a flat generic menu verb. Tie every option to something concrete that is physically present in the narrative and give it a clear stake or flavor. Prefer evocative, decisive choices ("ฟันโซ่ที่ล่ามประตูให้ขาด", "หลบใต้เตียงแล้วกลั้นหายใจ", "จ่อมีดถามชื่อมันตรงๆ") over bland ones ("โจมตี", "สำรวจห้อง", "คุยกับ NPC"). Each should read like a decision a character would actually make in this moment, not a game command.
-- OPEN THREADS: "open_threads" tracks unresolved hooks, looming dangers, pending consequences, ticking clocks. Add a new thread (unique kebab id) when a significant hook/threat/tension appears; raise urgency (low→medium→high→critical) as pressure builds; remove a thread by omitting its id once resolved/delivered. Return the FULL current list every turn ([] if none). If expires_in_turns is a number it counts down each turn.
+- OPEN THREADS: "open_threads" tracks unresolved hooks, looming dangers, pending consequences, ticking clocks. Add a new thread (unique kebab id) when a significant hook/threat/tension appears — ESPECIALLY a consequential deed the player just committed that someone will remember or answer for (a witnessed killing/theft, a broken promise, a rescued or abandoned stranger, a powerful enemy made, a debt owed). Raise urgency (low→medium→high→critical) as pressure builds; remove a thread by omitting its id once resolved/delivered. Return the FULL current list every turn ([] if none). If expires_in_turns is a number it counts down each turn.
+- REPUTATION: "reputation" is a short ${language} phrase (a few words, e.g. "คนแปลกหน้าเลือดเย็นที่ฆ่าโดยไม่ลังเล" or "วีรบุรุษผู้เมตตาแห่งหมู่บ้านริมป่า") describing how the world and strangers currently perceive the player, EVOLVED from the pattern of their deeds — mercy vs. cruelty, honesty vs. betrayal, courage vs. cowardice, generosity vs. greed. Read [REPUTATION SO FAR] and adjust it ONLY when this turn's actions meaningfully shift that perception; otherwise return it unchanged. Keep it a living label, not a list. Empty string only at the very start before any defining act.
 - FIRST TURN: If there are no [RECENT EVENTS], this is the opening turn — initialize "player_status" with values appropriate to the character and genre (attributes typically 8-16 reflecting their class/background, sensible hp/max_hp, mana/max_mana, starting gold, any logical starting inventory/skills, level 1, exp 0) rather than copying the placeholder defaults in [CURRENT PLAYER STATUS]. Set lives_left to the value in [LIVES LEFT].
 
 CONSISTENCY EXAMPLE (player cut their own arm with a knife, was hp 10/10 with no status effects): hp becomes 7 and status_effects gains ["บาดแผลที่แขน", "เลือดไหล"], matching the narrative. ALWAYS keep this kind of consistency.
@@ -334,6 +339,7 @@ EXPECTED JSON SCHEMA — respond with ONLY this JSON object, no narrative, no pr
   "companion_updates": [{"name": "String", "description": "String", "role": "String", "hp": Number, "max_hp": Number, "status_effects": ["String"], "skills": ["String"], "status": "active|dead|missing", "relationship": "String"}],
   "new_locations": [{"name": "String", "description": "String (1 sentence in ${language})"}],
   "open_threads": [{"id": "String (kebab-slug)", "description": "String (in ${language})", "urgency": "low|medium|high|critical", "expires_in_turns": "Number or null"}],
+  "reputation": "String (in ${language})",
   "countdown_event": null,
   "suggested_actions": ["String (in ${language})"],
   "environment_fx": ["String — subset of: rain, snow, fog, embers, wind, water, ocean, underwater, cave, crowd, machinery, magic"],
@@ -514,7 +520,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId, knownCharacters, userGroqKey } = body;
+    const { prompt, history, currentState, currentSummary, worldConfig, livesLeft, saveSlotId, knownCharacters, openThreads, reputation, userGroqKey } = body;
 
     const groqKey = (typeof userGroqKey === 'string' && /^gsk_[a-zA-Z0-9]{40,80}$/.test(userGroqKey))
       ? userGroqKey
@@ -576,7 +582,30 @@ export async function POST(req: Request) {
       }
     }
 
-    const userPrompt = `[STORY SO FAR (Memory)]\n${storySoFar}${memoriesSection}${knownCharsSection}
+    // Consequence engine: how the world sees the player + unresolved deeds/hooks it is holding onto.
+    // These are produced by the extraction model each turn and fed back in so the narrative can
+    // react to reputation and resurface past choices (the "the world remembers" rules above).
+    const reputationText = typeof reputation === 'string' ? reputation.trim() : "";
+    const reputationSection = reputationText
+      ? `\n\n[REPUTATION — how strangers and the world currently perceive the player; color NPC behavior with it, never state it outright]\n${reputationText}`
+      : "";
+
+    let openThreadsLines = "";
+    if (Array.isArray(openThreads) && openThreads.length > 0) {
+      openThreadsLines = (openThreads as { description?: string; urgency?: string; expires_in_turns?: number | null }[])
+        .filter((t) => t && typeof t.description === 'string' && t.description.trim())
+        .map((t) => {
+          const urgency = t.urgency ? ` (${t.urgency})` : "";
+          const expiry = typeof t.expires_in_turns === 'number' ? ` [expires in ${t.expires_in_turns} turns]` : "";
+          return `- ${t.description}${urgency}${expiry}`;
+        })
+        .join("\n");
+    }
+    const openThreadsSection = openThreadsLines
+      ? `\n\n[OPEN THREADS — unresolved consequences and looming hooks the world is holding onto; resurface one as a concrete complication when the moment fits, urgent ones sooner]\n${openThreadsLines}`
+      : "";
+
+    const userPrompt = `[STORY SO FAR (Memory)]\n${storySoFar}${memoriesSection}${reputationSection}${openThreadsSection}${knownCharsSection}
 ${historyContext}
 \n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}
 \n[LIVES LEFT]\n${livesDisplay}
@@ -800,7 +829,15 @@ ${historyContext}
           // so it does NOT need the full 10-turn history or RAG memories (that bulk is the
           // narrative's job). The compact story summary is kept so persistent fields
           // (objective / countdown) still carry forward. This roughly halves the Groq payload.
-          const extractionUserPrompt = `[STORY SO FAR]\n${storySoFar}${knownCharsSection}\n\n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}\n[LIVES LEFT]\n${livesDisplay}${diceResultsSection}\n\n[PLAYER ACTION]\nPlayer: ${playerAction}\n\n[NARRATIVE JUST WRITTEN — derive all state changes from THIS prose only]\n${extractionNarrative}`;
+          // Consequence engine: feed the current reputation + open threads back so the extractor
+          // evolves reputation only on a real shift and returns the FULL open_threads list each turn.
+          const reputationSoFar = reputationText
+            ? `\n[REPUTATION SO FAR]\n${reputationText}`
+            : "";
+          const openThreadsSoFar = openThreadsLines
+            ? `\n[OPEN THREADS SO FAR — keep, update, or resolve these; return the full current list]\n${openThreadsLines}`
+            : "";
+          const extractionUserPrompt = `[STORY SO FAR]\n${storySoFar}${knownCharsSection}${reputationSoFar}${openThreadsSoFar}\n\n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}\n[LIVES LEFT]\n${livesDisplay}${diceResultsSection}\n\n[PLAYER ACTION]\nPlayer: ${playerAction}\n\n[NARRATIVE JUST WRITTEN — derive all state changes from THIS prose only]\n${extractionNarrative}`;
           const extractionPromise = fetch(extractionUrl, {
             method: 'POST',
             headers: extractionHeaders,
