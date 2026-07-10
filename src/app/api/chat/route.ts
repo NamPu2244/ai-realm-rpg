@@ -540,7 +540,10 @@ export async function POST(req: Request) {
 
     let historyContext = "";
     if (history && history.length > 0) {
-      historyContext = "\n\n[RECENT EVENTS (Last 10 turns)]\n" + history.map((h: { role: string; content: string }) => {
+      // Last 8 raw turns for continuity; older context lives in the story summary. (Trimmed from
+      // 10 to save tokens without hurting the narrative's short-term recall.)
+      const recent = history.slice(-8);
+      historyContext = "\n\n[RECENT EVENTS]\n" + recent.map((h: { role: string; content: string }) => {
         if (h.role === 'player') return `Player: ${h.content}`;
         // 'system' = a world-side beat the player did not cause (e.g. a timer running out).
         if (h.role === 'system') return `[World event — player took no action]: ${h.content}`;
@@ -684,7 +687,8 @@ ${historyContext}
       ],
       stream: true,
       temperature: narrativeTemperature,
-      max_tokens: 1600,
+      // Prose is now kept tight (40-150 words), so 1000 is ample headroom and caps runaway.
+      max_tokens: 1000,
       ...(useNarrativeOverride ? { top_p: 0.6 } : {}),
       // Qwen3 models think by default and would stream <think> reasoning into the
       // prose. Disable it so the storyteller emits prose only (and stays fast).
@@ -775,7 +779,11 @@ ${historyContext}
           const extractionNarrative = prologue ? `${prologue}\n\n${narrativeBody}` : narrativeBody;
 
           // 3a. Bookkeeping — the small model derives structured state from the prose.
-          const extractionUserPrompt = `${finalUserPrompt}\n\n[NARRATIVE JUST WRITTEN — derive all state changes from this exact prose]\n${extractionNarrative}`;
+          // TOKEN DIET: extraction reads THIS turn's prose + current status to compute deltas,
+          // so it does NOT need the full 10-turn history or RAG memories (that bulk is the
+          // narrative's job). The compact story summary is kept so persistent fields
+          // (objective / countdown) still carry forward. This roughly halves the Groq payload.
+          const extractionUserPrompt = `[STORY SO FAR]\n${storySoFar}${knownCharsSection}\n\n[CURRENT PLAYER STATUS]\n${JSON.stringify(currentState)}\n[LIVES LEFT]\n${livesDisplay}${diceResultsSection}\n\n[PLAYER ACTION]\nPlayer: ${playerAction}\n\n[NARRATIVE JUST WRITTEN — derive all state changes from THIS prose only]\n${extractionNarrative}`;
           const extractionPromise = fetch(inferenceUrl, {
             method: 'POST',
             headers: requestHeaders,
@@ -787,7 +795,8 @@ ${historyContext}
               ],
               stream: false,
               temperature: 0.2,
-              max_tokens: 1600,
+              // The game_state JSON is compact; 900 fits it with margin.
+              max_tokens: 900,
               response_format: { type: 'json_object' },
             }),
           }).catch(() => null);
