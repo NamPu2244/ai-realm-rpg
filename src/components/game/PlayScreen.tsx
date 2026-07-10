@@ -257,8 +257,14 @@ export default function PlayScreen() {
 
     setGameState({
       player_status: playerStatus,
-      story_summary: data.story_summary,
-      current_objective: data.current_objective || "",
+      // Keep the previous summary/objective when the extraction returns an empty one (the small
+      // model occasionally omits them) — these carry continuity, especially for the lean extraction.
+      story_summary: (typeof data.story_summary === "string" && data.story_summary.trim())
+        ? data.story_summary
+        : freshState.story_summary,
+      current_objective: (typeof data.current_objective === "string" && data.current_objective.trim())
+        ? data.current_objective
+        : freshState.current_objective,
       is_dead: !!data.is_dead,
       current_image_prompt: data.scene_image_prompt || freshState.current_image_prompt,
       suggested_actions: suggestedActions,
