@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
@@ -25,21 +25,17 @@ export function phaseToPath(phase: string): string {
 
 /** True once the Zustand persist layer has rehydrated from localStorage. */
 export function useHasHydrated(): boolean {
-  // Persist rehydration is a client-only concern; on the server (prerender)
-  // there is no `persist` API and nothing to wait for, so report not-hydrated.
-  // The first client render MUST match that server output (false) or React
-  // throws a hydration mismatch — Zustand's persist rehydrates synchronously,
-  // so reading `hasHydrated()` in the initializer would return true and diverge.
-  // Instead always start false and flip in an effect (post-hydration).
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    if (useGameStore.persist?.hasHydrated?.()) {
-      setHydrated(true);
-      return;
-    }
-    return useGameStore.persist?.onFinishHydration?.(() => setHydrated(true));
-  }, []);
-  return hydrated;
+  // Persist rehydration is a client-only concern. `useSyncExternalStore` is the
+  // React-blessed way to read it: the server snapshot is always `false` (no
+  // `persist` API during prerender), so the first client render matches the
+  // server output and avoids a hydration mismatch; then we subscribe to
+  // `onFinishHydration` and re-read the client snapshot once rehydration lands.
+  return useSyncExternalStore(
+    (onStoreChange) =>
+      useGameStore.persist?.onFinishHydration?.(onStoreChange) ?? (() => {}),
+    () => useGameStore.persist?.hasHydrated?.() ?? false,
+    () => false,
+  );
 }
 
 /**

@@ -42,6 +42,10 @@ export default function AdminUsersPage() {
   }, [])
 
   useEffect(() => {
+    // Legitimate data-fetch effect: fetchUsers is async, so its setState runs after
+    // the await (not a synchronous in-effect cascade). The lint rule can't see across
+    // the async boundary, so disable it here rather than contort a real fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (token) fetchUsers(token)
   }, [token, fetchUsers])
 

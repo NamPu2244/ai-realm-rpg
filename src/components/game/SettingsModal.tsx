@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 
 interface SettingsModalProps {
@@ -14,9 +14,14 @@ interface SettingsModalProps {
 export default function SettingsModal({ isOpen, groqApiKey, onSave, onDelete, onClose }: SettingsModalProps) {
   const [apiKeyDraft, setApiKeyDraft] = useState(groqApiKey);
 
-  useEffect(() => {
+  // Re-seed the draft from the saved key each time the modal (re)opens, without an
+  // effect: React's documented "adjust state while rendering on a change" pattern —
+  // track the previous `isOpen` in state and reset on the false→true edge.
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
     if (isOpen) setApiKeyDraft(groqApiKey);
-  }, [isOpen, groqApiKey]);
+  }
 
   if (!isOpen) return null;
 

@@ -18,9 +18,19 @@ export default function FXManager({ environmentFx, playerCondition, impactFx }: 
   // One-shot white flash: re-key a fresh element each time a 'flash' impact arrives so the
   // CSS animation restarts. It ends at opacity 0 (animation-fill: forwards), so it can stay
   // mounted harmlessly between flashes.
+  // Bump the flash key on the exact render where a new impactFx array carrying "flash"
+  // arrives — set-during-render (guarded by the previous array tracked in state) restarts
+  // the CSS animation without a setState-in-effect cascade.
   const [flashKey, setFlashKey] = useState(0);
+  const [prevImpact, setPrevImpact] = useState(impactFx);
+  if (impactFx !== prevImpact) {
+    setPrevImpact(impactFx);
+    if (impactFx.includes("flash")) setFlashKey((k) => k + 1);
+  }
+
+  // Sound is a pure external side-effect (no React state), so it belongs in an effect.
   useEffect(() => {
-    if (impactFx.includes("flash")) { setFlashKey((k) => k + 1); playThunder(); }
+    if (impactFx.includes("flash")) playThunder();
     if (impactFx.includes("shake")) playBoom();
   }, [impactFx]);
 
@@ -53,12 +63,21 @@ export function sceneConditionClass(playerCondition: string): string {
 // Fires a 0.5s shake whenever a 'shake' impact arrives this turn. Returns whether the
 // content wrapper should currently carry the .fx-shake class.
 export function useNarrativeShake(impactFx: string[]): boolean {
+  // A new impactFx array carrying "shake" turns shaking on for 500ms. Flip it on via
+  // set-during-render (React's "adjust state on a change" pattern, tracking the previous
+  // array in state) so there's no synchronous setState inside the effect; the effect then
+  // only arms a timer whose callback flips it back off (setState in a callback is allowed).
   const [shaking, setShaking] = useState(false);
+  const [prevImpact, setPrevImpact] = useState(impactFx);
+  if (impactFx !== prevImpact) {
+    setPrevImpact(impactFx);
+    if (impactFx.includes("shake")) setShaking(true);
+  }
+
   useEffect(() => {
-    if (!impactFx.includes("shake")) return;
-    setShaking(true);
+    if (!shaking) return;
     const t = setTimeout(() => setShaking(false), 500);
     return () => clearTimeout(t);
-  }, [impactFx]);
+  }, [shaking]);
   return shaking;
 }

@@ -351,7 +351,7 @@ EXPECTED JSON SCHEMA — respond with ONLY this JSON object, no narrative, no pr
 }
 
 // The player-choices "brain". Concrete, tempting, scene-specific choices are a CRAFT task,
-// not bookkeeping — so this runs on the storyteller model (Typhoon), fed the finished prose.
+// not bookkeeping — so this runs on the storyteller model (DeepSeek), fed the finished prose.
 // Returns choices GROUPED BY THE PLAYER'S ACTION MODE (speak / think / act / investigate) so
 // the UI can show mode-filtered options after the player picks a mode ("fake freedom in
 // bounds"). Runs in parallel with extraction in finishTurn.
@@ -703,9 +703,10 @@ ${historyContext}
     const narrativeLanguage = worldConfig?.language || 'ไทย';
 
     // The narrative (storyteller) call can optionally target a SEPARATE OpenAI-compatible
-    // endpoint — e.g. Typhoon (opentyphoon.ai), which handles Thai prose far better than any
-    // Groq general model. Extraction + dice stay on Groq. Enabled by NARRATIVE_BASE_URL
-    // (+ NARRATIVE_API_KEY); unset → narrative stays on the Groq/Ollama endpoint (no change).
+    // endpoint — currently DeepSeek V3.1 via OpenRouter, which handles Thai prose far better
+    // than any Groq general model (and is uncensored for mature scenes). Dice stays on Groq;
+    // extraction has its own override. Enabled by NARRATIVE_BASE_URL (+ NARRATIVE_API_KEY);
+    // unset → narrative stays on the Groq/Ollama endpoint (no change).
     const narrativeBaseUrl = process.env.NARRATIVE_BASE_URL?.replace(/\/$/, '');
     const useNarrativeOverride = !useOllama && !!narrativeBaseUrl;
     // OpenRouter routes a model to several upstream providers of varying speed; prefer the fastest
@@ -715,7 +716,7 @@ ${historyContext}
     // Sampling is endpoint-aware. Bare Groq general models were tuned hot (0.85–0.95) for variety.
     // The narrative-override model (currently DeepSeek V3.1 via OpenRouter) follows the craft rules
     // well and reads best at a moderate 0.7 with top_p pinned to 0.6 — 0.7 gave more variety than 0.6
-    // with no extra show-don't-tell slips in testing. (Typhoon, the previous override, needed 0.6.)
+    // with no extra show-don't-tell slips in testing. (Typhoon, an earlier override, needed 0.6.)
     const groqTemperature = isFirstTurn ? 0.95 : 0.85;
     const narrativeOverrideTemperature = 0.7;
     const narrativeTemperature = useNarrativeOverride ? narrativeOverrideTemperature : groqTemperature;
@@ -940,7 +941,7 @@ ${historyContext}
           }
 
           // Guarantee the mode-first UI always has SOMETHING to show: if the grouped call
-          // came back empty/thin (Typhoon occasionally fumbles the nested JSON), seed the
+          // came back empty/thin (the model occasionally fumbles the nested JSON), seed the
           // 'act' mode from the flat suggested_actions so the player never faces a blank turn.
           if (gameState) {
             const bm = gameState.suggested_actions_by_mode as SuggestedActionsByMode | undefined;

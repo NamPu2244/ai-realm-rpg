@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored / non-app trees that shouldn't be linted as app source.
+    "fine-tuning/**",
   ]),
 ]);
 
